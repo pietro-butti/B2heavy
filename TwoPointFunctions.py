@@ -10,28 +10,19 @@ import os
 import sys
 from autograd import numpy as np
 
-ENSEMBLE_LIST = ['MediumCoarse'] 
-MESON_LIST    = ['Dsst']
-MOMENTUM_LIST = ['000']
+import FnalHISQMetadata
+
+
+
+ENSEMBLE_LIST = ['MediumCoarse', 'Coarse-2', 'Coarse-1', 'Coarse-Phys', 'Fine-1', 'SuperFine']#'Fine-Phys', 'SuperFine'] 
+MESON_LIST    = ["Dsst", "Bs", "D", "Ds", "Dst", "Dsst", "K", "pi", "Bc", "Bst", "Bsst"]
+MOMENTUM_LIST = ["000", "100", "200", "300", "400", "110", "211", "222"]
 
 def ConstantModel(x,p):
     return np.array([p['const']]*len(x))
 
 def PeriodicExpDecay(Nt):
     return lambda t,E,Z: Z * ( np.exp(-E*t) + np.exp(-E*(Nt-t)) ) 
-
-# def NplusN2ptModel(Nexc,Nt,sm,pol):
-#     sm1,sm2 = sm.split('-')
-#     mix = sm1!=sm2
-
-#     if Nexc==2:
-#         return lambda t,p: \
-#                         PeriodicExpDecay(Nt)(t,p['E'][0]                                        , np.exp(p[f'Z_{sm1}_{pol}'][0]) * np.exp(p[f'Z_{sm2}_{pol}'][0])) + \
-#             (-1)**(t+1)*PeriodicExpDecay(Nt)(t,p['E'][0] + np.exp(p['E'][1])                    , np.exp(p[f'Z_{sm1}_{pol}'][1]) * np.exp(p[f'Z_{sm2}_{pol}'][1])) + \
-#                         PeriodicExpDecay(Nt)(t,p['E'][0] + np.exp(p['E'][2])                    , p[f'Z_{sm if mix else sm1}_{pol}'][2]**2) + \
-#             (-1)**(t+1)*PeriodicExpDecay(Nt)(t,p['E'][0] + np.exp(p['E'][1]) + np.exp(p['E'][3]), p[f'Z_{sm if mix else sm1}_{pol}'][3]**2)
-#     else:
-#         pass
 
 def NplusN2ptModel(Nstates,Nt,sm,pol):
     sm1,sm2 = sm.split('-')
@@ -51,10 +42,12 @@ def NplusN2ptModel(Nstates,Nt,sm,pol):
     return _
 
 
+
+
+
+
 class CorrelatorInfo:
-    def __new__(cls, _name:str, _ens:str, _mes:str, _mom:str, _bins:int, _file):
-        if _file is not None and not os.path.isfile(_file): # Check whether input file exist
-            raise RuntimeError(f'{_file} has not been found.')
+    def __new__(cls, _name:str, _ens:str, _mes:str, _mom:str):
         if _ens not in ENSEMBLE_LIST: 
             raise KeyError(f'{_ens} is not a valid ensemble.')
         if _mes not in MESON_LIST: # Check whether meson is recognized
@@ -62,17 +55,78 @@ class CorrelatorInfo:
         if _mom not in MOMENTUM_LIST: # Check whether momentum is recognized
             raise KeyError(f'{_mom} is not a valid momentum.')
         return super().__new__(cls)
+        # if _file is not None and not os.path.isfile(_file): # Check whether input file exist
+        #     raise RuntimeError(f'{_file} has not been found.')
 
-    def __init__(self, _name:str, _ens:str, _mes:str, _mom:str, _bins:str, _file):
+    def __init__(self, _name:str, _ens:str, _mes:str, _mom:str):
         self.name     = _name
         self.ensemble = _ens
         self.meson    = _mes
         self.momentum = _mom
-        self.binsize  = _bins
-        self.filename = _file
+        self.binsize  = None
+        self.filename = None
 
     def __str__(self):
         return f' # ------------- {self.name} -------------\n # ensemble = {self.ensemble}\n #    meson = {self.meson}\n # momentum = {self.momentum}\n #  binsize = {self.binsize}\n # filename = {self.filename}\n # ---------------------------------------'
+
+
+
+class CorrelatorIO:
+    def __init__(self, _ens:str, _mes:str, _mom:str, PathToFile=None, PathToDataDir=None, name=None):
+        dname = f'{_ens}_{_mes}_p{_mom}' if name is None else name
+
+        self.info  = CorrelatorInfo(dname,_ens,_mes,_mom)
+        self.mData = FnalHISQMetadata.params(_ens)
+
+        if PathToFile is not None:
+            self.CorrFile = PathToFile
+        elif PathToDataDir is not None:
+            path = os.path.join(PathToDataDir,self.mData['folder'],self.mData['hdf5File2'])
+            if os.path.exists(path):
+                self.CorrFile = path
+            else:
+                raise FileNotFoundError(f'The file {path} has not been found')
+        else:
+            raise FileNotFoundError(f'Please specify as optional argument either data file in `PathToFile` or `PathToDataDir` to look at default data file.')
+        
+    def CorrFileList(self, sms=None):
+        # if moms is None:
+        #     moms = self.mData['moms']
+        if sms is None:
+            sms = self.mData['sms']
+
+        meson = self.info.meson
+        mom   = self.info.momentum
+
+        B       = meson.startswith('B')
+        D       = meson.startswith('D')
+
+        charm   = 'c' in meson
+        star    = meson.endswith('st')
+        strange = (meson[-1]=='s') if not star else (meson.count('s')==2)
+
+        channel = ['P5_P5'] if not star else ['V1_V1', 'V2_V2', 'V3_V3']
+        heavy   = f'k{self.mData["kBStr"]}' if B else (f'k{self.mData["kDStr"]}' if D else None)
+        light   = f'k{self.mData["kDStr"]}' if charm else (f'm{self.mData["msStr"]}' if strange else f'm{self.mData["mlStr"]}')
+
+        clist = []
+        for lss in sms:
+            for hss in sms:
+                # for mm in moms:
+                if meson=='K':
+                    clist.append(f'P5_P5_{lss}_{hss}_m{self.mData["msStr"]}_m{self.mData["mlStr"]}_p{mom}')
+                    continue
+                elif meson=='pi':
+                    clist.append(f'P5_P5_{lss}_{hss}_m{self.mData["mlStr"]}_m{self.mData["mlStr"]}_p{mom}')
+                else:
+                    for ch in channel:
+                        clist.append(f'{ch}_{lss}_{hss}_{heavy}_{light}_p{mom}')
+
+        # self.CorrFileList = clist
+        return clist
+
+
+
 
 class Correlator:
     """
@@ -312,6 +366,7 @@ class CorrFitter:
 
         self.fits = {}
 
+
     def fit(self, corr:Correlator, Nstates, trange, priors,  p0=None, maxit=50000, svdcut=1e-12, debug=False, **kwargs):
         """
             This function perform a fit to 2pts oscillating functions.
@@ -441,3 +496,20 @@ class CorrFitter:
             ic = fit.chi2 + 2*self.chiexp(Nstates,trange)
         
         return np.exp(-ic/2)
+
+
+
+
+
+# def NplusN2ptModel(Nexc,Nt,sm,pol):
+#     sm1,sm2 = sm.split('-')
+#     mix = sm1!=sm2
+
+#     if Nexc==2:
+#         return lambda t,p: \
+#                         PeriodicExpDecay(Nt)(t,p['E'][0]                                        , np.exp(p[f'Z_{sm1}_{pol}'][0]) * np.exp(p[f'Z_{sm2}_{pol}'][0])) + \
+#             (-1)**(t+1)*PeriodicExpDecay(Nt)(t,p['E'][0] + np.exp(p['E'][1])                    , np.exp(p[f'Z_{sm1}_{pol}'][1]) * np.exp(p[f'Z_{sm2}_{pol}'][1])) + \
+#                         PeriodicExpDecay(Nt)(t,p['E'][0] + np.exp(p['E'][2])                    , p[f'Z_{sm if mix else sm1}_{pol}'][2]**2) + \
+#             (-1)**(t+1)*PeriodicExpDecay(Nt)(t,p['E'][0] + np.exp(p['E'][1]) + np.exp(p['E'][3]), p[f'Z_{sm if mix else sm1}_{pol}'][3]**2)
+#     else:
+#         pass
