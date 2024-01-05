@@ -10,12 +10,16 @@ import os
 import sys
 import h5py
 from autograd import numpy as np
+from scipy.special import gammaincc as gammaQ
+from scipy.special import gammaln as gammaLn
+from scipy.special import gamma as gamma
+from scipy.linalg import eigh
 
 import FnalHISQMetadata
 
 
 
-ENSEMBLE_LIST = ['MediumCoarse', 'Coarse-2', 'Coarse-1', 'Coarse-Phys', 'Fine-1', 'SuperFine', 'Fine-Phys', 'SuperFine'] 
+ENSEMBLE_LIST = ['MediumCoarse', 'Coarse-2', 'Coarse-1', 'Coarse-Phys', 'Fine-1', 'SuperFine', 'Fine-Phys'] 
 MESON_LIST    = ["Dsst", "Bs", "D", "Ds", "Dst", "Dsst", "K", "pi", "Bc", "Bst", "Bsst"]
 MOMENTUM_LIST = ["000", "100", "200", "300", "400", "110", "211", "222"]
 
@@ -40,6 +44,7 @@ def NplusN2ptModel(Nstates,Nt,sm,pol):
             Z = p[f'Z_{sm if mix else sm1}_{pol}'][i-2 if mix else i]**2
             ans += PeriodicExpDecay(Nt)(t,E,Z) * (-1)**(i*(t+1))
         return ans
+
     return _
 
 
@@ -149,16 +154,16 @@ class CorrelatorIO:
                     
                     aux = [f for f in newfiles if f in data]
                     
-                    smr_string = f'{self.checkSmear(lss)}_{self.checkSmear(hss)}'
+                    smr_string = f'{self.checkSmear(lss)}-{self.checkSmear(hss)}'
                     clist.append((aux,smr_string)) if aux else 1
 
             return clist
 
-    def ReadCorrelator(self,sms=None):
+    def ReadCorrelator(self,sms=None, CrossSmearing=False, verbose=False):
         CorrList = self.CorrFileList(sms=sms)
         T  = self.mData['T']//2
 
-        with h5py.File(self.CorrFile,'r') as d:
+        with h5py.File(self.CorrFile,'r') as d: # open file and read
             data = d['data']
 
             allCorrs = []
@@ -195,19 +200,35 @@ class CorrelatorIO:
                         crPar /= np.array([int(x) for x in mom]).sum()
 
                         allSmear.append(smr)
-                        allPolar.add(('Par','Bot'))
+                        allPolar.add('Par')
+                        allPolar.add('Bot')
                         allCorrs.append([crPar,crBot])
 
                     else:
                         allSmear.append(smr)
                         allPolar.add('Unpol')
                         allCorrs.append([np.array(aux).mean(axis=0)])
+        
+        if not CrossSmearing: # average cross-smearing correlator
+            # detect which ones are the cross smearing and put them in a dict e.g. cross['1S_d']=[2,4]  
+            cross = {}
+            ssm = [sorted(s.split('-')) for s in allSmear]
+            sst = [f'{s[0]}_{s[1]}' for s in ssm]
+            for v in set(sst):
+                if sst.count(v)>1:
+                    cross[v] = [i for i,x in enumerate(sst) if x==v]
+
+            # Cycle over all the crossed-smearing, average them and put the average in the first one, delete the second
+            for v in cross.values():
+                allCorrs[v[1]][0][:] = 0.5*(allCorrs[v[0]][0][:]+allCorrs[v[1]][0])[:]  
+                allCorrs.pop(v[0])
+                allSmear.pop(v[0])
 
         DATA = np.array(allCorrs)
         xd = xr.DataArray(
             DATA,
             dims   = ['smearing','polarization','jkbin','timeslice'],
-            coords = [allSmear,list(*allPolar),np.arange(DATA.shape[-2]),np.arange(DATA.shape[-1])],
+            coords = [allSmear,list(allPolar),np.arange(DATA.shape[-2]),np.arange(DATA.shape[-1])],
             attrs  = {
                 'ensemble': self.info.ensemble,
                 'meson'   : self.info.meson,
@@ -216,14 +237,19 @@ class CorrelatorIO:
             },
             name   = self.info.name
         )
+
+        if verbose:
+            print(f'Correlators for ensemble {self.info.ensemble} for meson {self.info.meson} at fixed mom {mom} read from {CorrList}')
+
         return xd
 
 class Correlator:
     """
         This is the basic structure for a correlator at fixed momentum. It contains data for all possible smearings and polarization.
     """
-    def __init__(self, io:CorrelatorIO, sms=None):
-        self.data = io.ReadCorrelator(sms=sms)
+    def __init__(self, io:CorrelatorIO, sms=None, **kwargs):
+        self.io   = io
+        self.data = io.ReadCorrelator(sms=sms,**kwargs)
         self.Nt   = 2*self.data.timeslice.size
         self.info = io.info  
 
@@ -264,12 +290,12 @@ class Correlator:
         )
         self.data = xd
         
-        return 0
+        return
 
     def __str__(self):
         return self.info
 
-    def format(self, trange=None, flatten=False, covariance=True, jknorm=True, smearing=None, polarization=None, alldata=False):
+    def format(self, trange=None, flatten=False, covariance=True, smearing=None, polarization=None, alldata=False):
         """
             Preprocess correlator and returns argument `(xfit,yfit)` for `data` field in `lsqfit.nonlinear_fit`.
 
@@ -338,13 +364,15 @@ class Correlator:
         if covariance:
             Y = gv.gvar(
                 yaux.mean(axis=0),
-                np.cov(yaux,rowvar=False,bias=False) * ((yaux.shape[0]-1) if jknorm else 1./yaux.shape[0])
+                np.cov(yaux,rowvar=False,bias=False) * ((yaux.shape[0]-1) if self.info.binsize is not None else 1./yaux.shape[0])
             )
+            # do I have to divide for the number of configurations? FIXME
+
         else:
-            Y = gv.gvar(yaux.mean(axis=0),yaux.std(axis=0))
+            Y = gv.gvar(yaux.mean(axis=0),yaux.std(axis=0) * np.sqrt((yaux.shape[0]-1)) if self.info.binsize is not None else 1./yaux.shape[0])
+            # do I have to divide for the number of configurations? FIXME
 
-
-        # In case flatten flag is active, return 
+        # In case flatten flag is active, reshape 
         if flatten: 
             xfit = np.concatenate([X for _ in keys])
             yfit = Y
@@ -356,7 +384,7 @@ class Correlator:
 
         return (xfit,yfit)
 
-    def EffectiveMass(self, variant='log', trange=None, flatten=True, **kwargs):
+    def EffectiveMass (self, trange=None, variant='log', mprior=None, verbose=True, **kwargs):
         """
             Calls `format` and compute effective mass from the correlator as `log C(t)/C(t+2)`
 
@@ -369,12 +397,11 @@ class Correlator:
 
             Returns
             ---------
-            (x,y)
+            (x,y) 
                 Same output of `format`
-            meff, dict
-                Dictionary with the same keys of `x` and `y` containing the effective mass dep. on time.
             MEFF
-                Dictionary with the same keys of `x` and `y` containing the values of the fitted effective mass. Returned only id `fit` flag is set to `True`.
+                Result of the fit
+            prior
 
         """
 
@@ -385,88 +412,79 @@ class Correlator:
             if variant=='log':
                 meff[k] = np.log(c/np.roll(c,-2))/2 
             elif variant=='arccosh':
-                meff[k] = np.arccosh(((np.roll(c,-2) + np.roll(c,2))/c/2))/2
+                meff[k] = np.arccosh(((np.roll(c,-1) + np.roll(c,1))/c/2))/2
 
-        # Slice data in the time range
-        iifit = np.arange(0,self.Nt//2) if trange is None else np.arange(min(trange),max(trange)+1)
-        xfit, yfit = {}, {}
+        xdic, ydic = {}, {}
         for k,m in meff.items():
-            xfit[k] = x[k][iifit]
-            yfit[k] = m[iifit]
-
-        pr = gv.mean(list(yfit.values()))
+            iifit = np.arange(len(m)) if trange is None else [i for i,x in enumerate(x[k]) if x>=min(trange) and x<=max(trange)]
+            xdic[k] = x[k][iifit]
+            ydic[k] = m[iifit]
+        
+        xfit = np.concatenate(xdic.values())
+        yfit = np.concatenate(ydic.values())
+        
+        if mprior is None:
+            aux = gv.mean(yfit).mean()
+            pr = gv.gvar(aux,aux)
+        else:
+            pr = mprior
 
         # Perform fit
         fit = lsqfit.nonlinear_fit(
             data=(xfit,yfit),
             fcn=ConstantModel,
-            prior={'const': gv.gvar(pr,pr)}
+            prior={'const': pr}
         )
         MEFF = fit.p['const']
 
-        # (x,y) = self.format(flatten=False, **kwargs)
+        if verbose:
+            print(fit)
 
-        # meff = {}
-        # for k,v in y.items():
-        #     if variant=='log':
-        #         meff[k] = np.log(v/np.roll(v,-2))[:-2]/2        
-        #     elif variant=='arccosh':
-        #         meff[k] = np.arccosh(((np.roll(v,-2) + np.roll(v,2))/v/2)[2:-2])/2
+        return (x,meff), MEFF, pr
 
-        # if fit: 
-        #     if not flatten:
-        #         MEFF = {}
-        #         for k,v in meff.items():
-        #             Trange = np.arange(len(v)) if trange==None else np.arange(trange[0],min(trange[1],len(v)))
-        #             fit = lsqfit.nonlinear_fit(
-        #                 data=(x[k][Trange],v[Trange]),
-        #                 fcn=ConstantModel,
-        #                 prior={'const': gv.gvar(gv.mean(v[Trange]).mean(),gv.mean(v[Trange]).mean())}
-        #             )
-        #             MEFF[k] = fit.p['const']
-        #     else:
-        #         x = np.concatenate([v for k,v in x.items()])
-        #         y = np.concatenate([v for k,v in y.items()])
-        #         fit = lsqfit.nonlinear_fit(
-        #             data=(x,y),
-        #             fcn=ConstantModel,
-        #             prior={'const': gv.gvar(gv.mean(v[trange]).mean(),gv.mean(v[trange]).mean())}
-        #         )
-        #         MEFF['all'] = fit.p['const']
-        #     return x,y,meff,MEFF
-        # else:
-        #     return x,y,meff
+    def EffectiveCoeff(self, trange=None, variant='log', aprior=None, mprior=None, verbose=True, **kwargs):
+        # Compute effective mass according to the definition
+        (X,meff), MEFF, m_pr = self.EffectiveMass(trange=trange, variant=variant, verbose=verbose, mprior=mprior, **kwargs)
+        (_,C) = self.format(flatten=False, **kwargs)
 
-        return meff, MEFF
-
-    def EffectiveCoeff(self, variant='log', fitrange=None, **kwargs):
-        (x,y,meff,MEFF) = self.EffectiveMass(fit=True, fitrange=fitrange, variant=variant)
-
-        Aeff = {}
-        for k,v in y.items():
-            if variant=='log':
-                Aeff[k] = np.exp(MEFF[k].mean*x[k])*v
-            elif variant=='arccosh':
-                Aeff[k] = v/(np.exp(-MEFF[k].mean*x[k]) + np.exp(-MEFF[k].mean*(self.Nt-x[k])))
-
+        apr = {}
+        aeff = {}
         AEFF = {}
-        for k,v in Aeff.items():
-            trange = np.arange(fitrange[0],min(fitrange[1],len(v)))
-            pr = {'const': gv.gvar(gv.mean(v[trange]).mean(),gv.mean(v[trange]).mean())}
+        for k,x in X.items():
+            if variant=='log':
+                Aeff = np.exp(MEFF.mean*x) * C[k]   #*Y[k][iok]
+            elif variant=='arccosh':
+                Aeff = C[k]/(np.exp(-MEFF.mean*C[k]) + np.exp(-MEFF.mean*(self.Nt-x)))
+            aeff[k] = Aeff
+
+            iok = np.arange(len(x)) if trange is None else [i for i,x in enumerate(x) if x>=min(trange) and x<=max(trange)]
+            Aeff = Aeff[iok]
+
+            if aprior is None:
+                pr = {'const': gv.gvar(gv.mean(Aeff).mean(),gv.mean(Aeff).mean())}
+            else:
+                pr = {'const': aprior[k]}
+
             fit = lsqfit.nonlinear_fit(
-                data=(x[k][trange],v[trange]),
+                data=(x[iok],Aeff),
                 fcn=ConstantModel,
                 prior=pr
             )
+            if verbose:
+                print(k,fit)
+        
             AEFF[k] = fit.p['const']
-
-        return x,y,meff,Aeff,MEFF,AEFF
+            apr[k] = pr['const']
+        
+        return (X,meff,aeff), MEFF,AEFF, m_pr, apr
 
 class CorrFitter:
     """
         This class takes care of fitting correlators.
     """
-    def __init__(self, corr:Correlator, smearing=None, polarization=None, **kwargs):
+    def __init__(self, corr:Correlator, smearing=None, polarization=None):
+        self.corr = corr
+
         SMR = smearing     if not smearing==None     else corr.data.smearing.to_numpy()
         POL = polarization if not polarization==None else corr.data.polarization.to_numpy()
 
@@ -478,8 +496,9 @@ class CorrFitter:
 
         self.fits = {}
 
+        return
 
-    def fit(self, corr:Correlator, Nstates, trange, priors,  p0=None, maxit=50000, svdcut=1e-12, debug=False, **kwargs):
+    def fit(self, Nstates, trange, priors,  p0=None, maxit=50000, svdcut=1e-12, debug=False, verbose=False, **kwargs):
         """
             This function perform a fit to 2pts oscillating functions.
 
@@ -499,7 +518,8 @@ class CorrFitter:
             print(f'Fit for {(Nstates,trange)} has already been performed. Returning...')
             return
 
-        xfit,yfit = corr.format(trange=trange, smearing=self.smearing, polarization=self.polarization, **kwargs)
+
+        xfit,yfit = self.corr.format(trange=trange, smearing=self.smearing, polarization=self.polarization, **kwargs)
         yfit = np.concatenate([yfit[k] for k in self.keys])
 
         def model(x,p):
@@ -514,13 +534,23 @@ class CorrFitter:
             p0     = p0 if p0 is not None else gv.mean(priors),
             maxit  = maxit,
             svdcut = svdcut,
-            debug  = debug,
+            debug  = debug
         )
-
         self.fits[(Nstates,trange)] = fit
+
+        if verbose:
+            print(fit)
+
         return
-    
-    def chiexp(self, Nstates, trange):
+
+    # chiexp makes use of the fact that self.fits[...] is the ouptut of nonlinear_fit. This is not optimal
+    # one should save only necessary informations FIXME
+    def chiexp(self, Nstates, trange, covariance=True):
+        """
+            chiexp(self, Nstates, trange)
+
+            Compute expected chi-square given by Eq. (2.13) of 2209.14188v2 for the case of fit with priors, i.e. ``augmenting'' the covariance matrix as in Eq. (D9)
+        """
         key = (Nstates,trange) 
         if key not in self.fits:
             raise KeyError(f'Fit for Nstates={Nstates} and trange={trange} has not been performed yet.')
@@ -565,9 +595,12 @@ class CorrFitter:
                 for _i in delta:
                     grad[(ik*lent):((ik+1)*lent),I] += [autograd.grad(_model,_i+1)(tt,*gv.mean(pars)) for tt in fit.x[(sm,pol)]]
         # ----------------------------------------------------------------- #
-
         # Calculate enlarged covariance matrix as in (D.9) of (2209.14188v2) #
-        COV  = gv.evalcov(fit.y)
+        if covariance:
+            (x,y) = self.corr.format(trange=trange, flatten=True, covariance=True, smearing=self.smearing, polarization=self.polarization)
+            COV  = gv.evalcov(y)
+        else:
+            COV = gv.evalcov(fit.y)
         width = np.concatenate([fit.psdev[k] for k in sorted(fit.p.keys())])
         diagpr = np.diag(1./np.array(width)**2)
         COV = np.block(
@@ -586,6 +619,20 @@ class CorrFitter:
 
         return chi_exp
 
+    def chiprior(self, Nstates, trange):
+        """
+            chiprior(self, Nstates, trange)
+
+            Computes the prior chi-square of the fit.
+        """
+        f = self.fits[(Nstates,trange)]
+        chi2pr = 0.
+        for k,v in f.prior.items():
+            for i,p in enumerate(v):
+                chi2pr += (f.pmean[k][i]-p.mean)**2/(p.sdev**2)
+        
+        return chi2pr
+
     def weight(self, Nstates, trange, IC='AIC'):
         key = (Nstates,trange) 
         if key not in self.fits:
@@ -593,35 +640,241 @@ class CorrFitter:
         else:
             fit = self.fits[key]
 
-        # Calculate augmented chi2
-        chi2aug = fit.chi2
-        for k,v in fit.prior.items():
-            for i,p in enumerate(v):
-                chi2aug += (fit.pmean[k][i]-p.mean)**2/(p.sdev**2)
-
-        Npars = 6 + 6*(Nstates-1)
         Ncut  = self.Nt/2 - (max(trange)+1-min(trange))
+        Npars = 2*Nstates + 2*Nstates*2 + (2*Nstates-2) # this is for 2 smearing FIXME
 
         if IC=='AIC':
-            ic = chi2aug + 2*Npars + 2*Ncut
-        elif IC=='TIC':
-            ic = fit.chi2 + 2*self.chiexp(Nstates,trange)
+            ic = fit.chi2 + 2*Npars + 2*Ncut
         
         return np.exp(-ic/2)
 
+    def fDist2(self, chi2, nConf, dof):
+        """
+            Compute the cumulative chi-square distribution with `dof` degrees of freedom, corrected for finite sample size `nConf` integrated from `chi2` to infinity.
+
+            Its definition is taken from formula (B1) of PRD 93 113016.
+        """
+        return (np.exp(gammaLn(nConf/2.0) - gammaLn(dof/2.0) - gammaLn((nConf-dof)/2.0) + (-dof/2.0)*np.log(nConf) + ((dof-2.0)/2.0)*np.log(chi2) + (-nConf/2.0)*np.log(1.0+chi2/nConf)))
+
+    def dpVal(self, chi2, nConf, dof):
+        """
+            Compute the p-value of the fit given by formula (B5) of of PRD 93 113016.
+        """
+
+        if dof <= 0:
+            return 0.0
+
+        if chi2 < 3.0*dof+2.0:
+            nSteps = int(100.0*chi2/(2.0*np.sqrt(2.0*dof)))
+
+            if nSteps < 20:
+                nSteps = 20;
+            eps = chi2/nSteps;
+            sum = 0.0
+            tChi2 = 0.5*eps
+
+            while tChi2 < chi2:
+                sum = sum + self.fDist2(tChi2, nConf, dof)
+                tChi2 = tChi2 + eps
+
+            if sum*eps < 0.9:
+                return 1.0 - sum*eps;
+
+        nSteps = 0;
+        eps = (2.0*np.sqrt(2.0*dof))/100.0;
+
+        y = self.fDist2(chi2, nConf, dof);
+
+        sum = 0.0
+        tChi2 = chi2+0.5*eps
+
+        while True:
+            tChi2 = tChi2 + eps
+            nSteps = nSteps + 1
+            z = self.fDist2(tChi2, nConf, dof);
+
+            if nSteps > 1000 or z < 0.0001*y:
+                break;
+
+            sum += z;
+
+        return sum*eps
+
+    def model_average(self, keylist=None, IC='AIC', par='E0'):
+        """
+            model_average(self, keylist=None, IC='AIC', par='E0')
+
+            Perform the model average of the results corresponding to the keys in `keylist` according to Eq. (15) of arXiv:2008.01069v3. Reutrns also systematic error according to Eq. (18)
+        """
+        if keylist is None:
+            keys = self.fits.keys()
+        else:
+            # Check all keys in `keylist` are calculated
+            for k in keylist:
+                if k not in self.fits:
+                    raise KeyError(f'Fit for {k} has not been calculated.')
+            keys = keylist
+
+        Ws = [self.weight(n,t,IC=IC) for (n,t) in keys] # Compute and gather all the weights
+        Ws = Ws/sum(Ws)
+
+        if par=='E0':
+            P  = [self.fits[k].p['E'][0] for k in keys]
+        else:
+            pass # FIXME 
+    
+        syst = np.sqrt(gv.mean(sum(Ws*P*P) - (sum(Ws*P))**2))
+
+        return sum(Ws*P), syst
+
+    def GEVP(self, t0=None, smlist=['d','1S'], polarization=None, order=-1):
+        """
+            GEVP(self, t0=None, smlist=['d','1S'], polarization=None, order=-1)
+
+            Extract the ground state mass by solving the GEVP. 
+            
+            Methodology
+            -----------
+            Given a list of smearing types, e.g. `['d','1S']`, a correlator matrix is built as
+            $$ C(t) = 
+                \begin{pmatrix}
+                    (\text{d},\text{d}) & (\text{d},\text{1S}) \\
+                    (\text{1S},\text{d}) & (\text{1S},\text{1S})
+                \end{pmatrix}
+            $$
+            then the following GEVP is solved
+            $$
+                C(t)\cdot\vec{v}_{(n)}(t,t_0) = \lambda_{(n)}(t,t_0) C(t_0)\vec v_{(n)}(t,t_0)
+            $$
+            for each t. The ground state (effective) mass is extracted as
+            $$
+                E_n^{\text{eff}}(t,t_0) \equiv \log\frac{\lambda_{(n)}(t,t_0)}{\lambda_{(n)}(t+1,t_0)} = E_n + \mathcal{O}(e^{-t\Delta E_n })
+            $$
+            The asymptotic behavior is only insured in the regime $t\in[t_0,2t_0]$ as suggested [here](https://inis.iaea.org/collection/NCLCollectionStore/_Public/40/054/40054766.pdf).
+
+            Arguments
+            ---------
+                t0: int
+                    The reference time used to solve the GEVP. We remind that the convergence is ensured for $t\geq t_0/2$. The default value is set to `None`, in this case, when the GEVP is solved for each `t`, it is set to `t0=t//2`
+                smlist: list
+                    A list of smearing. From that the matrix is built.
+                polarization: list
+                    List of polarization to be considered
+                order: int
+                    Index of the eigenvalue to be returned, i.e. `sorted(eval)[order]` (`eval` being the first output of `eigh`).
+
+        """
+        # Construct the list with element of smearing matrix
+        if len(np.unique(smlist))<2:
+            raise KeyError('At least two types of smearings must be provided')
+        else:
+            smr_flat = [f'{sm1}-{sm2}' for sm1 in np.unique(smlist) for sm2 in np.unique(smlist)]
+
+        Nt  = self.corr.data.timeslice.size
+        Nc  = self.corr.data.jkbin.size
+        Nsm = int(np.sqrt(len(smr_flat)))
+
+        # Select polarization to be considered
+        if polarization is not None:
+            if False not in np.isin(polarization,self.data.polarization):
+                POL = sorted(polarization)
+            else:
+                raise ValueError(f'Polarization list {polarization} contains at least one item which is not contained in data.polarization')
+        else:
+            POL = sorted(self.corr.data.polarization.values)
+
+        # Reshape data and construct corr matrix
+        C = np.moveaxis(self.corr.data.loc[smr_flat,POL,:,:].values,0,-1).reshape(Nc,Nt,Nsm,Nsm)
+
+        # Iterate over time and solve the GEVP conf by conf
+        eigs = []
+        for jk in range(Nc):
+            aux = []
+            for t in range(Nt):
+                eigval, eigvec = eigh(C[jk,t,:,:],b=C[jk,t0 if t0 is not None else t//2,:,:])
+                aux.append(sorted(eigval)[order]) # sort eigenvalue and select the `order`-th
+            eigs.append(aux)
+        eigs = np.array(eigs)
+
+        # Calculate effective mass
+        aux = np.log(eigs/np.roll(eigs,-1,axis=1))
+        Eeff = gv.gvar(
+            aux.mean(axis=0),
+            np.cov(aux,rowvar=False) * (eigs.shape[0]-1  if self.corr.info.binsize is not None else 1.)
+        )
+
+        return Eeff[:-1]
+
+    def GEVPmass(self, trange=None, covariance=True, chiexp=True, pr=None, verbose=False, **kwargs):
+        # Set time range
+        if trange is None:
+            iok = np.arange(self.corr.data.timeslice.size-1)
+        else:
+            iok = [i for i,t in enumerate(self.corr.data.timeslice) if t<=max(trange) and t>=min(trange)]
+
+        # Call GEVP 
+        meff = self.GEVP(**kwargs)[iok]
+
+        # Set prior
+        if pr is None:
+            prior = gv.gvar(gv.mean(meff).mean(),gv.mean(meff).mean())
+        else:
+            prior = pr
+
+        if covariance:
+            # Perform a fully correlated fit
+            fit = lsqfit.nonlinear_fit(
+                data=(self.corr.data.timeslice[iok],meff),
+                fcn=ConstantModel,
+                prior={'const': prior}
+            )
+
+            if verbose:
+                print(fit)
+
+        else: # perform uncorrelated fit
+            pass
+
+
+        return fit.p['const']
+    
+
+
+def test():
+    ens      = 'MediumCoarse'
+    data_dir = '/Users/pietro/code/data_analysis/BtoD/Alex'
+    meson    = 'Dsst'
+    mom      = '000'
+    binsize  = 13
+
+    io   = CorrelatorIO(ens,meson,mom,PathToDataDir=data_dir)
+    corr = Correlator(io,CrossSmearing=True)
+    corr.jack(binsize)
+
+    smlist = ['1S-1S','d-d','d-1S']
+    fitter = CorrFitter(corr,smearing=smlist)
+
+    fitter.GEVPmass(t0=1,trange=(11,20),pr=gv.gvar('1.3532(35)'),verbose=True)
+
+
+if __name__ == "__main__":
+    test()
 
 
 
 
-# def NplusN2ptModel(Nexc,Nt,sm,pol):
-#     sm1,sm2 = sm.split('-')
-#     mix = sm1!=sm2
 
-#     if Nexc==2:
-#         return lambda t,p: \
-#                         PeriodicExpDecay(Nt)(t,p['E'][0]                                        , np.exp(p[f'Z_{sm1}_{pol}'][0]) * np.exp(p[f'Z_{sm2}_{pol}'][0])) + \
-#             (-1)**(t+1)*PeriodicExpDecay(Nt)(t,p['E'][0] + np.exp(p['E'][1])                    , np.exp(p[f'Z_{sm1}_{pol}'][1]) * np.exp(p[f'Z_{sm2}_{pol}'][1])) + \
-#                         PeriodicExpDecay(Nt)(t,p['E'][0] + np.exp(p['E'][2])                    , p[f'Z_{sm if mix else sm1}_{pol}'][2]**2) + \
-#             (-1)**(t+1)*PeriodicExpDecay(Nt)(t,p['E'][0] + np.exp(p['E'][1]) + np.exp(p['E'][3]), p[f'Z_{sm if mix else sm1}_{pol}'][3]**2)
-#     else:
-#         pass
+
+def old_NplusN2ptModel(Nexc,Nt,sm,pol):
+    sm1,sm2 = sm.split('-')
+    mix = sm1!=sm2
+
+    if Nexc==2:
+        return lambda t,p: \
+                        PeriodicExpDecay(Nt)(t,p['E'][0]                                        , np.exp(p[f'Z_{sm1}_{pol}'][0]) * np.exp(p[f'Z_{sm2}_{pol}'][0])) + \
+            (-1)**(t+1)*PeriodicExpDecay(Nt)(t,p['E'][0] + np.exp(p['E'][1])                    , np.exp(p[f'Z_{sm1}_{pol}'][1]) * np.exp(p[f'Z_{sm2}_{pol}'][1])) + \
+                        PeriodicExpDecay(Nt)(t,p['E'][0] + np.exp(p['E'][2])                    , p[f'Z_{sm if mix else sm1}_{pol}'][2]**2) + \
+            (-1)**(t+1)*PeriodicExpDecay(Nt)(t,p['E'][0] + np.exp(p['E'][1]) + np.exp(p['E'][3]), p[f'Z_{sm if mix else sm1}_{pol}'][3]**2)
+    else:
+        pass
+
