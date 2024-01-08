@@ -22,6 +22,16 @@ import FnalHISQMetadata
 ENSEMBLE_LIST = ['MediumCoarse', 'Coarse-2', 'Coarse-1', 'Coarse-Phys', 'Fine-1', 'SuperFine', 'Fine-Phys'] 
 MESON_LIST    = ["Dsst", "Bs", "D", "Ds", "Dst", "Dsst", "K", "pi", "Bc", "Bst", "Bsst"]
 MOMENTUM_LIST = ["000", "100", "200", "300", "400", "110", "211", "222"]
+mPhys  = { 
+    'B'   : 5.280,
+    'Bs'  : 5.366,
+    'D'   : 1.870,
+    'Dst' : 2.010,
+    'Ds'  : 1.968,
+    'Dsst': 2.112,
+    'K'   : 0.496,
+    'pi'  : 0.135 
+}
 
 def ConstantModel(x,p):
     return np.array([p['const']]*len(x))
@@ -102,6 +112,11 @@ class CorrelatorIO:
 
         self.info  = CorrelatorInfo(dname,_ens,_mes,_mom)
         self.mData = FnalHISQMetadata.params(_ens)
+
+
+        if _mes=='Dsst':
+            self.GeV = self.mData['mDs']/mPhys['Ds'] * self.mData['aSpc']/self.mData['hbarc']
+
 
         if PathToFile is not None:
             self.CorrFile = PathToFile
@@ -253,6 +268,9 @@ class Correlator:
         self.Nt   = 2*self.data.timeslice.size
         self.info = io.info  
 
+    def __str__(self):
+        return self.info
+
     def jack(self, bsize):
         self.info.binsize = bsize
 
@@ -292,8 +310,6 @@ class Correlator:
         
         return
 
-    def __str__(self):
-        return self.info
 
     def format(self, trange=None, flatten=False, covariance=True, smearing=None, polarization=None, alldata=False):
         """
@@ -485,8 +501,8 @@ class CorrFitter:
     def __init__(self, corr:Correlator, smearing=None, polarization=None):
         self.corr = corr
 
-        SMR = smearing     if not smearing==None     else corr.data.smearing.to_numpy()
-        POL = polarization if not polarization==None else corr.data.polarization.to_numpy()
+        SMR = smearing     if not smearing==None     else list(corr.data.smearing.values)
+        POL = polarization if not polarization==None else list(corr.data.polarization.values)
 
         self.smearing = SMR
         self.polarization = POL 
@@ -496,7 +512,148 @@ class CorrFitter:
 
         self.fits = {}
 
-        return
+    def set_priors_phys(self,Nstates, Meff=None):
+        at_rest = self.corr.info.momentum=='000'
+        p2 = sum([(2*np.pi*float(px)/self.corr.io.mData['L'])**2 for px in self.corr.info.momentum])
+
+
+        dScale = self.corr.io.mData['mDs']/mPhys['Ds']
+        bScale = self.corr.io.mData['mBs']/mPhys['Bs']
+        aGeV   = self.corr.io.mData['aSpc']/self.corr.io.mData['hbarc']
+        
+        # SET ENERGIES ---------------------------------------------------------------------------
+        priors = dict()
+        if self.corr.info.meson=='Dsst':
+            E = []
+            if Meff is None:
+                E.append(gv.gvar(mPhys[self.corr.info.meson],0.6/12) * dScale * aGeV) # fundamental physical state
+            else:
+                E.append(gv.gvar(Meff.mean,0.140*aGeV.mean))
+
+            E.append(np.log(gv.gvar(0.350*bScale , 0.6/3*dScale) * aGeV)) # fundamental oscillating state
+
+            for n in range(2,2*Nstates):
+                E.append(np.log(gv.gvar(0.6,0.6)*dScale*aGeV)) # excited states
+            priors['E'] = E
+
+        if not at_rest: # non-zero mom
+            priors['E'][0] = gv.gvar(
+                np.sqrt(priors['E'][0].mean**2 + p2),
+                np.sqrt(4*(priors['E'][0].mean**2)*(priors['E'][0].sdev**2) + p2*self.corr.io.mData['alphaS'])/(2*priors['E'][0].mean)
+            )
+        
+        # SET OVERLAP FACTORS --------------------------------------------------------------------
+        apEr = self.corr.io.mData["alphaS"]*p2
+
+        lbl = set() # infer all smearing labels
+        for smr,pol in self.keys:
+            sm1,sm2 = smr.split('-')
+            lbl.add(f'{sm1}_{pol}' if sm1==sm2 else f'{smr}_{pol}')         
+
+        for smr in list(lbl):
+            if len(self.corr.info.meson) > 2:
+                if self.corr.info.meson[-2:] == 'st':
+                    if 'd' in smr:
+                        val  = (np.log((self.corr.io.mData['aSpc']*5.3 + 0.54)*self.corr.io.mData['aSpc'])).mean
+                        err  = (np.sqrt((np.exp(val)*val*0.2)**2 + apEr**2)/np.exp(val))
+                        bVal = gv.gvar(val, err)      
+
+                        if smr.split('_')[-1]=='Par':
+                            oVal = gv.gvar(-5.5,2.0)
+                        else:
+                            oVal = gv.gvar(-3.,1.5)  
+
+                    else:
+                        bVal = gv.gvar(-2.0, 2.0) - 0.5*np.log(priors['E'][0].mean)
+                        oVal = gv.gvar(-9.5, 2.0) - 2.0*np.log(self.corr.io.mData['aSpc'].mean)                                                        
+            else:
+                bVal = gv.gvar(-1.5, 1.5)
+                oVal = gv.gvar(-2.5, 1.5)  
+
+            baseGv = gv.gvar( 0.0, 1.2) if '1S' in smr else gv.gvar(bVal.mean, bVal.sdev)
+            osciGv = gv.gvar(-1.2, 1.2) if '1S' in smr else gv.gvar(oVal.mean, oVal.sdev)
+            highGv = gv.gvar( 0.5, 1.5)
+
+            priors[f'Z_{smr}'] = []
+
+            if smr.split('-'): # mixed smearing case
+                priors[f'Z_{smr}'].append(gv.gvar(baseGv.mean, baseGv.sdev)),
+                priors[f'Z_{smr}'].append(gv.gvar(osciGv.mean, osciGv.sdev))
+            
+            for n in range(2,2*Nstates):
+                priors[f'Z_{smr}'].append(gv.gvar(highGv.mean, highGv.sdev*(n//2)))
+
+        return priors        
+
+    def set_priors_eff(self, Nstates, Meff, Aeff):
+        """
+            This function returns a dictionary with priors, according to the following rules:
+
+            Energies
+            ---------
+            - The prior for the **fundamental physical state at zero momentum** is set with the effective mass, while its width is set following the paper to $140\text{ MeV}$
+            $$
+                \tilde{E}_0(\mathbf{p}=0) = M_\text{eff} \pm 140\text{ MeV}
+            $$ 
+            - At **non-zero momentum** 
+            $$
+                \tilde{E}_0(\mathbf{p}\neq0) = \sqrt{M_\text{eff}^2+\mathbf{p}^2} \pm (140\text{ MeV} + \#\alpha_sa^2\mathbf{p}^2)
+            $$ 
+            - The energy priors for the energy differences are $\Delta \tilde E = 500(200) \text{ MeV}$
+
+            Overlap factors
+            ---------------
+            We will use the following rules
+            - For non-mixed smearing, physical fund. state, we use the plateaux of $\mathcal{C}(t)e^{tM_\text{eff}}=A_\text{eff}(t)$
+            $$
+            \tilde Z_0^{(\text{sm},\text{pol})} = \sqrt{A_\text{eff}} \, \pm (0.5 \,\mathtt{if\,[p=0]\,else}\,?)
+            $$
+            - For non-mixed smearing, oscillating fund. state, we use
+            $$
+            \tilde Z_1^{(\text{sm},\text{pol})} = \sqrt{A_\text{eff}} \, \pm (1.2 \,\mathtt{if\,[p=0]\,else}\,2.0)
+            $$
+            - For mixed smearing, excited states, we always use
+            $$
+            \tilde Z_{n\geq2}^{(\text{sm},\text{pol})} = 0.5 \pm 1.5
+            $$
+        """
+        zeromom = self.corr.info.momentum=='000'
+        ap2 = sum([2.*np.pi*float(px)/self.corr.io.mData['L']**2 for px in self.corr.info.momentum])
+
+        priors = {}
+
+        # Set energies ---------------------------------------------------------------------------
+        priors['E'] = []    
+
+        Erest = Meff.mean
+        Eval   = np.sqrt(Erest**2+ap2**2)
+        den = 0.140*self.corr.io.GeV.mean
+        Ewidth = np.sqrt(4*Eval**2*den**2 + self.corr.io.mData['alphaS']*ap2)/2/Eval
+        priors['E'].append(gv.gvar(Eval,Ewidth)) # fundamental physical state
+
+        for n in range(1,2*Nstates): # excited states
+            delta = gv.gvar('0.5(2)')*self.corr.io.GeV.mean
+            priors['E'].append(np.log(delta))
+
+
+        # Set overlap factors -------------------------------------------------------------------
+        for (sm,pol),v in Aeff.items():
+            smr = np.unique(sm.split('-'))
+            if len(smr)==1:
+                priors[f'Z_{smr[0]}_{pol}'] = [
+                    np.log(gv.gvar(v.mean, 0.5 if zeromom else 2*self.corr.io.mData['alphaS']*ap2)), # 0.5 + 2*\alpha_s*p^2
+                    np.log(gv.gvar(v.mean, 1.2 if zeromom else 2.0)), # ?
+                ]
+                for n in range(Nstates-1):
+                    priors[f'Z_{smr[0]}_{pol}'].append(gv.gvar(0.5,1.5))
+                    priors[f'Z_{smr[0]}_{pol}'].append(gv.gvar(0.5,1.5))
+            else:
+                priors[f'Z_{sm}_{pol}'] = []
+                for n in range(1,Nstates):
+                    priors[f'Z_{sm}_{pol}'].append(gv.gvar(0.5,1.5))
+                    priors[f'Z_{sm}_{pol}'].append(gv.gvar(0.5,1.5))
+
+        return priors
 
     def fit(self, Nstates, trange, priors,  p0=None, maxit=50000, svdcut=1e-12, debug=False, verbose=False, **kwargs):
         """
@@ -517,7 +674,6 @@ class CorrFitter:
         if (Nstates,trange) in self.fits:
             print(f'Fit for {(Nstates,trange)} has already been performed. Returning...')
             return
-
 
         xfit,yfit = self.corr.format(trange=trange, smearing=self.smearing, polarization=self.polarization, **kwargs)
         yfit = np.concatenate([yfit[k] for k in self.keys])
@@ -841,20 +997,67 @@ class CorrFitter:
 
 
 def test():
+    
     ens      = 'MediumCoarse'
     data_dir = '/Users/pietro/code/data_analysis/BtoD/Alex'
     meson    = 'Dsst'
-    mom      = '000'
+    mom      = '100'
     binsize  = 13
 
     io   = CorrelatorIO(ens,meson,mom,PathToDataDir=data_dir)
     corr = Correlator(io,CrossSmearing=True)
     corr.jack(binsize)
-
+    
+    trange = (14,20)
     smlist = ['1S-1S','d-d','d-1S']
-    fitter = CorrFitter(corr,smearing=smlist)
+    (X,meff,aeff), MEFF,AEFF, mpr, apr = corr.EffectiveCoeff(trange=trange,smearing=smlist)
 
-    fitter.GEVPmass(t0=1,trange=(11,20),pr=gv.gvar('1.3532(35)'),verbose=True)
+
+    alex = {
+        'E':          [
+            gv.gvar('1.3716(38)'), 
+            gv.gvar('-1.92(87)'), 
+            gv.gvar('-1.0(1.0)'), 
+            gv.gvar('-1.0(1.0)') 
+        ] , 
+        'Z_1S_Par':   [
+            gv.gvar('0.0  (1.2)'), 
+            gv.gvar('-1.2(1.2)'), 
+            gv.gvar('0.5 (1.5)'), 
+            gv.gvar('0.5 (1.5)') 
+        ] , 
+        'Z_1S_Bot':   [
+            gv.gvar('0.0  (1.2)'), 
+            gv.gvar('-1.2(1.2)'), 
+            gv.gvar('0.5 (1.5)'), 
+            gv.gvar('0.5 (1.5)') 
+        ] , 
+        'Z_d_Par':    [
+            gv.gvar('-1.61 (33)'), 
+            gv.gvar('-5.5(2.0)'), 
+            gv.gvar('0.5 (1.5)'), 
+            gv.gvar('0.5 (1.5)') 
+        ] , 
+        'Z_d_Bot':    [
+            gv.gvar('-1.61 (33)'), 
+            gv.gvar('-3.0(1.5)'), 
+            gv.gvar('0.5 (1.5)'), 
+            gv.gvar('0.5 (1.5)') 
+        ] , 
+        'Z_d-1S_Par': [
+            gv.gvar('0.5  (1.7)'), 
+            gv.gvar('0.5 (1.7)')                  
+        ] , 
+        'Z_d-1S_Bot': [
+            gv.gvar('0.5  (1.7)'), 
+            gv.gvar('0.5 (1.7)')
+        ]                         
+    }
+
+    fitter = CorrFitter(corr,smearing=smlist)
+    pr = fitter.set_priors_phys(2,Meff=MEFF)
+
+    print(pr)
 
 
 if __name__ == "__main__":
