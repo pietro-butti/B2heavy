@@ -1,0 +1,264 @@
+
+# Configs
+author = 'pietro.butti'
+title = '2pts fits'
+
+# Meson list
+[ensemble]
+    list = ['MediumCoarse','Coarse-1']
+
+[meson]
+    list = ['D','Dst','Ds', 'Dsst']
+
+[momenta]
+    list = ['000','100','200','300','400','110','211','222']
+
+
+[data]
+    [data.MediumCoarse]
+        name     = 'MediumCoarse'
+        data_dir = "/Users/pietro/code/data_analysis/BtoD/Alex"
+        binsize  = 13
+        mom_list = ['000','100','200','300','400','110','211','222']
+        Nt       = 48
+
+    [data.Coarse-1]
+        name     = 'Coarse-1'
+        data_dir = "/Users/pietro/code/data_analysis/BtoD/Alex"
+        binsize  = 11
+        mom_list = ['000','100','200','300','110','211']
+        Nt       = 64
+
+    
+[fit]
+    [fit.MediumCoarse]    
+        [fit.MediumCoarse.D]
+            nstates = 3
+            smlist = ['d-d','1S-1S','d-1S']
+            [fit.MediumCoarse.D.mom]
+                [fit.MediumCoarse.D.mom.000]
+                    tag    = 'MediumCoarse_D_000'
+                    trange = [10,19]
+                [fit.MediumCoarse.D.mom.100] 
+                    tag    = 'MediumCoarse_D_100'
+                    trange = [10,19]
+                [fit.MediumCoarse.D.mom.200] 
+                    tag    = 'MediumCoarse_D_200'
+                    trange = [10,19]
+                [fit.MediumCoarse.D.mom.300] 
+                    tag    = 'MediumCoarse_D_300'
+                    trange = [9,16]
+                [fit.MediumCoarse.D.mom.400] 
+                    tag    = 'MediumCoarse_D_400'
+                    trange = [9,14]
+                [fit.MediumCoarse.D.mom.110] 
+                    tag    = 'MediumCoarse_D_110'
+                    trange = [8,19]
+                [fit.MediumCoarse.D.mom.211] 
+                    tag    = 'MediumCoarse_D_211'
+                    trange = [8,15]
+                [fit.MediumCoarse.D.mom.222] 
+                    tag    = 'MediumCoarse_D_222'
+                    trange = [8,15]
+
+
+        [fit.MediumCoarse.Ds]
+            nstates = 3
+            smlist = ['d-d','1S-1S','d-1S']
+            [fit.MediumCoarse.Ds.mom]
+                [fit.MediumCoarse.Ds.mom.000]
+                    tag    = 'MediumCoarse_Ds_000'
+                    trange = [10,19]
+                [fit.MediumCoarse.Ds.mom.100] 
+                    tag    = 'MediumCoarse_Ds_100'
+                    trange = [10,19]
+                [fit.MediumCoarse.Ds.mom.200] 
+                    tag    = 'MediumCoarse_Ds_200'
+                    trange = [10,19]
+                [fit.MediumCoarse.Ds.mom.300] 
+                    tag    = 'MediumCoarse_Ds_300'
+                    trange = [10,19]
+                [fit.MediumCoarse.Ds.mom.400] 
+                    tag    = 'MediumCoarse_Ds_400'
+                    trange = [9,17]
+                [fit.MediumCoarse.Ds.mom.110] 
+                    tag    = 'MediumCoarse_Ds_110'
+                    trange = [10,19]
+                [fit.MediumCoarse.Ds.mom.211] 
+                    tag    = 'MediumCoarse_Ds_211'
+                    trange = [10,19]
+                [fit.MediumCoarse.Ds.mom.222] 
+                    tag    = 'MediumCoarse_Ds_222'
+                    trange = [10,19]
+
+        [fit.MediumCoarse.Dst]
+            nstates = 3
+            smlist = ['d-d','1S-1S','d-1S']
+            [fit.MediumCoarse.Dst.mom]
+                [fit.MediumCoarse.Dst.mom.000]
+                    tag    = 'MediumCoarse_Dst_000'
+                    trange = [10,15]
+                [fit.MediumCoarse.Dst.mom.100] 
+                    tag    = 'MediumCoarse_Dst_100'
+                    trange = [10,15]
+                [fit.MediumCoarse.Dst.mom.200] 
+                    tag    = 'MediumCoarse_Dst_200'
+                    trange = [10,15]
+                [fit.MediumCoarse.Dst.mom.300] 
+                    tag    = 'MediumCoarse_Dst_300'
+                    trange = [9,14]
+                [fit.MediumCoarse.Dst.mom.400] 
+                    tag    = 'MediumCoarse_Dst_400'
+                    trange = [9,14]
+                [fit.MediumCoarse.Dst.mom.110] 
+                    tag    = 'MediumCoarse_Dst_110'
+                    trange = [8,15]
+                [fit.MediumCoarse.Dst.mom.211] 
+                    tag    = 'MediumCoarse_Dst_211'
+                    trange = [8,15]
+                [fit.MediumCoarse.Dst.mom.222] 
+                    tag    = 'MediumCoarse_Dst_222'
+                    trange = [8,15]
+
+
+        [fit.MediumCoarse.Dsst]
+            nstates = 3
+            smlist  = ['d-d','1S-1S','d-1S'] 
+            [fit.MediumCoarse.Dsst.mom]
+                [fit.MediumCoarse.Dsst.mom.000]
+                    tag    = 'MediumCoarse_Dsst_000'
+                    trange = [10,19]
+                [fit.MediumCoarse.Dsst.mom.100] 
+                    tag    = 'MediumCoarse_Dsst_100'
+                    trange = [10,19]
+                [fit.MediumCoarse.Dsst.mom.200] 
+                    tag    = 'MediumCoarse_Dsst_200'
+                    trange = [10,17]
+                [fit.MediumCoarse.Dsst.mom.300] 
+                    tag    = 'MediumCoarse_Dsst_300'
+                    trange = [10,17]
+                [fit.MediumCoarse.Dsst.mom.400] 
+                    tag    = 'MediumCoarse_Dsst_400'
+                    trange = [10,17]
+                [fit.MediumCoarse.Dsst.mom.110] 
+                    tag    = 'MediumCoarse_Dsst_110'
+                    trange = [10,17]
+                [fit.MediumCoarse.Dsst.mom.211] 
+                    tag    = 'MediumCoarse_Dsst_211'
+                    trange = [10,17]
+                [fit.MediumCoarse.Dsst.mom.222] 
+                    tag    = 'MediumCoarse_Dsst_222'
+                    trange = [10,17]
+
+
+
+
+    [fit.Coarse-1]
+        [fit.Coarse-1.D]
+            nstates = 3
+            smlist  = ['d-d','1S-1S','d-1S']
+            [fit.Coarse-1.D.mom.000]
+                tag    = 'Coarse-1_D_000'
+                trange = [10,25]
+            [fit.Coarse-1.D.mom.100]
+                tag    = 'Coarse-1_D_100'
+                trange = [10,23]
+            [fit.Coarse-1.D.mom.200]
+                tag    = 'Coarse-1_D_200'
+                trange = [10,20]
+            [fit.Coarse-1.D.mom.300]
+                tag    = 'Coarse-1_D_300'
+                trange = [10,17]
+            # [fit.Coarse-1.D.mom.400]
+            #     tag    = 'Coarse-1_D_400'
+            #     trange = [12,19]
+            [fit.Coarse-1.D.mom.110]
+                tag    = 'Coarse-1_D_110'
+                trange = [10,19]
+            [fit.Coarse-1.D.mom.211]
+                tag    = 'Coarse-1_D_211'
+                trange = [10,21]
+            # [fit.Coarse-1.D.mom.222]
+            #     tag    = 'Coarse-1_D_222'
+            #     trange = []
+        [fit.Coarse-1.Ds]
+            nstates = 3
+            smlist  = ['d-d','1S-1S','d-1S']
+            [fit.Coarse-1.Ds.mom.000]
+                tag    = 'Coarse-1_Ds_000'
+                trange = [10,27]
+            [fit.Coarse-1.Ds.mom.100]
+                tag    = 'Coarse-1_Ds_100'
+                trange = [10,27]
+            [fit.Coarse-1.Ds.mom.200]
+                tag    = 'Coarse-1_Ds_200'
+                trange = [10,27]
+            [fit.Coarse-1.Ds.mom.300]
+                tag    = 'Coarse-1_Ds_300'
+                trange = [10,19]
+            # [fit.Coarse-1.Ds.mom.400]
+            #     tag    = 'Coarse-1_Ds_400'
+            #     trange = []
+            [fit.Coarse-1.Ds.mom.110]
+                tag    = 'Coarse-1_Ds_110'
+                trange = [12,27]
+            [fit.Coarse-1.Ds.mom.211]
+                tag    = 'Coarse-1_Ds_211'
+                trange = [12,23]
+            # [fit.Coarse-1.Ds.mom.222]
+            #     tag    = 'Coarse-1_Ds_222'
+            #     trange = []
+        [fit.Coarse-1.Dst]
+            nstates = 3
+            smlist  = ['d-d','1S-1S','d-1S']
+            [fit.Coarse-1.Dst.mom.000]
+                tag    = 'Coarse-1_Dst_000'
+                trange = [12,17]
+            [fit.Coarse-1.Dst.mom.100]
+                tag    = 'Coarse-1_Dst_100'
+                trange = [12,15]
+            [fit.Coarse-1.Dst.mom.200]
+                tag    = 'Coarse-1_Dst_200'
+                trange = [10,17]
+            [fit.Coarse-1.Dst.mom.300]
+                tag    = 'Coarse-1_Dst_300'
+                trange = [10,13]
+            # [fit.Coarse-1.Dst.mom.400]
+            #     tag    = 'Coarse-1_Dst_400'
+            #     trange = []
+            [fit.Coarse-1.Dst.mom.110]
+                tag    = 'Coarse-1_Dst_110'
+                trange = [10,17]
+            [fit.Coarse-1.Dst.mom.211]
+                tag    = 'Coarse-1_Dst_211'
+                trange = [10,13]
+            # [fit.Coarse-1.Dst.mom.222]
+            #     tag    = 'Coarse-1_Dst_222'
+            #     trange = []
+        [fit.Coarse-1.Dsst]
+            nstates = 3
+            smlist  = ['d-d','1S-1S','d-1S']
+            [fit.Coarse-1.Dsst.mom.000]
+                tag    = 'Coarse-1_Dsst_000'
+                trange = [14,25]
+            [fit.Coarse-1.Dsst.mom.100]
+                tag    = 'Coarse-1_Dsst_100'
+                trange = [14,23]
+            [fit.Coarse-1.Dsst.mom.200]
+                tag    = 'Coarse-1_Dsst_200'
+                trange = [13,20]
+            [fit.Coarse-1.Dsst.mom.300]
+                tag    = 'Coarse-1_Dsst_300'
+                trange = [12,19]
+            # [fit.Coarse-1.Dsst.mom.400]
+            #     tag    = 'Coarse-1_Dsst_400'
+            #     trange = []
+            [fit.Coarse-1.Dsst.mom.110]
+                tag    = 'Coarse-1_Dsst_110'
+                trange = [12,23]
+            [fit.Coarse-1.Dsst.mom.211]
+                tag    = 'Coarse-1_Dsst_211'
+                trange = [12,19]
+            # [fit.Coarse-1.Dsst.mom.222]
+            #     tag    = 'Coarse-1_Dst_222'
+            #     trange = []

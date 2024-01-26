@@ -1,0 +1,35 @@
+# Configs
+author = 'pietro.butti'
+title = 'Default empirical parameters for setting 2pts fits priors'
+
+
+[D]
+    scale    = 'D'
+    dE       = 0.7
+    dE_E0err = 3.5
+    dG       = 0.435
+    dE_E1err = 3.0
+
+[Ds]
+    scale    = 'D'
+    dE       = 0.4
+    dE_E0err = 2.0
+    dG       = 0.349
+    dE_E1err = 2.0
+
+[Dst]
+    scale    = 'D'
+    dE       = 0.175
+    dE_E0err = 2.0
+    dG       = 0.3
+    dE_E1err = 1.0
+    dE_Eierr = 0.4
+
+[Dsst]
+    scale    = 'D'
+    dE       = 0.6
+    dE_E0err = 12.0
+    dG       = 0.35
+    dE_E1err = 3.0
+
+ 
