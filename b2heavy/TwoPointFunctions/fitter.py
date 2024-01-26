@@ -9,7 +9,7 @@ from scipy.linalg import eigh
 from autograd import numpy as np
 
 from .utils import load_toml, NplusN2ptModel, p_value, ConstantModel
-from .types import CorrelatorInfo, CorrelatorIO, Correlator
+from .corr import CorrelatorInfo, CorrelatorIO, Correlator
 
 
 mPhys  = { 
@@ -445,7 +445,6 @@ class CorrFitter:
         else:
             POL = sorted(self.corr.data.polarization.values)
 
-
         Nt   = self.corr.data.timeslice.size
         Nc   = self.corr.data.jkbin.size
         Nsm  = int(np.sqrt(len(smr_flat)))
@@ -469,13 +468,14 @@ class CorrFitter:
                 eigs[pol].append(aux)
             eigs[pol] = np.array(eigs[pol])
 
-        if order is not None:
+        if order is None:
             return eigs
+
 
         # Calculate effective mass
         aux = {}
         for pol in POL:
-            aux[pol] = np.log(eigs[POL]/np.roll(eigs[POL],-1,axis=1))[:,:-1]
+            aux[pol] = np.log(eigs[pol]/np.roll(eigs[pol],-1,axis=1))[:,:-1]
 
         if jkbin:
             return aux
@@ -486,6 +486,7 @@ class CorrFitter:
                     aux[pol].mean(axis=0),
                     np.cov(aux[pol],rowvar=False) * (eigs[pol].shape[0]-1  if self.corr.info.binsize is not None else 1.)
                 )[:-1]
+            print(Eeff)
             return Eeff
 
     def GEVPmass(self, trange=None, covariance=True, chiexp=True, pr=None, verbose=False, **kwargs):
@@ -521,18 +522,38 @@ class CorrFitter:
 
         return fit.p['const']
     
+    def GEVP_hankel(self, smlist=['d','1S'], polarization=None, trange=None):
+        # Construct the list with element of smearing matrix
+        if len(np.unique(smlist))<2:
+            raise KeyError('At least two types of smearings must be provided')
+        else:
+            smr_flat = [f'{sm1}-{sm2}' for sm1 in np.unique(smlist) for sm2 in np.unique(smlist)]
+
+        # Select polarization to be considered
+        if polarization is not None:
+            if False not in np.isin(polarization,self.corr.data.polarization):
+                POL = sorted(polarization)
+            else:
+                raise ValueError(f'Polarization list {polarization} contains at least one item which is not contained in data.polarization')
+        else:
+            POL = sorted(self.corr.data.polarization.values)
+
+        Nt   = self.corr.data.timeslice.size
+        Nc   = self.corr.data.jkbin.size
+        Nsm  = int(np.sqrt(len(smr_flat)))
+        Npol = len(POL)
 
 
 
 def test():
-    ens      = 'MediumCoarse'
+    ens      = 'Coarse-1'
     data_dir = '/Users/pietro/code/data_analysis/BtoD/Alex'
-    meson    = 'Dsst'
-    mom      = '000'
-    binsize  = 13
+    meson    = 'D'
+    mom      = '100'
+    binsize  = 11
     
     io = CorrelatorIO(ens,meson,mom,PathToDataDir=data_dir)
-    corr =  Correlator(io,jkBin=binsize)
+    corr =  Correlator(io,jkBin=binsize,CrossSmearing=True)
 
 
     trange = (10,19)
@@ -540,10 +561,9 @@ def test():
     smr = ['d-d','1S-1S','d-1S']
 
     fitter = CorrFitter(corr,smearing=smr)
-    fitter.set_priors_phys(Nstates=nexc)
-    fitter.fit(nexc,trange,verbose=True)
-
-
+    # fitter.set_priors_phys(Nstates=nexc)
+    # fitter.fit(nexc,trange,verbose=True)
+    fitter.GEVP(10,order=1)
 
 
 if __name__ == "__main__":

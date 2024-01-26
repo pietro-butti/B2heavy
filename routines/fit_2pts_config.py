@@ -24,7 +24,7 @@ import os
 
 import datetime
 
-from b2heavy.TwoPointFunctions.types  import CorrelatorIO, Correlator
+from b2heavy.TwoPointFunctions.corr  import CorrelatorIO, Correlator
 from b2heavy.TwoPointFunctions.fitter import CorrFitter
 
 def fit_2pts_single_corr(ens, meson, mom, data_dir, binsize, smslist, nstates, trange, saveto=None, meff=True, jkfit=False, priors='meff'):

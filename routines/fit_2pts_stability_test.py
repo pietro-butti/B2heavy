@@ -29,7 +29,7 @@ import argparse
 import os
 import matplotlib.pyplot as plt
 
-from b2heavy.TwoPointFunctions.types  import CorrelatorIO, Correlator
+from b2heavy.TwoPointFunctions.corr  import CorrelatorIO, Correlator
 from b2heavy.TwoPointFunctions.fitter import CorrFitter
 
 
