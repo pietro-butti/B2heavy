@@ -5,8 +5,8 @@ python 2pts_fit_config.py --config [file location of the toml config file]
                    --only_ensemble [list of ensembles analyzed]                    
                    --only_meson    [list of meson analyzed]                        
                    --only_mom      [list of momenta considered]                    
-                   --jkfit         [repeat same fit inside each bin]               
-                   --saveto        [*where* do you want to save files]             
+                   --jkfit         [repeat same fit inside each bin. Default: false]               
+                   --saveto        [*where* do you want to save files.]             
                    --logto         [Log file name]                                 
                    --override      [do you want to override pre-existing analysis?]
 
@@ -14,7 +14,8 @@ Examples
 python 2pts_fit_config.py --only_ensemble MediumCoarse --only_meson Dsst --only_mom 000 100 --saveto .     
 '''
 
-DEFAULT_ANALYSIS_ROOT = '/Users/pietro/code/data_analysis/data/QCDNf2p1stag/B2heavy/01-23-2023'
+from DEFAULT_ANALYSIS_ROOT import DEFAULT_ANALYSIS_ROOT
+
 
 import argparse
 import pickle
@@ -24,10 +25,11 @@ import os
 
 import datetime
 
-from b2heavy.TwoPointFunctions.corr  import CorrelatorIO, Correlator
+from b2heavy.TwoPointFunctions.types2pts  import CorrelatorIO, Correlator
 from b2heavy.TwoPointFunctions.fitter import CorrFitter
 
-def fit_2pts_single_corr(ens, meson, mom, data_dir, binsize, smslist, nstates, trange, saveto=None, meff=True, jkfit=False, priors='meff'):
+
+def fit_2pts_single_corr(ens, meson, mom, data_dir, binsize, smslist, nstates, trange, saveto=None, meff=False, aeff=False, jkfit=False):
     """
         This function perform a fit to 2pts correlation function
 
@@ -59,15 +61,19 @@ def fit_2pts_single_corr(ens, meson, mom, data_dir, binsize, smslist, nstates, t
 
     if meff:
         _,MEFF,_ = corr.EffectiveMass(trange=trange,smearing=smslist)
+    if aeff:
+        _,MEFF,AEFF,_,_ = corr.EffectiveCoeff(trange,smearing=smslist)
+
 
     fitter = CorrFitter(corr,smearing=smslist)
+    priors = fitter.set_priors_phys(nstates,Meff=MEFF if meff else None, Aeff=AEFF if aeff else None)
     fit = fitter.fit(
         Nstates=nstates,
         trange=trange,
         verbose=True,
         pval=True,
         jkfit=jkfit,
-        priors = fitter.set_priors_phys(nstates,Meff=MEFF if meff else None)
+        priors=priors
     )
 
     # Missing plot dump of effective mass FIXME
@@ -80,6 +86,7 @@ def fit_2pts_single_corr(ens, meson, mom, data_dir, binsize, smslist, nstates, t
                         x       = f.x,
                         y       = f.y,
                         p       = f.p,
+                        priors  = f.priors,
                         pvalue  = f.pvalue,
                         chi2    = f.chi2,
                         chi2red = f.chi2red,
@@ -169,7 +176,7 @@ def main():
                         saveto = saveto, 
                         jkfit  = JKFIT,
                         meff   = True, 
-                        priors = 'meff'
+                        aeff   = True
                     )
                 except:
                     pass
@@ -186,15 +193,16 @@ def main():
 #        trange   = {trange}                                                       
 #        saveto   = {saveto}                                                       
 #        jkfit    = {JKFIT}                                                        
-#        meff     = True                                                           
+#        meff     = True,
+#        aeff     = True,                                                           
 #        priors   = 'meff'                                                        
 # =============================================================================
                 ''' 
                 point = '.'
                 if not JKFIT:
-                    logfile = f'{args.saveto if args.saveto is not None else point}/fit2pt_config_{tag}.log' if args.logto==None else args.logto
+                    logfile = f'{SAVETO}/fit2pt_config_jk_{tag}.log' if args.logto==None else args.logto
                 else:
-                    logfile = f'{args.saveto if args.saveto is not None else point}/fit2pt_config_jk_{tag}.log' if args.logto==None else args.logto
+                    logfile = f'{SAVETO}/fit2pt_config_{tag}.log' if args.logto==None else args.logto
                 with open(logfile,'a+') as f:
                     f.write(log)
 

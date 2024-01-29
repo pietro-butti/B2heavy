@@ -14,7 +14,7 @@ from ..     import FnalHISQMetadata
 from .utils import jkCorr, covariance_shrinking, ConstantModel
 
 ENSEMBLE_LIST = ['MediumCoarse', 'Coarse-2', 'Coarse-1', 'Coarse-Phys', 'Fine-1', 'SuperFine', 'Fine-Phys'] 
-MESON_LIST    = ["Dsst", "Bs", "D", "Ds", "Dst", "Dsst", "K", "pi", "Bc", "Bst", "Bsst"]
+MESON_LIST    = ["Dsst", "Bs", "B", "D", "Ds", "Dst", "Dsst", "K", "pi", "Bc", "Bst", "Bsst"]
 MOMENTUM_LIST = ["000", "100", "200", "300", "400", "110", "211", "222"]
 
 class CorrelatorInfo:
@@ -376,7 +376,7 @@ class Correlator:
         
         return (xfit,yfit) if not alljk else (xfit,yfit,yjk)
 
-    def EffectiveMass (self, trange=None, variant='log', mprior=None, verbose=True, **kwargs):
+    def EffectiveMass (self, trange=None, variant='log', mprior=None, verbose=False, **kwargs):
         """
             Calls `format` and compute effective mass from the correlator as `log C(t)/C(t+2)`
 
@@ -434,7 +434,7 @@ class Correlator:
 
         return (x,meff), MEFF, pr
 
-    def EffectiveCoeff(self, trange=None, variant='log', aprior=None, mprior=None, verbose=True, **kwargs):
+    def EffectiveCoeff(self, trange=None, variant='log', aprior=None, mprior=None, verbose=False, **kwargs):
         # Compute effective mass according to the definition
         (X,meff), MEFF, m_pr = self.EffectiveMass(trange=trange, variant=variant, verbose=verbose, mprior=mprior, **kwargs)
         (_,C) = self.format(flatten=False, **kwargs)
@@ -477,7 +477,7 @@ class Correlator:
 def test():
     ens      = 'MediumCoarse'
     data_dir = '/Users/pietro/code/data_analysis/BtoD/Alex'
-    meson    = 'Dsst'
+    meson    = 'Dst'
     mom      = '000'
     binsize  = 13
     

@@ -19,7 +19,7 @@ Examples
 python 2pts_fit_stability_test.py --ensemble MediumCoarse --meson Dst --mom 000 --Nstates 1 2 3 --tmins  6 7 8 9 10 --tmaxs 15 --plot --showfig --saveto . --plot_AIC
 '''
 
-DEFAULT_ANALYSIS_ROOT = '/Users/pietro/code/data_analysis/data/QCDNf2p1stag/B2heavy/01-23-2023'
+from DEFAULT_ANALYSIS_ROOT import DEFAULT_ANALYSIS_ROOT
 
 import pickle
 import numpy as np
@@ -29,7 +29,7 @@ import argparse
 import os
 import matplotlib.pyplot as plt
 
-from b2heavy.TwoPointFunctions.corr  import CorrelatorIO, Correlator
+from b2heavy.TwoPointFunctions.types2pts  import CorrelatorIO, Correlator
 from b2heavy.TwoPointFunctions.fitter import CorrFitter
 
 

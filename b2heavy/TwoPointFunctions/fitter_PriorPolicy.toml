@@ -2,6 +2,10 @@
 author = 'pietro.butti'
 title = 'Default empirical parameters for setting 2pts fits priors'
 
+# E0 : [mphys*scale ± (dE*scale)/ dE_E0err] * aGeV or Meff
+# E1 : log of [dG ± (dE*scale)  / dE_E1err] * aGeV
+# Ei : log of [dE ± (dE*scale)  / dE_Eierr] * aGeV
+
 
 [D]
     scale    = 'D'
@@ -32,4 +36,16 @@ title = 'Default empirical parameters for setting 2pts fits priors'
     dG       = 0.35
     dE_E1err = 3.0
 
- 
+[B]
+    scale    = 'B'
+    dE       = 1.0
+    dE_E0err = 5.0
+    dG       = 0.32
+    dE_E1err = 1.0
+
+[Bs]
+    scale    = 'B'
+    dE       = 1.0
+    dE_E0err = 5.0
+    dG       = 0.434
+    dE_E1err = 1.0

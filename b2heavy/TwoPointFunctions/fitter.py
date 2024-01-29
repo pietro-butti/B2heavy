@@ -9,7 +9,7 @@ from scipy.linalg import eigh
 from autograd import numpy as np
 
 from .utils import load_toml, NplusN2ptModel, p_value, ConstantModel
-from .corr import CorrelatorInfo, CorrelatorIO, Correlator
+from .types2pts import CorrelatorInfo, CorrelatorIO, Correlator
 
 
 mPhys  = { 
@@ -43,7 +43,7 @@ class CorrFitter:
 
         self.fits = {}
 
-    def set_priors_phys(self,Nstates, Meff=None):
+    def set_priors_phys(self,Nstates, Meff=None, Aeff=None):
         """
             This function returns a dictionary with priors, according to the following rules:
 
@@ -92,29 +92,31 @@ class CorrFitter:
         d = load_toml(c)[self.corr.info.meson]
 
         Scale    = dScale if d['scale']=='D' else bScale if d['scale']=='B' else 1.
-        dE       = d['dE']       #0.6
-        dG       = d['dG']       #0.35
-        dE_E0err = d['dE_E0err'] #12
-        dE_E1err = d['dE_E1err'] #3.
-        dE_Eierr = d['dE_E1err'] if 'dE_E1err' in d else 1.
+        dE       = d['dE']      
+        dG       = d['dG']       
+        dE_E0err = d['dE_E0err']
+        dE_E1err = d['dE_E1err']
+        dE_Eierr = d['dE_Eierr'] if 'dE_Eierr' in d else 1.  # old was d['dE_E1err'] if 'dE_E1err'
 
-        E = []
+        E = [None]*(2*Nstates)
+
         if Meff is None:
-            E.append(gv.gvar(mPhys[self.corr.info.meson],dE/dE_E0err) * Scale * aGeV) # fundamental physical state
+            E[0] = gv.gvar(mPhys[self.corr.info.meson],dE/dE_E0err) * Scale * aGeV # fundamental physical state
         else:
-            E.append(gv.gvar(Meff.mean,dE/dE_E0err*Scale*aGeV))
+            # E.append(gv.gvar(Meff.mean,dE/dE_E0err*Scale*aGeV))
+            E[0] = Meff
 
-        if self.corr.info.meson!='Dsst':
-            E.append(np.log(gv.gvar(dG*bScale , dE/dE_E1err*Scale) * aGeV)) # fundamental oscillating state
-        else:
-            E.append(np.log(gv.gvar(
-                (2.630-mPhys[self.corr.info.meson])*dScale,
-                2*dE
-            )))
+        E[1] = np.log(gv.gvar(dG, dE/dE_E1err)*Scale*aGeV)
 
         for n in range(2,2*Nstates):
-            E.append(np.log(gv.gvar(dE,dE/dE_Eierr)*Scale*aGeV)) # excited states
-    
+            E[n]= np.log(gv.gvar(dE,dE/dE_Eierr)*Scale*aGeV) # excited states
+
+            if self.corr.info.meson=='Dst' and n==2:
+                E1 = (2.630-mPhys['Dst'])*Scale
+                E[2] = np.log(gv.gvar(
+                    E1,
+                    dE/dE_Eierr
+                ) * aGeV )
 
         priors = {'E': E}
 
@@ -167,10 +169,16 @@ class CorrFitter:
                 priors[f'Z_{smr}'].append(
                     gv.gvar(highGv.mean, highGv.sdev*(n//2)) if len(smr.split('-'))==1 else gv.gvar(0.5,1.7)
                 )
+        
+        if Aeff is not None:
+            for (sm,pol),v in Aeff.items():
+                sm1,sm2 = sm.split('-')
+                if sm1==sm2:
+                    priors[f'Z_{sm1}_{pol}'][0] = np.log(v)/2
 
         return priors        
 
-    def fit(self, Nstates, trange, priors=None,  p0=None, maxit=50000, svdcut=1e-12, debug=False, verbose=False, pval=True, jkfit=False, **kwargs):
+    def fit(self, Nstates, trange, priors=None,  p0=None, maxit=50000, svdcut=1e-12, debug=False, verbose=False, pval=True, jkfit=False, override=False, **kwargs):
         """
             This function perform a fit to 2pts oscillating functions.
 
@@ -186,7 +194,7 @@ class CorrFitter:
                     Number of states to fit (fundamental+excited). E.g.: `Nstates=2` corresponds to '2+2 fits', i.e. 2 fundamental states (physical and oscillating) and 2 excited (physical and oscillating)   
                 
         """
-        if (Nstates,trange) in self.fits:
+        if (Nstates,trange) in self.fits and not override:
             print(f'Fit for {(Nstates,trange)} has already been performed. Returning...')
             return
 
@@ -521,34 +529,13 @@ class CorrFitter:
 
 
         return fit.p['const']
-    
-    def GEVP_hankel(self, smlist=['d','1S'], polarization=None, trange=None):
-        # Construct the list with element of smearing matrix
-        if len(np.unique(smlist))<2:
-            raise KeyError('At least two types of smearings must be provided')
-        else:
-            smr_flat = [f'{sm1}-{sm2}' for sm1 in np.unique(smlist) for sm2 in np.unique(smlist)]
-
-        # Select polarization to be considered
-        if polarization is not None:
-            if False not in np.isin(polarization,self.corr.data.polarization):
-                POL = sorted(polarization)
-            else:
-                raise ValueError(f'Polarization list {polarization} contains at least one item which is not contained in data.polarization')
-        else:
-            POL = sorted(self.corr.data.polarization.values)
-
-        Nt   = self.corr.data.timeslice.size
-        Nc   = self.corr.data.jkbin.size
-        Nsm  = int(np.sqrt(len(smr_flat)))
-        Npol = len(POL)
 
 
 
 def test():
     ens      = 'Coarse-1'
     data_dir = '/Users/pietro/code/data_analysis/BtoD/Alex'
-    meson    = 'D'
+    meson    = 'B'
     mom      = '100'
     binsize  = 11
     
@@ -561,9 +548,7 @@ def test():
     smr = ['d-d','1S-1S','d-1S']
 
     fitter = CorrFitter(corr,smearing=smr)
-    # fitter.set_priors_phys(Nstates=nexc)
-    # fitter.fit(nexc,trange,verbose=True)
-    fitter.GEVP(10,order=1)
+    fitter.fit(nexc,trange,verbose=True)
 
 
 if __name__ == "__main__":

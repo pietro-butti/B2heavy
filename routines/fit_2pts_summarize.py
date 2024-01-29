@@ -23,8 +23,7 @@ from prettytable import PrettyTable
 import gvar as gv
 import numpy as np
 
-
-DEFAULT_ANALYSIS_ROOT = '/Users/pietro/code/data_analysis/data/QCDNf2p1stag/B2heavy/01-23-2023'
+from DEFAULT_ANALYSIS_ROOT import DEFAULT_ANALYSIS_ROOT
 
 def extract_parameters(location,config,jkfile):
     pars = {}
