@@ -5,7 +5,15 @@ import numpy as np
 import pandas as pd
 
 from .. import FnalHISQMetadata
+from ..TwoPointFunctions.utils import jkCorr
 
+
+
+def read_ratio_from_data(DATA,corrname):
+    try:
+        return DATA[corrname]
+    except:
+        raise Exception('WARNING: ',corrname,' not found')
 
 class RatioInfo:
     def __init__(self, _name:str, _ens:str, _rat:str, _mom:str):
@@ -197,7 +205,7 @@ class RatioIO:
 
         return aux
 
-    def ReadRatio(self, sms = ['RW','1S']):
+    def ReadRatio(self, sms = ['RW','1S'], jkBin=None):
         DATA  = h5py.File(self.RatioFile,'r')['data']
         DATA2 = h5py.File(self.RatioFile,'r')['data']
 
@@ -214,48 +222,51 @@ class RatioIO:
 
         PROCESSED = {}
         for hss in sms:
-            if ('RA1' not in self.info.ratio) and (self.info.momentum!='000'):
+            if FLAG_RA1: # ==============================================================================================
 
                 AUX = []
                 for tSink in self.mData['hSinks']:
                     nuCorr = []
                     for j,(name,nFac) in enumerate(zip(specs['nNames'][0],specs['nFacs'][0])):
                         corrname = self.RatioFileString(name,tSink,specs["hStr"],hss,specs["qStr"],specs["lStr"])
-                        try:
-                            nuCorr.append(DATA[corrname][:]*nFac)
-                        except:
-                            raise Exception('WARNING: ',corrname,' not found')
+                        nuCorr.append(
+                            read_ratio_from_data(DATA,corrname)[:]*nFac
+                        )
+                        # print(f'### nu: {corrname}')  
+                        # print(read_ratio_from_data(DATA,corrname)[:]*nFac)
                     nuCorr = np.mean(nuCorr,axis=0)
+                    nuCorr = jkCorr(nuCorr,bsize=0 if jkBin is None else jkBin)
 
                     duCorr = []
                     if len(specs['dNames'])>0:
                         for j,name in enumerate(specs['dNames']):
                             corrname = self.RatioFileString(name,tSink,specs["hStr"],hss,specs["qStr"],specs["lStr"])
-                            duCorr.append(filename)
-
-                            try:
-                                duCorr.append(DATA[corrname])
-                            except KeyError:
-                                raise Exception('WARNING: ',corrname,' not found')
+                            duCorr.append(
+                                read_ratio_from_data(DATA,corrname)
+                            )
+                    duCorr = np.sum(duCorr,axis=0)
+                    duCorr = jkCorr(duCorr,bsize=0 if jkBin is None else jkBin)
 
                     AUX.append(
-                        nuCorr/np.mean(duCorr,axis=0) if duCorr else nuCorr
+                        nuCorr/duCorr if list(duCorr) else nuCorr
                     )
 
                 PROCESSED[hss] = 0.5*AUX[0][:,0:T+1] + 0.25*AUX[1][:,0:T+1] + 0.25*np.roll(AUX[1], -1, axis=1)[:,0:T+1]
 
-
-            elif 'RA1' in self.info.ratio:
+            if not FLAG_RA1: # =====================================================================================================
                 AUX = []
                 for tSink in self.mData['hSinks']:
+                    nuCorr = []
                     aux = []
                     for name in specs['nNames'][0]:
                         corrname = self.RatioFileString(name,tSink,specs["hStr"],hss,specs["qStr"],specs["lStr"])
-                        try:
-                            aux.append(DATA[corrname][:])
-                        except:
-                            raise Exception('WARNING: ',corrname,' not found')
-                    nuCorr = [np.array(aux)[:,:,0:(tSink+1)]]
+                        aux.append(
+                            jkCorr(
+                                read_ratio_from_data(DATA,corrname)[:],
+                                bsize=0 if jkBin is None else jkBin
+                            )
+                        )
+                    nuCorr.append(np.array(aux)[:,:,0:(tSink+1)])
 
 
                     target = specs['nNames'][0] if self.info.ratio!='ZRA1' else specs['nNames'][1]
@@ -265,44 +276,52 @@ class RatioIO:
                             corrname = self.RatioFileString(name,tSink,specs["lStr"],hss,specs["qStr"],specs["hStr"])
                         else:
                             corrname = self.RatioFileString(name,tSink,specs["hStr"],hss,specs["qStr"],specs["lStr"])
-                        try:
-                            aux.append(DATA[corrname][:])
-                        except:
-                            raise Exception('WARNING: ',corrname,' not found')
 
+                        aux.append(
+                            jkCorr(
+                                read_ratio_from_data(DATA,corrname)[:],
+                                bsize=0 if jkBin is None else jkBin
+                            )
+                        )
                     aux = np.flip(np.array(aux)[:,:,0:(tSink+1)], axis=2) if self.info.ratio!='ZRA1' else np.array(aux)[:,:,0:(tSink+1)]
                     nuCorr.append(aux)
 
                     duCorr = []
                     for mesStr, cName in zip([specs['lStr'],specs['hStr']],specs['dNames']):
                         aux = []
-                        for name in enumerate(cName):
+                        for name in cName:
                             corrname = self.RatioFileString(name,tSink,mesStr,hss,specs["qStr"],mesStr)
-                            try:
-                                aux.append(DATA[corrname][:])
-                            except:
-                                raise Exception('WARNING: ',corrname,' not found')
+                            aux.append(
+                                read_ratio_from_data(DATA,corrname)
+                            )
                         aux = np.array(aux).mean(axis=0)[:,0:(tSink+1)]
-                        duCorr.append(aux)
+                        duCorr.append(
+                            jkCorr(aux,bsize=0 if jkBin is None else jkBin)
+                        )
                     
                     AUX.append(
                         (nuCorr[0]*nuCorr[1]).sum(axis=0)/(duCorr[0]*duCorr[1])
                     )
-                
-                PROCESSED[hss] = AUX
 
-
-
-
-
+                E0 = 0. # FIXME
+                m0 = 0. # FIXME
+                PROCESSED[hss] = 0.5*AUX[0][:,0:T+1]*np.exp((E0 - m0)*T) + 0.25*AUX[1][:,0:T+1]*np.exp((E0 - m0)*(T+1)) + 0.25*np.roll(AUX[1], -1, axis=1)[:,0:T+1]*np.exp((E0 - m0)*(T+1))
 
         return PROCESSED
 
 def test():
-    ra1 = RatioIO('Coarse-1',"RA1",'000',PathToDataDir='/Users/pietro/code/data_analysis/BtoD/Alex')
-    print(ra1.ReadRatio())
+    r0 = RatioIO(
+        'Coarse-1',
+        'RA1',
+        '000',
+        PathToDataDir='/Users/pietro/code/data_analysis/BtoD/Alex'
+    )
+    print(r0.RatioFile)
+
+    p = r0.ReadRatio(jkBin=1)
+    
+    
+    
+    return p
 
 
-    print('---------')
-    r0 = RatioIO('Coarse-1',"R0",'100',PathToDataDir='/Users/pietro/code/data_analysis/BtoD/Alex')
-    print(r0.ReadRatio())

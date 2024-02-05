@@ -14,7 +14,7 @@ python 2pts_disp_rel.py --config   [file location of the toml config file]
 Examples
 '''
 
-from DEFAULT_ANALYSIS_ROOT import DEFAULT_ANALYSIS_ROOT
+from .DEFAULT_ANALYSIS_ROOT import DEFAULT_ANALYSIS_ROOT
 
 import argparse
 import pickle

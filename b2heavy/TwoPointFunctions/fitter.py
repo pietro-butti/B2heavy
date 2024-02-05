@@ -103,7 +103,7 @@ class CorrFitter:
         if Meff is None:
             E[0] = gv.gvar(mPhys[self.corr.info.meson],dE/dE_E0err) * Scale * aGeV # fundamental physical state
         else:
-            # E.append(gv.gvar(Meff.mean,dE/dE_E0err*Scale*aGeV))
+            # E[0] = gv.gvar(Meff.mean,dE/dE_E0err*Scale*aGeV)
             E[0] = Meff
 
         E[1] = np.log(gv.gvar(dG, dE/dE_E1err)*Scale*aGeV)
@@ -174,7 +174,8 @@ class CorrFitter:
             for (sm,pol),v in Aeff.items():
                 sm1,sm2 = sm.split('-')
                 if sm1==sm2:
-                    priors[f'Z_{sm1}_{pol}'][0] = np.log(v)/2
+                    # priors[f'Z_{sm1}_{pol}'][0] = np.log(v)/2
+                    priors[f'Z_{sm1}_{pol}'][0] = gv.gvar(np.log(v.mean)/2,priors[f'Z_{sm1}_{pol}'][0].sdev)
 
         return priors        
 

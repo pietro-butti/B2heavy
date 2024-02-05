@@ -28,7 +28,6 @@ import datetime
 from b2heavy.TwoPointFunctions.types2pts  import CorrelatorIO, Correlator
 from b2heavy.TwoPointFunctions.fitter import CorrFitter
 
-
 def fit_2pts_single_corr(ens, meson, mom, data_dir, binsize, smslist, nstates, trange, saveto=None, meff=False, aeff=False, jkfit=False):
     """
         This function perform a fit to 2pts correlation function
