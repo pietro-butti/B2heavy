@@ -6,7 +6,7 @@ import os
 
 from scipy.special import gammaln as gammaLn
 
-from .. import Shrink
+from ..Shrink import shrink
 
 
 def ConstantModel(x,p):
@@ -124,7 +124,7 @@ def covariance_shrinking(avg,cov,nEff):
     evec  = evec[:,evOr]
 
     # Shrink the eigenvalue spectrum
-    eVsk = Shrink.shrink.direct_nl_shrink(eval, nEff)
+    eVsk = shrink.direct_nl_shrink(eval, nEff)
 
     # Reconstruct eigenvalue matrix: vecs x diag(vals) x vecs^T
     crSk = np.matmul(evec, np.matmul(np.diag(eVsk), evec.transpose()))

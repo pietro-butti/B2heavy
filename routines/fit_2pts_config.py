@@ -42,7 +42,7 @@ def fit_2pts_single_corr(ens, meson, mom, data_dir, binsize, smslist, nstates, t
             mom: str
                 Momentum string, e.g. `200`
             data_dir: str
-                Location of the `Ensemble` directori
+                Location of the `Ensemble` directory
             binsize: int
                 Bin size for jackknife error
             smslist: list
