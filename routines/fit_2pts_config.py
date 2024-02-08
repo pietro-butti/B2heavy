@@ -9,6 +9,8 @@ python 2pts_fit_config.py --config [file location of the toml config file]
                    --saveto        [*where* do you want to save files.]             
                    --logto         [Log file name]                                 
                    --override      [do you want to override pre-existing analysis?]
+                   --scale         [rescale the covariance matrix with the diagonal]
+                   --shrink        [shrink covariance matrix]
 
 Examples
 python 2pts_fit_config.py --only_ensemble MediumCoarse --only_meson Dsst --only_mom 000 100 --saveto .     
@@ -22,13 +24,27 @@ import pickle
 import sys
 import tomllib
 import os
+import gvar as gv
 
 import datetime
 
 from b2heavy.TwoPointFunctions.types2pts  import CorrelatorIO, Correlator
 from b2heavy.TwoPointFunctions.fitter import CorrFitter
 
-def fit_2pts_single_corr(ens, meson, mom, data_dir, binsize, smslist, nstates, trange, saveto=None, meff=False, aeff=False, jkfit=False):
+def fit_2pts_single_corr(
+    ens, meson, mom, 
+    data_dir, 
+    binsize, 
+    smslist, 
+    nstates, 
+    trange, 
+    saveto=None, 
+    meff=False, 
+    aeff=False, 
+    jkfit=False,
+    scale=False,
+    shrink=False
+):
     """
         This function perform a fit to 2pts correlation function
 
@@ -67,35 +83,66 @@ def fit_2pts_single_corr(ens, meson, mom, data_dir, binsize, smslist, nstates, t
     fitter = CorrFitter(corr,smearing=smslist)
     priors = fitter.set_priors_phys(nstates,Meff=MEFF if meff else None, Aeff=AEFF if aeff else None)
     fit = fitter.fit(
-        Nstates=nstates,
-        trange=trange,
-        verbose=True,
-        pval=True,
-        jkfit=jkfit,
-        priors=priors
+        Nstates           = nstates,
+        trange            = trange,
+        verbose           = True,
+        pval              = True,
+        jkfit             = jkfit,
+        priors            = priors,
+        scale_covariance  = scale,
+        shrink_covariance = shrink
     )
 
     # Missing plot dump of effective mass FIXME
 
     if saveto is not None:
-            with open(saveto, 'wb') as handle:
-                if not jkfit:
-                    f = fitter.fits[nstates,trange]
-                    aux = dict(
-                        x       = f.x,
-                        y       = f.y,
-                        p       = f.p,
-                        priors  = f.priors,
-                        pvalue  = f.pvalue,
-                        chi2    = f.chi2,
-                        chi2red = f.chi2red,
-                        info    = (nstates,trange)
-                    )
-                    pickle.dump(aux, handle, protocol=pickle.HIGHEST_PROTOCOL)
-                else:
-                    pickle.dump(fit, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        name = f'{saveto}_fit.pickle'
+        with open(name, 'wb') as handle:
+            if jkfit:
+                pickle.dump(fit, handle, protocol=pickle.HIGHEST_PROTOCOL)
+            else:
+                f = fitter.fits[nstates,trange]
+                aux = dict(
+                    x       = f.x,
+                    # y       = f.y,
+                    # p       = f.p,
+                    priors  = f.prior,
+                    pvalue  = f.pvalue,
+                    chi2    = f.chi2,
+                    chi2red = f.chi2red,
+                    info    = (nstates,trange)
+                )
+                pickle.dump(aux, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+        if not jkfit:
+            f = fitter.fits[nstates,trange]
+            gv.dump(f.y,f'{saveto}_y.pickle')
+            gv.dump(f.p,f'{saveto}_p.pickle')
+
     return
 
+
+
+
+def log(tag,ens,meson,mom,data_dir,smlist,trange,saveto,JKFIT,shrink,scale):
+    return f'''
+# ================================== ({tag}) ==================================
+# fit_2pts_single_corr from {__file__} called at {datetime.datetime.now()} with
+#        ens      = {ens}                                                           
+#        meson    = {meson}                                                       
+#        mom      = {mom}                                                        
+#        data_dir = {data_dir}                                                      
+#        smlist   = {smlist}                                                      
+#        trange   = {trange}                                                       
+#        saveto   = {saveto}                                                       
+#        jkfit    = {JKFIT}                                                        
+#        meff     = True,
+#        aeff     = True,                                                           
+#        shrink   = {shrink},
+#        scale    = {scale}                          
+# =============================================================================
+''' 
+    
 
 
 def load_toml(file) -> dict:
@@ -115,6 +162,8 @@ prs.add_argument('--jkfit'        , action='store_true')
 prs.add_argument('--override'     , action='store_true')
 prs.add_argument('--logto'        , type=str, default=None)
 prs.add_argument('--debug'        , action='store_true')
+prs.add_argument('--scale'        , action='store_true', default=False)
+prs.add_argument('--shrink'       , action='store_true', default=False)
 
 def main():
     args = prs.parse_args()
@@ -146,66 +195,51 @@ def main():
 
                 SAVETO = DEFAULT_ANALYSIS_ROOT if args.saveto=='default' else args.saveto
 
-                if os.path.exists(SAVETO):
-                    if not JKFIT:
-                        saveto = f'{SAVETO}/fit2pt_config_{tag}.pickle' if args.saveto is not None else None
+                if SAVETO is not None:
+                    if not os.path.exists(SAVETO):
+                        raise Exception(f'{SAVETO} is not an existing location.')
                     else:
-                        saveto = f'{SAVETO}/fit2pt_config_jk_{tag}.pickle' if args.saveto is not None else None
-                else:
-                    raise NameError(f'{SAVETO} is not an existing location.')
+                        if not JKFIT:
+                            saveto = f'{SAVETO}/fit2pt_config_{tag}' if args.saveto is not None else None
+                        else:
+                            saveto = f'{SAVETO}/fit2pt_config_jk_{tag}' if args.saveto is not None else None
+                    
+                        # Check if there is an already existing analysis =====================================
+                        if os.path.exists(f'{saveto}.pickle'):
+                            if args.override:
+                                print(f'Already existing analysis for {tag}, but overriding...')
+                            else:
+                                print(f'Analysis for {tag} already up to date')
+                                continue
 
-                # Check if there is an already existing analysis =====================================
-                if os.path.exists(saveto):
-                    if args.override:
-                        print(f'Already existing analysis for {tag}, but overriding...')
-                    else:
-                        print(f'Analysis for {tag} already up to date')
-                        continue
 
                 # Perform analysis ===================================================================
-                try:
-                    fit_2pts_single_corr(
-                        ens, meson, 
-                        mom, 
-                        data_dir, 
-                        binsize, 
-                        smlist, 
-                        nstates, 
-                        trange, 
-                        saveto = saveto, 
-                        jkfit  = JKFIT,
-                        meff   = True, 
-                        aeff   = True
-                    )
-                except:
-                    pass
+                # try:
+                fit_2pts_single_corr(
+                    ens, meson, 
+                    mom, 
+                    data_dir, 
+                    binsize, 
+                    smlist, 
+                    nstates, 
+                    trange, 
+                    saveto = saveto, 
+                    jkfit  = JKFIT,
+                    meff   = True, 
+                    aeff   = True,
+                    shrink = args.shrink,
+                    scale  = args.scale
+                )
+                # except Exception:
+                #     print('PORCODIO')
+                #     pass
 
                 # LOG analysis =======================================================================
-                log = f'''
-# ================================== ({tag}) ==================================
-# fit_2pts_single_corr from {__file__} called at {datetime.datetime.now()} with
-#        ens      = {ens}                                                           
-#        meson    = {meson}                                                       
-#        mom      = {mom}                                                        
-#        data_dir = {data_dir}                                                      
-#        smlist   = {smlist}                                                      
-#        trange   = {trange}                                                       
-#        saveto   = {saveto}                                                       
-#        jkfit    = {JKFIT}                                                        
-#        meff     = True,
-#        aeff     = True,                                                           
-#        priors   = 'meff'                                                        
-# =============================================================================
-                ''' 
-                point = '.'
-                if not JKFIT:
-                    logfile = f'{SAVETO}/fit2pt_config_jk_{tag}.log' if args.logto==None else args.logto
-                else:
-                    logfile = f'{SAVETO}/fit2pt_config_{tag}.log' if args.logto==None else args.logto
-                with open(logfile,'a+') as f:
-                    f.write(log)
 
-
+                if SAVETO is not None:
+                    logfile = f'{saveto}.log' if args.logto==None else args.logto
+                    with open(logfile,'w') as f:
+                        f.write(log(tag,ens,meson,mom,data_dir,smlist,trange,saveto,JKFIT,args.shrink,args.scale))
 
 
 

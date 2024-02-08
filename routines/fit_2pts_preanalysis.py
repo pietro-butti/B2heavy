@@ -11,7 +11,8 @@ python fit_2pts_preanalysis.py --config   [file location of the toml config file
                                --maxerr   [Error percentage for Tmax]                     
                                --Nstates  [list of N for (N+N) fit (listed without comas)]
                                --tmins    [list of tmins (listed without commas)]
-
+                               --tmaxs    [list of tmaxs (listed without commas), if not specified, the 30% criterion will be applied]
+                               --verbose
 
 
 Examples
@@ -60,8 +61,10 @@ prs.add_argument('--meson'   , type=str,  nargs='+',  default=None)
 prs.add_argument('--mom'     , type=str,  nargs='+',  default=None)
 prs.add_argument('--Nstates' , type=int,  nargs='+',  default=None)
 prs.add_argument('--tmins'   , type=int,  nargs='+',  default=None)
+prs.add_argument('--tmaxs'   , type=int,  nargs='+',  default=None)
 prs.add_argument('--saveto'  , type=str,  default=None)
 prs.add_argument('--maxerr'  , type=int,  default=25)
+prs.add_argument('--verbose', action='store_true')
 
 
 def main():
@@ -83,7 +86,7 @@ def main():
 
     DF = {
         'tag': [],
-        'tmin': [], 'Nstates': [], 'Ndof': [],
+        'tmin': [], 'tmax': [], 'Nstates': [], 'Ndof': [],
         'scale':[],'shrink':[],
         'time':[],'chi2 [red]':[],'chi2 [aug]':[],'p value':[],'E0':[]
     }
@@ -113,56 +116,59 @@ def main():
                     df[tmax] = pd.Series(s,index=i)
                 df = pd.DataFrame(df)
 
-                TMAX = min(df.mean().where(lambda x: x>MAX_ERR).dropna().index)
-
+                try:
+                    TMAX = min(df.mean().where(lambda x: x>MAX_ERR).dropna().index)
+                except ValueError:
+                    TMAX = max(corr.data.timeslice.values)
 
                 # TMIN pre-ANALYSIS -----------------------------------------------------
                 NEXC  = [1,2,3]                    if not args.Nstates else args.Nstates 
                 TMINS = corr.data.timeslice.values if not args.tmins   else args.tmins
+                TMAXS = [TMAX]                     if not args.tmaxs   else args.tmaxs
                 NPOL  = len(corr.data.polarization)
                 
+                for tmax in TMAXS:
+                    for tmin in TMINS:
+                        for nexc in NEXC:
+                            trange = (tmin,tmax)
+                            _,MEFF,AEFF,_,_ = corr.EffectiveCoeff(trange,smearing=smlist)
 
-                for tmin in TMINS:
-                    for nexc in NEXC:
-                        trange = (tmin,TMAX)
-                        _,MEFF,AEFF,_,_ = corr.EffectiveCoeff(trange,smearing=smlist)
+                            for rescale in [False,True]:
+                                for shrink in [False,True]:
+                                    if args.verbose:
+                                        print(f'# -------------- mes: {corr.info.meson} of ens: {corr.info.ensemble} for mom: {corr.info.momentum} --------------')
+                                        print(f'#     tmin={tmin},tmax={tmax},')
+                                        print(f'#         nexc={nexc}')
+                                        print(f'#             (scale,shrink)=({rescale},{shrink})')
 
-                        for rescale in [False,True]:
-                            for shrink in [False,True]:
-                                print(f'# -------------- mes: {corr.info.meson} of ens: {corr.info.ensemble} for mom: {corr.info.momentum} --------------')
-                                print(f'#     tmin={tmin}')
-                                print(f'#         nexc={nexc}')
-                                print(f'#             (scale,shrink)=({rescale},{shrink})')
+                                    fitter = CorrFitter(corr,smearing=smlist)
+                                    priors = fitter.set_priors_phys(nexc,Meff=MEFF,Aeff=AEFF)
+                                    fitter.fit(
+                                        Nstates = nexc,
+                                        trange  = trange,
+                                        verbose = False,
+                                        priors  = priors,
+                                        scale_covariance   = rescale,
+                                        shrink_covariance  = shrink
+                                    )
+                                    fit = fitter.fits[nexc,trange]
 
-                                fitter = CorrFitter(corr,smearing=smlist)
-                                priors = fitter.set_priors_phys(nexc,Meff=MEFF,Aeff=AEFF)
-                                fitter.fit(
-                                    Nstates = nexc,
-                                    trange  = trange,
-                                    verbose = False,
-                                    priors  = priors,
-                                    scale_covariance   = rescale,
-                                    shrink_covariance  = shrink
-                                )
-                                fit = fitter.fits[nexc,trange]
-
-                                DF['tag'].append(f'{ens}_{meson}_{mom}')
-                                DF['tmin'].append(      tmin         )
-                                DF['Nstates'].append(   nexc         )
-                                DF['Ndof'].append(Ndof(NPOL,trange,nexc))
-                                DF['scale'].append(     rescale      )
-                                DF['shrink'].append(    shrink       )
-                                DF['time'].append(      fit.time     )
-                                DF['chi2 [red]'].append(fit.chi2red  )
-                                DF['chi2 [aug]'].append(fit.chi2     )
-                                DF['p value'].append(   fit.pvalue   )
-                                DF['E0'].append(        fit.p['E'][0])
+                                    DF['tag'].append(f'{ens}_{meson}_{mom}')
+                                    DF['tmin'].append(      tmin         )
+                                    DF['tmax'].append(      tmax         )
+                                    DF['Nstates'].append(   nexc         )
+                                    DF['Ndof'].append(Ndof(NPOL,trange,nexc))
+                                    DF['scale'].append(     rescale      )
+                                    DF['shrink'].append(    shrink       )
+                                    DF['time'].append(      fit.time     )
+                                    DF['chi2 [red]'].append(fit.chi2red  )
+                                    DF['chi2 [aug]'].append(fit.chi2     )
+                                    DF['p value'].append(   fit.pvalue   )
+                                    DF['E0'].append(        fit.p['E'][0])
 
     DF = pd.DataFrame(DF)#.set_index(['ensemble','meson','momentum','tmin','Nstates','scale','shrink'],inplace=True)
-    DF.set_index(['tag','tmin','Nstates','scale','shrink'],inplace=True)
+    DF.set_index(['tag','tmax','tmin','Nstates','scale','shrink'],inplace=True)
     
-    print(DF)
-
     DF.style \
     .format(precision=3, thousands=".", decimal=",") \
     .format_index(str.upper, axis=1)
