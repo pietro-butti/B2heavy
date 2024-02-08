@@ -175,7 +175,9 @@ class CorrFitter:
                 sm1,sm2 = sm.split('-')
                 if sm1==sm2:
                     # priors[f'Z_{sm1}_{pol}'][0] = np.log(v)/2
-                    priors[f'Z_{sm1}_{pol}'][0] = gv.gvar(np.log(v.mean)/2,priors[f'Z_{sm1}_{pol}'][0].sdev)
+                    v = np.log(v)/2
+                    # priors[f'Z_{sm1}_{pol}'][0] = gv.gvar(np.log(v.mean)/2,priors[f'Z_{sm1}_{pol}'][0].sdev)
+                    priors[f'Z_{sm1}_{pol}'][0] = gv.gvar(v.mean,v.sdev*10)
 
         return priors        
 
