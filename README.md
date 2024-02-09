@@ -58,6 +58,7 @@ python fit_2pts_preanalysis.py --config   [file location of the toml config file
 An example is 
 ```
 $ python fit_2pts_preanalysis.py --ensemble Coarse-1 --meson Dsst --mom 100 --maxerr 25 --Nstates 1 2 3 --tmins 14 --tmaxs 23 --verbose
+
                                                   Ndof      time  chi2 [red]  chi2 [aug]       p value           E0
 tag               tmax tmin Nstates scale shrink                                                                   
 Coarse-1_Dsst_100 23   14   1       False False     48  0.030131  169.096940  173.781778  5.255437e-12  1.15189(33)
