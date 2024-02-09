@@ -74,3 +74,38 @@ Coarse-1_Dsst_100 23   14   1       False False     48  0.030131  169.096940  17
                                     True  False     32  0.735699   34.940914   42.549889  6.453774e-02  1.15210(40)
                                           True      32  0.597975   32.138438   39.600610  1.171063e-01  1.15210(40)
 ```
+
+
+## Stability of fit
+The routine `fit_2pts_stability_test.py` performs the following tasks:
+- Performs different fits for a range of `tmins` and `tmaxs` and excited states
+- Plot them together
+- Perform the model average, if required to
+
+Some technical observations:
+- The fits are performed using *always the same priors* found from effective mass and coefficients of a given time range
+  
+### Usage
+
+```
+$ python 2pts_fit_stability_test.py --help
+
+python 2pts_fit_stability_test.py --config        [file location of the toml config file]
+                                  --ensemble     [which ensemble?]                       
+                                  --meson        [which meson?]                          
+                                  --mom          [which momentum?]                       
+                                  --prior_trange  [trange for effective mass priors]
+                                  --Nstates      [list of N for (N+N) fit (listed without comas)]
+                                  --tmins        [list of tmins (listed without commas)]
+                                  --tmaxs        [list of tmaxs (listed without commas)]
+                                  --read_from    [name of the .pickle file of previous analysis]
+                                  --saveto       [where do you want to save the analysis?]
+                                  --not_average  [list of tmins that do not have to be taken in model average]
+                                  --showfig      [do you want to display the plot with plt.show()?]
+                                  --plot         [do you want to plot data?]
+                                  --plot_ymax    [set maximum y in the plot]
+                                  --plot_ymin    [set minimum y in the plot]
+                                  --plot_AIC     [do you want to plot also the AIC weight?]
+Examples
+python fit_2pts_stability_test.py --ensemble Coarse-1 --meson Dsst --mom 100 --prior_trange 14 23 --Nstates 1 2 3 --tmins 7 8 9 10 11 12 13 14 15 16 --tmaxs 23 --saveto default --plot --showfig --plot_AIC
+```
