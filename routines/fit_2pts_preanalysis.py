@@ -41,7 +41,7 @@ from b2heavy.TwoPointFunctions.fitter    import CorrFitter
 HERE = os.path.join('/',*__file__.split('/')[:-1])
 sys.path.append(HERE)
 
-import fit_2pts_stability_test as utils
+import fit_2pts_utils as utils
 
 
 

@@ -4,6 +4,7 @@ python 2pts_fit_stability_test.py --config        [file location of the toml con
                                   --ensemble     [which ensemble?]                       
                                   --meson        [which meson?]                          
                                   --mom          [which momentum?]                       
+                                  --prior_trange  [trange for effective mass priors]
                                   --Nstates      [list of N for (N+N) fit (listed without comas)]
                                   --tmins        [list of tmins (listed without commas)]
                                   --tmaxs        [list of tmaxs (listed without commas)]
@@ -32,28 +33,32 @@ import matplotlib.pyplot as plt
 from b2heavy.TwoPointFunctions.types2pts  import CorrelatorIO, Correlator
 from b2heavy.TwoPointFunctions.fitter import CorrFitter
 
+import fit_2pts_utils as utils
 
-def stability_test_fit(ens,meson,mom,data_dir,binsize,smslist,nexcrange,tminrange,tmaxrange,saveto='./'):
+def stability_test_fit(ens,meson,mom,data_dir,binsize,smslist,nexcrange,tminrange,tmaxrange,prior_trange,saveto='./'):
     io = CorrelatorIO(ens,meson,mom,PathToDataDir=data_dir)
     corr = Correlator(io)
     corr.jack(binsize)
 
     fitter = CorrFitter(corr, smearing=smslist)
 
+    _,MEFF,AEFF,_,_ = corr.EffectiveCoeff(prior_trange,smearing=smslist)
+
     for nstates in nexcrange:
         for tmin in tminrange:
             for tmax in tmaxrange:
                 trange = (tmin,tmax)
 
-                _,MEFF,_ = corr.EffectiveMass(trange=trange,smearing=smslist)
-
+                priors = fitter.set_priors_phys(nstates,Meff=MEFF,Aeff=AEFF)
                 try:
                     fitter.fit(
-                        Nstates=nstates,
-                        trange=trange,
-                        verbose=True,
-                        pval=True,
-                        priors = fitter.set_priors_phys(nstates,Meff=MEFF)
+                        Nstates = nstates,
+                        trange  = trange,
+                        verbose = True,
+                        pval    = True,
+                        priors  = priors,
+                        scale_covariance  = True,
+                        shrink_covariance = True 
                     )
                 except ValueError:
                     print(nstates,tmin)
@@ -143,18 +148,13 @@ def stability_test_plot_AIC(a1,Nt,fits):
     a1.set_ylim(ymin=0,ymax=1)
 
 
-def load_toml(file) -> dict:
-    with open(file,'rb') as f:
-        toml_data: dict = tomllib.load(f)
-    return toml_data
-
-
 
 prs = argparse.ArgumentParser(usage=usage)
 prs.add_argument('-c','--config', type=str,  default='./2pts_fit_config.toml')
 prs.add_argument('--ensemble', type=str)
 prs.add_argument('--meson'   , type=str)
 prs.add_argument('--mom'     , type=str)
+prs.add_argument('--prior_trange' , type=int, nargs='+')
 prs.add_argument('--Nstates' , type=int, nargs='+')
 prs.add_argument('--tmins'   , type=int, nargs='+')
 prs.add_argument('--tmaxs'   , type=int, nargs='+')
@@ -178,7 +178,7 @@ def main():
     mom = args.mom     
 
     config_file = args.config
-    config = load_toml(config_file)
+    config = utils.load_toml(config_file)
     tag = config['fit'][ens][mes]['mom'][mom]['tag']
     
 
@@ -201,16 +201,17 @@ def main():
             saveto = f'{SAVETO}/fit2pt_stability_test_{tag}.pickle'
         
         fits = stability_test_fit(
-            ens       = args.ensemble,
-            meson     = args.meson,
-            mom       = args.mom,
-            data_dir  = config['data'][ens]['data_dir'],
-            binsize   = config['data'][ens]['binsize'],
-            smslist   = config['fit'][ens][mes]['smlist'],
-            nexcrange = args.Nstates,
-            tminrange = args.tmins,
-            tmaxrange = args.tmaxs,
-            saveto    = saveto
+            ens          = args.ensemble,
+            meson        = args.meson,
+            mom          = args.mom,
+            data_dir     = config['data'][ens]['data_dir'],
+            binsize      = config['data'][ens]['binsize'],
+            smslist      = config['fit'][ens][mes]['smlist'],
+            prior_trange = tuple(args.prior_trange),
+            nexcrange    = args.Nstates,
+            tminrange    = args.tmins,
+            tmaxrange    = args.tmaxs,
+            saveto       = saveto
         ) 
 
 

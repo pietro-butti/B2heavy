@@ -31,6 +31,8 @@ import datetime
 from b2heavy.TwoPointFunctions.types2pts  import CorrelatorIO, Correlator
 from b2heavy.TwoPointFunctions.fitter import CorrFitter
 
+import fit_2pts_utils as utils
+
 def fit_2pts_single_corr(
     ens, meson, mom, 
     data_dir, 
@@ -38,12 +40,12 @@ def fit_2pts_single_corr(
     smslist, 
     nstates, 
     trange, 
-    saveto=None, 
-    meff=False, 
-    aeff=False, 
-    jkfit=False,
-    scale=False,
-    shrink=False
+    saveto = None, 
+    meff   = False, 
+    aeff   = False, 
+    jkfit  = False,
+    scale  = False,
+    shrink = False,
 ):
     """
         This function perform a fit to 2pts correlation function
@@ -97,29 +99,15 @@ def fit_2pts_single_corr(
 
     if saveto is not None:
         name = f'{saveto}_fit.pickle'
-        with open(name, 'wb') as handle:
-            if jkfit:
+        if jkfit:
+            with open(name, 'wb') as handle:
                 pickle.dump(fit, handle, protocol=pickle.HIGHEST_PROTOCOL)
-            else:
-                f = fitter.fits[nstates,trange]
-                aux = dict(
-                    x       = f.x,
-                    # y       = f.y,
-                    # p       = f.p,
-                    priors  = f.prior,
-                    pvalue  = f.pvalue,
-                    chi2    = f.chi2,
-                    chi2red = f.chi2red,
-                    info    = (nstates,trange)
-                )
-                pickle.dump(aux, handle, protocol=pickle.HIGHEST_PROTOCOL)
-
-        if not jkfit:
+        else:
             f = fitter.fits[nstates,trange]
-            gv.dump(f.y,f'{saveto}_y.pickle')
-            gv.dump(f.p,f'{saveto}_p.pickle')
+            utils.dump_fit_object(f,saveto)
 
     return
+
 
 
 
@@ -142,13 +130,6 @@ def log(tag,ens,meson,mom,data_dir,smlist,trange,saveto,JKFIT,shrink,scale):
 #        scale    = {scale}                          
 # =============================================================================
 ''' 
-    
-
-
-def load_toml(file) -> dict:
-    with open(file,'rb') as f:
-        toml_data: dict = tomllib.load(f)
-    return toml_data
 
 
 
@@ -169,7 +150,7 @@ def main():
     args = prs.parse_args()
 
     config_file = args.config
-    config = load_toml(config_file)
+    config = utils.load_toml(config_file)
 
     ENSEMBLE_LIST = args.only_ensemble if args.only_ensemble is not None else config['ensemble']['list']
     MESON_LIST    = args.only_meson    if args.only_meson    is not None else config['meson']['list']
@@ -202,7 +183,7 @@ def main():
                         if not JKFIT:
                             saveto = f'{SAVETO}/fit2pt_config_{tag}' if args.saveto is not None else None
                         else:
-                            saveto = f'{SAVETO}/fit2pt_config_jk_{tag}' if args.saveto is not None else None
+                            saveto = f'{SAVETO}/fit2pt_config_{tag}_jk' if args.saveto is not None else None
                     
                         # Check if there is an already existing analysis =====================================
                         if os.path.exists(f'{saveto}.pickle'):
