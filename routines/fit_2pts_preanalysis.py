@@ -11,7 +11,7 @@ python fit_2pts_preanalysis.py --config   [file location of the toml config file
                                --maxerr   [Error percentage for Tmax]                     
                                --Nstates  [list of N for (N+N) fit (listed without comas)]
                                --tmins    [list of tmins (listed without commas)]
-                               --tmaxs    [list of tmaxs (listed without commas), if not specified, the 30% criterion will be applied]
+                               --tmaxs    [list of tmaxs (listed without commas), if not specified, the 30 criterion will be applied]
                                --verbose
 
 
