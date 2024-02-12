@@ -5,6 +5,8 @@ import lsqfit
 import sys
 import os
 
+import matplotlib.pyplot as plt
+
 from scipy.linalg import eigh
 from autograd import numpy as np
 
@@ -532,6 +534,8 @@ class CorrFitter:
 
 
         return fit.p['const']
+
+
 
 
 

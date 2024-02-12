@@ -8,8 +8,9 @@ python 2pts_fit_stability_test.py --config        [file location of the toml con
                                   --Nstates      [list of N for (N+N) fit (listed without comas)]
                                   --tmins        [list of tmins (listed without commas)]
                                   --tmaxs        [list of tmaxs (listed without commas)]
-                                  --read_from    [name of the .pickle file of previous analysis]
                                   --saveto       [where do you want to save the analysis?]
+                                  --read_from    [name of the .pickle file of previous analysis]
+                                  --override     [ ]
                                   --not_average  [list of tmins that do not have to be taken in model average]
                                   --showfig      [do you want to display the plot with plt.show()?]
                                   --plot         [do you want to plot data?]
@@ -29,6 +30,7 @@ import tomllib
 import argparse
 import os
 import matplotlib.pyplot as plt
+import datetime
 
 from b2heavy.TwoPointFunctions.types2pts  import CorrelatorIO, Correlator
 from b2heavy.TwoPointFunctions.fitter import CorrFitter
@@ -147,7 +149,28 @@ def stability_test_plot_AIC(a1,Nt,fits):
 
     a1.set_ylim(ymin=0,ymax=1)
 
+def log(tag,ens,meson,mom,prior_trange,Nstates,tmins,tmaxs,not_average):
+    st = f'''
+# ================================== ({tag}) ==================================
+# fit_2pts_stability_test from {__file__} called at {datetime.datetime.now()} with
+#        ens          = {ens         }
+#        meson        = {meson       }
+#        mom          = {mom         }
+#        prior_trange = {prior_trange}
+#        Nstates      = {Nstates     }
+#        tmins        = {tmins       }
+#        tmaxs        = {tmaxs       }
+#        not_average  = {not_average }
+# =============================================================================
+''' 
 
+    logg = {
+        'prior_trange':prior_trange,
+        'Nstates':Nstates,
+        'tmins':tmins,
+        'tmaxs':tmaxs
+    }
+    return st, logg
 
 prs = argparse.ArgumentParser(usage=usage)
 prs.add_argument('-c','--config', type=str,  default='./2pts_fit_config.toml')
@@ -161,6 +184,7 @@ prs.add_argument('--tmaxs'   , type=int, nargs='+')
 
 prs.add_argument('--saveto'   , type=str,  default=None)
 prs.add_argument('--read_from', type=str,  default=None)
+prs.add_argument('--override' , action='store_true')
 
 prs.add_argument('--not_average', type=int, nargs='+', default=[])
 
@@ -181,25 +205,40 @@ def main():
     config = utils.load_toml(config_file)
     tag = config['fit'][ens][mes]['mom'][mom]['tag']
     
-
+    
     READFROM = f'{DEFAULT_ANALYSIS_ROOT}/fit2pts_stability_test_{tag}.pickle' if args.read_from=='default' else args.read_from
     SAVETO = DEFAULT_ANALYSIS_ROOT if args.saveto=='default' else args.saveto
+    
+    fits = None
     if args.read_from is not None: 
         with open(READFROM,'rb') as f:
             fits = pickle.load(f)
 
-    # Check if there is an existing former analysis
-    elif os.path.exists(f'{SAVETO}/fit2pt_stability_test_{tag}.pickle'):
-        print(f'Reading from {SAVETO}/fit2pt_stability_test_{tag}.pickle')
-        with open(f'{SAVETO}/fit2pt_stability_test_{tag}.pickle','rb') as f:
-            fits = pickle.load(f)
-    
-    else:
-        if not os.path.isdir(SAVETO):
-            raise NameError(f'{SAVETO} is not a directory')
-        else:
-            saveto = f'{SAVETO}/fit2pt_stability_test_{tag}.pickle'
+    elif os.path.exists(f'{SAVETO}/fit2pt_stability_test_{tag}.pickle') and not args.override:
+        # Check if there is an existing former analysis with same specifics
         
+        logfile = f'{SAVETO}/fit2pt_stability_test_{tag}_d.log'
+        if os.path.exists(logfile):
+            with open(logfile,'rb') as f:
+                logdata = pickle.load(f)
+
+                if logdata['prior_trange']==args.prior_trange and \
+                    logdata['Nstates']==args.Nstates and \
+                    logdata['tmins']==args.tmins and \
+                    logdata['tmaxs']==args.tmaxs :
+
+                    print(f'Reading from {SAVETO}/fit2pt_stability_test_{tag}.pickle')
+                    with open(f'{SAVETO}/fit2pt_stability_test_{tag}.pickle','rb') as f:
+                        fits = pickle.load(f)
+    
+
+    
+    if not os.path.isdir(SAVETO):
+        raise NameError(f'{SAVETO} is not a directory')
+    else:
+        saveto = f'{SAVETO}/fit2pt_stability_test_{tag}.pickle'
+
+    if fits is None:
         fits = stability_test_fit(
             ens          = args.ensemble,
             meson        = args.meson,
@@ -243,6 +282,20 @@ def main():
 
         if args.showfig:
             plt.show()
+
+
+        
+        # LOG analysis =======================================================================
+        if SAVETO is not None:
+            string,data = log(tag,ens,mes,mom,args.prior_trange,args.Nstates,args.tmins,args.tmaxs,args.not_average)
+            
+            logfile = f'{SAVETO}/fit2pt_stability_test_{tag}.log'
+            with open(logfile,'w') as f:
+                f.write(string)
+            
+            logdata = f'{SAVETO}/fit2pt_stability_test_{tag}_d.log'
+            with open(logdata,'wb') as handle:
+                pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
         
 
 

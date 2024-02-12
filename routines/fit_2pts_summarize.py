@@ -25,154 +25,138 @@ import numpy as np
 
 from DEFAULT_ANALYSIS_ROOT import DEFAULT_ANALYSIS_ROOT
 
-def extract_parameters(location,config,jkfile):
-    pars = {}
+import fit_2pts_utils as utils
+
+
+# def extract_parameters(location,config,jkfile):
+#     pars = {}
     
-    with open(os.path.join(location,config),'rb') as f:
-        fit = pickle.load(f)
+#     with open(os.path.join(location,config),'rb') as f:
+#         fit = pickle.load(f)
 
-        Nexc,trange = fit['info']
-        pars['tmin'],pars['tmax'] = trange
-        pars['Nexc'] = f'{Nexc}+{Nexc}'
+#         Nexc,trange = fit['info']
+#         pars['tmin'],pars['tmax'] = trange
+#         pars['Nexc'] = f'{Nexc}+{Nexc}'
 
-        Ndata = len(fit['y'])
-        Npars = len(np.concatenate(list(fit['p'].values())))
-        pars['Ndof'] = Ndata-Npars
+#         Ndata = len(fit['y'])
+#         Npars = len(np.concatenate(list(fit['p'].values())))
+#         pars['Ndof'] = Ndata-Npars
 
-        chi2red = round(fit['chi2red'],1)
-        pars['chi2'] = chi2red
-        pars['pval'] = round(fit['pvalue'],2)
+#         chi2red = round(fit['chi2red'],1)
+#         pars['chi2'] = chi2red
+#         pars['pval'] = round(fit['pvalue'],2)
 
-    with open(os.path.join(location,jkfile),'rb') as g:
-        jkfit = pickle.load(g)
+#     with open(os.path.join(location,jkfile),'rb') as g:
+#         jkfit = pickle.load(g)
 
-        E0 = gv.mean(jkfit['E'][:,0])
-        err = np.std(E0) * np.sqrt(len(E0)-1)  
-        pars['E0'] = gv.gvar(E0.mean(),err)
+#         E0 = gv.mean(jkfit['E'][:,0])
+#         err = np.std(E0) * np.sqrt(len(E0)-1)  
+#         pars['E0'] = gv.gvar(E0.mean(),err)
 
-        for k,z in jkfit.items():
-            if k.startswith('Z_'):
-                sm = k.split('_')[1]
-                if len(sm.split('-'))==1:
-                    Z = np.exp(gv.mean(z[:,0]))
-                    pars[k] = gv.gvar(Z.mean(),np.std(Z) *  np.sqrt(len(Z)-1))
-
-
-    return pars    
+#         for k,z in jkfit.items():
+#             if k.startswith('Z_'):
+#                 sm = k.split('_')[1]
+#                 if len(sm.split('-'))==1:
+#                     Z = np.exp(gv.mean(z[:,0]))
+#                     pars[k] = gv.gvar(Z.mean(),np.std(Z) *  np.sqrt(len(Z)-1))
 
 
-MESON_LATEX = {
-    'D'   : r'$D$',
-    'Ds'  : r'$D_s$',
-    'Dst' : r'$D^*$',
-    'Dsst': r'$D_s^*',
-    'B': r'$B',
-    'Bs': r'$B_s',
-}
-
-
-COLS = [r'$N_{exc}$',r'$\frac{t}{a}$',r'$aE(\mathbf{p})$',r'$\mathcal{Z}_{1S}$',r'$\mathcal{Z}_{d}$',r'$\chi^2$/dof',r'$p$-value']
-def tabulate_parameters(pars):
-    Z1S = pars['Z_1S_Par'] if 'Z_1S_Par' in pars else pars['Z_1S_Unpol']
-    Zd  = pars['Z_d_Par']  if 'Z_d_Par'  in pars else pars['Z_d_Unpol']
-
-    row = {
-        r'$N_{exc}$'         : pars['Nexc'],
-        r'$\frac{t}{a}$'     : f"({pars['tmin']},{pars['tmax']})",
-        r'$aE(\mathbf{p})$'  : f"{pars['E0']}",
-        r'$\mathcal{Z}_{1S}$': f'{Z1S}',
-        r'$\mathcal{Z}_{d}$' : f'{Zd}',
-        r'$\chi^2$/dof'      : f"{pars['chi2']}/{pars['Ndof']}",
-        r'$p$-value'         : f"{pars['pval']}"
-    }
-    return row
-
-def load_toml(file) -> dict:
-    with open(file,'rb') as f:
-        toml_data: dict = tomllib.load(f)
-    return toml_data
+#     return pars    
 
 
 
 prs = argparse.ArgumentParser(usage=usage)
 prs.add_argument('-c','--config'  , type=str,  default='./2pts_fit_config.toml')
 prs.add_argument('--read_from'    , type=str)
-prs.add_argument('--latex'        , action='store_true')
 prs.add_argument('--saveto'       , type=str, default=None)
+prs.add_argument('--latex'        , action='store_true')
 
 def main():
     args = prs.parse_args()
 
     config_file = args.config
-    config = load_toml(config_file)
+    config = utils.load_toml(config_file)
     
-
     read_from = DEFAULT_ANALYSIS_ROOT if args.read_from=='default' else args.read_from
     if not os.path.exists(read_from):
-        raise ValueError(f'{read_from} is not a valid location')
+        raise Exception(f'{read_from} is not a valid location')
 
     ENSEMBLE_LIST = config['ensemble']['list']
     MESON_LIST    = config['meson']['list']
-    MOMENTUM_LIST = config['momenta']['list']
 
-    tab = PrettyTable()
-    tab.field_names = ['Ensemble','Meson','Momentum','fit','jkfit','stability an.','disp. rel.']
+    DF = {
+        'ens':[],'mes':[],'mom':[],
+        'fit':[],'jkfit':[],
+        'trange':[], 'Nstates':[],'Ndof':[],
+        'pvalue':[],'chi2red':[],
+        'E0':[]#,'Z':[]
+    }
 
-    div = False
     for ens in ENSEMBLE_LIST:
-        location = os.path.join(read_from,ens)
-        files = os.listdir(location)
-        
-        dfs  = []
-        keys = []
         for mes in MESON_LIST:
-            df = pd.DataFrame(columns=COLS,index=[f'({px},{py},{pz})' for px,py,pz in MOMENTUM_LIST])
-            dispr = 'x' if f'fit2pt_disp_rel_{ens}_{mes}.pickle' in files else ' '
-            for i,mom in enumerate(MOMENTUM_LIST):
-                config = f'fit2pt_config_{ens}_{mes}_{mom}.pickle'
-                jkfit  = f'fit2pt_config_jk_{ens}_{mes}_{mom}.pickle'
-                stabts = f'fit2pt_stability_test_{ens}_{mes}_{mom}.pickle'
+            MOMENTUM_LIST = config['data'][ens]['mom_list']
 
-                # Produce table for terminal-log
-                tab.add_row(
-                    [
-                        ens,mes,mom,
-                        'x' if config in files else ' ',
-                        'x' if jkfit  in files else ' ',
-                        'x' if stabts in files else ' ',  
-                        dispr  
-                    ], divider=(i==len(MOMENTUM_LIST)-1)
-                )
+            for mom in MOMENTUM_LIST:
+                tag = f'{ens}_{mes}_{mom}'
 
-                # Feed latex table
-                if jkfit in files and config in files:
-                    p = extract_parameters(location,config,jkfit)
-                    px,py,pz = mom
-                    df.loc[f'({px},{py},{pz})']  = tabulate_parameters(p)
+                DF['ens'].append(ens)
+                DF['mes'].append(mes)
+                DF['mom'].append(mom)
 
-            dfs.append(df)
-            keys.append(MESON_LATEX[mes])
-        
-        DF = pd.concat(dfs,keys=keys)
-        if args.latex:
-            lattab = DF.to_latex(caption = f'Fit specifics for ensemble {ens}')
+                fit_file = os.path.join(read_from,f'fit2pt_config_{tag}_fit.pickle')
+                fit      = os.path.exists(fit_file)
+                DF['fit'].append('x' if fit else ' ')
 
-            saveto = f'{read_from}/TABLES/' if args.saveto==None else args.saveto
-            with open(f'{saveto}/fit2pt_parameter_table_{ens}.tex','w') as f:
-                f.write(lattab)
+                jkfit_file = os.path.join(read_from,f'fit2pt_config_{tag}_jk_fit.pickle')
+                jkfit      = os.path.exists(jkfit_file)
+                DF['jkfit'].append('x' if jkfit else ' ')
 
-    print(tab)
+                if fit:
+                    fit,fitp,fity = utils.read_config_fit(f'fit2pt_config_{tag}',path=read_from)
 
+                    tspan  = np.concatenate(fit['x'])
+                    trange = (min(tspan),max(tspan))
+                    Nexc   = len(fit['priors']['E'])//2
+                    Npol = 1 if 'Unpol' in list(fitp.keys())[-1] else 3
+
+                    DF['trange'].append(trange)
+                    DF['Nstates'].append(Nexc)
+                    DF['Ndof'].append(utils.Ndof(Npol,trange,Nexc))
+                    
+
+                    if not jkfit:
+                        DF['pvalue'].append(fit['pvalue'])
+                        DF['chi2red'].append(fit['chi2red'])
+
+                        DF['E0'].append(fitp['E'][0])
+                        # for k,z in fitp.items():    
+                        #     if k.startswith('Z_'):
+                        #         sm = k.split('_')[1]
+                        #         if len(sm.split('-'))==1:
+                        #             Z = np.exp(z[0])
+                        #             DF['Z'].append(f'{k}_{Z}') 
+                    else:
+                        pass
+
+                else:
+                    DF['trange'].append(' ')
+                    DF['Nstates'].append(' ')
+                    DF['Ndof'].append(' ')
+                    DF['pvalue'].append(' ')
+                    DF['chi2red'].append(' ')
+                    DF['E0'].append(' ')     
+                    pass
+
+
+    DF = pd.DataFrame(DF)
+    DF.set_index(['ens','mes','mom'],inplace=True)
+
+    DF.style \
+    .format(precision=3, thousands=".", decimal=",") \
+    .format_index(str.upper, axis=1)
+
+    print(DF.to_string())
 
 
 if __name__ == "__main__":
     main()
-
-
-    
-
-
-
-
-
-    
