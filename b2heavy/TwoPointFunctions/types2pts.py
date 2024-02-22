@@ -6,7 +6,7 @@ import numpy  as np
 import autograd 
 from autograd import numpy as np
 
-
+from scipy.optimize import curve_fit
 
 import xarray as xr
 import gvar   as gv
@@ -14,7 +14,7 @@ import lsqfit
 import sys
 
 from ..     import FnalHISQMetadata
-from .utils import jkCorr, covariance_shrinking, ConstantModel
+from .utils import jkCorr, covariance_shrinking, ConstantModel, ConstantFunc
 
 ENSEMBLE_LIST = ['MediumCoarse', 'Coarse-2', 'Coarse-1', 'Coarse-Phys', 'Fine-1', 'SuperFine', 'Fine-Phys'] 
 MESON_LIST    = ["Dsst", "Bs", "B", "D", "Ds", "Dst", "Dsst", "K", "pi", "Bc", "Bst", "Bsst"]
@@ -48,7 +48,6 @@ class CorrelatorInfo:
 
     def __str__(self):
         return f' # ------------- {self.name} -------------\n # ensemble = {self.ensemble}\n #    meson = {self.meson}\n # momentum = {self.momentum}\n #  binsize = {self.binsize}\n # filename = {self.filename}\n # ---------------------------------------'
-
 class CorrelatorIO:
     """
         This is the basic structure that deals with input/output of the correlator data.
@@ -222,6 +221,8 @@ class CorrelatorIO:
 
         return xd
 
+
+
 class Correlator:
     """
         This is the basic structure for a correlator at fixed momentum. It contains data for all possible smearings and polarization.
@@ -337,14 +338,16 @@ class Correlator:
 
         ydata = self.data.loc[SMR,POL,:,Trange]
         if scale_covariance and self.info.binsize is not None:
-            ydata_full = self.io.ReadCorrelator(jkBin=1).loc[SMR,POL,:,Trange]
-            # jkBin in this must be 1 or None?  
+            ydata_full = self.io.ReadCorrelator(jkBin=1).loc[SMR,POL,:,Trange] # jkBin in this must be 1 or None?  
+
+
 
         # Flatten data temporarily to calculate covariances
         yaux = np.hstack([ydata.loc[smr,pol,:,:] for (smr,pol) in keys])
 
+        factor = ((yaux.shape[0]-1) if self.info.binsize is not None else 1./yaux.shape[0])
+
         if covariance:
-            factor = ((yaux.shape[0]-1) if self.info.binsize is not None else 1./yaux.shape[0])
             cov = np.cov(yaux,rowvar=False) * factor
             
             if not scale_covariance:
@@ -364,7 +367,7 @@ class Correlator:
             Y = gv.gvar(yaux.mean(axis=0),COV)
         
         else:
-            Y = gv.gvar(yaux.mean(axis=0),yaux.std(axis=0) / np.sqrt(yaux.shape[0]-1) )
+            Y = gv.gvar(yaux.mean(axis=0),yaux.std(axis=0) * np.sqrt(factor) )
 
         # In case flatten flag is active, reshape 
         if flatten: 
@@ -414,10 +417,14 @@ class Correlator:
             iifit = np.arange(len(m)) if trange is None else [i for i,x in enumerate(x[k]) if x>=min(trange) and x<=max(trange)]
             xdic[k] = x[k][iifit]
             ydic[k] = m[iifit]
-        
+
         xfit = np.concatenate(xdic.values())
         yfit = np.concatenate(ydic.values())
-        
+
+        nan = np.isnan(gv.mean(yfit))
+        xfit = xfit[~nan]
+        yfit = yfit[~nan]
+
         if mprior is None:
             aux = gv.mean(yfit).mean()
             pr = gv.gvar(aux,aux)
@@ -426,11 +433,13 @@ class Correlator:
 
         # Perform fit
         fit = lsqfit.nonlinear_fit(
-            data=(xfit,yfit),
-            fcn=ConstantModel,
-            prior={'const': pr}
+            data  = (xfit,yfit),
+            fcn   = ConstantModel,
+            prior = {'const': pr}
         )
         MEFF = fit.p['const']
+
+        print(MEFF)
 
         if verbose:
             print(fit)
@@ -569,17 +578,15 @@ def plot_effective_coeffs(trange,X,AEFF,aeff,Apr,MEFF,meff,mpr,Aknob=2.):
 
 
 def test():
-    ens      = 'MediumCoarse'
+    ens      = 'Coarse-1'
     data_dir = '/Users/pietro/code/data_analysis/BtoD/Alex'
     meson    = 'Dst'
-    mom      = '000'
-    binsize  = 13
-    
-    io = CorrelatorIO(ens,meson,mom,PathToDataDir=data_dir)
-    corr =  Correlator(io,jkBin=binsize)
+    mom      = '200'
+    binsize  = 11
 
-    corr.EffectiveMass(trange=(10,19),smearing=['d-d', '1S-1S', 'd-1S'])
-
+    io   = CorrelatorIO(ens,meson,mom,PathToDataDir=data_dir)
+    corr = Correlator(io,jkBin=binsize)
+    corr.EffectiveMass(trange=(10,24),covariance=False)
 
 if __name__ == "__main__":
     test()

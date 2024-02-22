@@ -179,9 +179,11 @@ class CorrFitter:
                     # priors[f'Z_{sm1}_{pol}'][0] = np.log(v)/2
                     v = np.log(v)/2
                     # priors[f'Z_{sm1}_{pol}'][0] = gv.gvar(np.log(v.mean)/2,priors[f'Z_{sm1}_{pol}'][0].sdev)
-                    priors[f'Z_{sm1}_{pol}'][0] = gv.gvar(v.mean,v.sdev*10)
+                    priors[f'Z_{sm1}_{pol}'][0] = gv.gvar(v.mean,v.sdev*100)
 
         return priors        
+
+    # def fit(self, Nstates, trange, priors=None, p0=None, maxit=5000, svdcut=1e-12, jkfit=False, override=False, **kwargs):
 
     def fit(self, Nstates, trange, priors=None,  p0=None, maxit=50000, svdcut=1e-12, debug=False, verbose=False, pval=True, jkfit=False, override=False, **kwargs):
         """
@@ -201,13 +203,18 @@ class CorrFitter:
         """
         if (Nstates,trange) in self.fits and not override:
             print(f'Fit for {(Nstates,trange)} has already been performed. Returning...')
+
+            if verbose:
+                fit = self.fits[Nstates,trange]
+                print(f' De-augmented chi2 = {round(fit.chi2red,1)}  with p-value = {fit.pvalue}')
+                print(fit)
+
             return
 
         xfit,yfit = self.corr.format(trange=trange, smearing=self.smearing, polarization=self.polarization, **kwargs)
         xfit = np.array([xfit[k] for k in self.keys])
         yfit = np.concatenate([yfit[k] for k in self.keys])
         fitdata = (xfit,gv.mean(yfit),gv.evalcov(yfit))
-
 
         def model(t,p):
             return np.concatenate(
@@ -247,7 +254,7 @@ class CorrFitter:
 
         if verbose:
             if pval:
-                print(f' De-augmented chi2 = {fit.chi2red} with p-value = {fit.pvalue}')
+                print(f' De-augmented chi2/ndof [ndof] = {round(fit.chi2red/Ndof,1)} [{Ndof}] with p-value = {fit.pvalue}')
             print(fit)
 
         if jkfit: # Repeat fit in each jacknife bin ------------------------------------------------
@@ -340,6 +347,9 @@ class CorrFitter:
                 for _i in delta:
                     grad[(ik*lent):((ik+1)*lent),I] += [autograd.grad(_model,_i+1)(tt,*gv.mean(pars)) for tt in fit.x[(sm,pol)]]
         # ----------------------------------------------------------------- #
+
+
+
         # Calculate enlarged covariance matrix as in (D.9) of (2209.14188v2) #
         if covariance:
             (x,y) = self.corr.format(trange=trange, flatten=True, covariance=True, smearing=self.smearing, polarization=self.polarization)
@@ -499,41 +509,46 @@ class CorrFitter:
                     aux[pol].mean(axis=0),
                     np.cov(aux[pol],rowvar=False) * (eigs[pol].shape[0]-1  if self.corr.info.binsize is not None else 1.)
                 )[:-1]
-            print(Eeff)
             return Eeff
 
-    def GEVPmass(self, trange=None, covariance=True, chiexp=True, pr=None, verbose=False, **kwargs):
-        # Set time range
-        if trange is None:
-            iok = np.arange(self.corr.data.timeslice.size-1)
-        else:
-            iok = [i for i,t in enumerate(self.corr.data.timeslice) if t<=max(trange) and t>=min(trange)]
-
-        # Call GEVP 
-        meff = self.GEVP(**kwargs)[iok]
-
-        # Set prior
-        if pr is None:
-            prior = gv.gvar(gv.mean(meff).mean(),gv.mean(meff).mean())
-        else:
-            prior = pr
-
-        if covariance:
-            # Perform a fully correlated fit
-            fit = lsqfit.nonlinear_fit(
-                data=(self.corr.data.timeslice[iok],meff),
-                fcn=ConstantModel,
-                prior={'const': prior}
-            )
-
-            if verbose:
-                print(fit)
-
-        else: # perform uncorrelated fit
-            pass
 
 
-        return fit.p['const']
+
+
+
+    # def GEVPmass(self, trange=None, covariance=True, chiexp=True, pr=None, verbose=False, **kwargs):
+    #     # Set time range
+    #     if trange is None:
+    #         iok = np.arange(self.corr.data.timeslice.size-1)
+    #     else:
+    #         iok = [i for i,t in enumerate(self.corr.data.timeslice) if t<=max(trange) and t>=min(trange)]
+
+    #     # Call GEVP 
+    #     meff = self.GEVP(**kwargs)[iok]
+
+
+
+    #     # # Set prior
+    #     # if pr is None:
+    #     #     prior = gv.gvar(gv.mean(meff).mean(),gv.mean(meff).mean())
+    #     # else:
+    #     #     prior = pr
+
+    #     # if covariance:
+    #     #     # Perform a fully correlated fit
+    #     #     fit = lsqfit.nonlinear_fit(
+    #     #         data=(self.corr.data.timeslice[iok],meff),
+    #     #         fcn=ConstantModel,
+    #     #         prior={'const': prior}
+    #     #     )
+
+    #     #     if verbose:
+    #     #         print(fit)
+
+    #     # else: # perform uncorrelated fit
+    #     #     pass
+
+    #     # return fit.p['const']
 
 
 

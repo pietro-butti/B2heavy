@@ -12,6 +12,13 @@ from ..Shrink import shrink
 def ConstantModel(x,p):
     return np.array([p['const']]*len(x))
 
+def ConstantFunc(x,c):
+    if isinstance(x,np.ndarray) or isinstance(x,list):
+        return np.array([c]*len(x))
+    else:
+        return c
+
+
 def PeriodicExpDecay(Nt):
     return lambda t,E,Z: Z * ( np.exp(-E*t) + np.exp(-E*(Nt-t)) ) 
 
