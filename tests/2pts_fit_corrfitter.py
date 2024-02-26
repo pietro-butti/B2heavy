@@ -2,11 +2,8 @@ import gvar as gv
 import numpy as np
 import corrfitter
 
-
 from b2heavy.TwoPointFunctions.types2pts  import CorrelatorIO, Correlator
 from b2heavy.TwoPointFunctions.fitter     import CorrFitter
-
-
 
 
 def make_model(corr,ydict):
@@ -18,8 +15,8 @@ def make_model(corr,ydict):
             datatag = (sm,pol),
             tp      = corr.Nt,
             s       = -1.,
-            a       = f'Z_{sm1}_Bot',
-            b       = f'Z_{sm2}_Bot',
+            a       = f'Z_{sm1}_{pol}',
+            b       = f'Z_{sm2}_{pol}',
             dE      = 'dE'
         )
 

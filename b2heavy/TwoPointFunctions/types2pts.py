@@ -348,13 +348,13 @@ class Correlator:
         factor = ((yaux.shape[0]-1) if self.info.binsize is not None else 1./yaux.shape[0])
 
         if covariance:
-            cov = np.cov(yaux,rowvar=False) * factor
+            cov = np.cov(yaux,rowvar=False,bias=True) * factor
             
             if not scale_covariance:
                 COV = cov
             else:
                 yaux_full = np.hstack([ydata_full.loc[smr,pol,:,:] for (smr,pol) in keys])
-                cov_full = np.cov(yaux_full,rowvar=False) * (yaux_full.shape[0]-1)
+                cov_full = np.cov(yaux_full,rowvar=False,bias=True) * (yaux_full.shape[0]-1)
                 scale = np.sqrt(np.diag(cov)/np.diag(cov_full))
                 COV = cov_full * np.outer(scale,scale)
 
@@ -373,6 +373,10 @@ class Correlator:
         if flatten: 
             xfit = np.concatenate([X for _ in keys])
             yfit = Y
+
+            if alljk:
+                yjk = np.hstack([ydata.loc[smr,pol,:,:].values for smr,pol in keys])
+
         else:
             xfit,yfit,yjk = {},{},{}
             for i,(smr,pol) in enumerate(keys):

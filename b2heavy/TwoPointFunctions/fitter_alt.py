@@ -78,7 +78,10 @@ class StagFitter(Correlator):
 
         self.smr = smearing     if not smearing==None     else list(self.data.smearing.values)
         self.pol = polarization if not polarization==None else list(self.data.polarization.values)
+        self.data = self.data.loc[self.smr,self.pol,:,:]
+
         self.keys = sorted(itertools.product(self.smr,self.pol))
+
 
     def Kpars(self,Nexc):
         '''
@@ -192,6 +195,35 @@ class StagFitter(Correlator):
 
         return _model
 
+    def cost_func(self, xdata, ydata, cor, Nexc, prior=None, vcost=False):
+        condn = np.linalg.cond(cor)
+        if condn > 1e13:
+            warn(f'Correlation matrix may be ill-conditioned, condition number: {condn:1.2e}', RuntimeWarning)
+        if condn > 0.1 / np.finfo(float).eps:
+            warn(f'Correlation matrix condition number exceed machine precision {condn:1.2e}', RuntimeWarning)
+
+        yvec = np.concatenate([ydata[k] for k in self.keys])
+        covd = np.diag(1./gv.sdev(yvec))
+        chol = np.linalg.cholesky(cor)
+        chol_inv = scipy.linalg.solve_triangular(chol, covd, lower=True)
+
+        func, _,_ = self.diff_model(xdata,Nexc)
+
+        if prior is None:
+            def _vector_cost(pdict):
+                return chol_inv @ (func(pdict) - gv.mean(yvec))
+        else:
+            def _vector_cost(pdict):
+                dt_c = chol_inv @ (func(pdict) - gv.mean(yvec))
+                pr_c = jnp.concatenate([(gv.mean(prior[k])-pdict[k])/gv.sdev(prior[k]) for k in pdict])
+                return jnp.concatenate(dt_c,pr_c)
+
+        def _scalar_cost(pdict):
+            res = _vector_cost(pdict)
+            return res @ res
+
+        return _vector_cost if vcost else _scalar_cost
+
     def diff_model(self, xdata, Nexc):
         '''
             Return a `jax`-differentiable function, its jacobian and its hessian.
@@ -220,38 +252,33 @@ class StagFitter(Correlator):
             
         return _model, _jac, _hes
 
-    def cost_func(self, xdata, ydata, cor, Nexc, prior=None, vcost=False):
-        condn = np.linalg.cond(cor)
-        if condn > 1e13:
-            warn(f'Correlation matrix may be ill-conditioned, condition number: {condn:1.2e}', RuntimeWarning)
-        if condn > 0.1 / np.finfo(float).eps:
-            warn(f'Correlation matrix condition number exceed machine precision {condn:1.2e}', RuntimeWarning)
 
+    def diff_cost(self, Nexc, W2=None, **fitdata_args):
+        '''
+            Return a `jax`-differentiable cost function.
+        '''
+        xdata,ydata = self.format(flatten=False, **fitdata_args)
+
+        # Prepare model, vector with y-data and weight matrix
+        model, jac, hess = self.diff_model(xdata,Nexc)
         yvec = np.concatenate([ydata[k] for k in self.keys])
-        covd = np.diag(1./gv.sdev(yvec))
-        chol = np.linalg.cholesky(cor)
-        chol_inv = scipy.linalg.solve_triangular(chol, covd, lower=True)
+        wmat2 = jnp.asarray(W2) if W2 is not None else jnp.linalg.inv(gv.evalcov(yvec))
 
-        func, _,_ = self.diff_model(xdata,Nexc)
+        def _cost(y,pdict):
+            res = y - model(pdict)
+            return jnp.matmul(jnp.transpose(res),jnp.matmul(wmat2,res))
 
-        if prior is None:
-            def _vector_cost(pdict):
-                return chol_inv @ (func(pdict) - gv.mean(yvec))
-        else:
-            def _vector_cost(pdict):
-                dt_c = chol_inv * (func(pdict) - gv.mean(yvec))
-                pr_c = jnp.concatenate([(gv.mean(prior[k])-pdict[k])/gv.sdev(prior[k]) for k in pdict])
-                return jnp.concatenate(dt_c,pr_c)
+        def _
 
-        def _scalar_cost(pdict):
-            res = _vector_cost(pdict)
-            return res @ res
+        return _cost
 
-        return _vector_cost if vcost else _scalar_cost
 
-    def chi2exp(self, Nexc, trange, popt, fitcov, pvalue=True, Nmc=5000, **data_spec):
+
+
+
+    def chi2exp(self, Nexc, trange, popt, fitcov, pvalue=True, Nmc=10000):
         # Format data and estimate covariance matrix
-        xdata,ydata = self.format(trange=trange,flatten=False,**data_spec)
+        xdata,ydata = self.format(trange=trange,flatten=False,covariance=True)
         yvec = np.concatenate([ydata[k] for k in self.keys])
         cov = gv.evalcov(yvec)
 
@@ -266,7 +293,7 @@ class StagFitter(Correlator):
         chi2 = self.cost_func(xdata,ydata,cor,Nexc)(popt)
 
         # Calculate expected chi2
-        w = np.linalg.inv(fitcov)
+        w = np.linalg.pinv(fitcov)
         Hmat = Jac.T @ w @ Jac
         Hinv = np.linalg.pinv(Hmat)
         wg = w @ Jac
@@ -274,33 +301,31 @@ class StagFitter(Correlator):
 
         chiexp = np.trace(proj @ cov)
 
+
         if not pvalue:
             return chiexp
         
         else:
             l,evec = np.linalg.eig(cov)
 
-            if np.any(l)<0:
-                mask = l>1e-12
+            if np.any(np.real(l))<0:
+                mask = np.real(l)>1e-12
                 Csqroot = evec[:,mask] @ np.diag(np.sqrt(l[mask])) @ evec[:,mask].T
             else:
                 Csqroot= evec @ np.diag(np.sqrt(l)) @ evec.T
-            numat = Csqroot @ proj @ Csqroot
 
-            chi2obs = chi2
+            numat = Csqroot @ proj @ Csqroot
             l,_ = np.linalg.eig(numat)
             ls = l[l.real>=1e-14].real
 
-            theta = [1 if ls.dot( np.random.normal(0.,1.,len(ls))**2 ) > chi2obs else 0 for _ in range(Nmc)]
-            pvalue = 1-np.mean(theta)
-
-            return chiexp, pvalue
+            p = 0
+            for _ in range(Nmc):
+                ri = np.random.normal(0.,1.,len(ls))
+                p += 1. if (ls.T @ (ri**2) - chi2)>=0 else 0.
+            p /= Nmc
+            
+            return chiexp, p
         
-    
-
-
-
-    # print(chi2exp)
 
 def test():
     jax.config.update("jax_enable_x64", True)
@@ -316,7 +341,7 @@ def test():
     smlist   = ['1S-1S','d-d','d-1S'] 
 
     NEXC     = 2
-    TLIM     = (10,19)
+    TLIM     = (10,25)
 
     io   = CorrelatorIO(ens,mes,mom,PathToDataDir=data_dir)
     self = StagFitter(
@@ -326,11 +351,10 @@ def test():
     )
 
     data_spec = dict(
-        covariance        = True, 
-        scale_covariance  = False, 
-        shrink_covariance = False
+        covariance        = False, 
+        scale_covariance  = True, 
+        shrink_covariance = True
     )
-
 
     # ========================================= fit =============================================
     fitter = CorrFitter(self,smearing=smlist)
@@ -340,20 +364,17 @@ def test():
     fit = fitter.fits[NEXC,TLIM]
     # ===========================================================================================
 
-    print(fit.chi2red)
-
-
-
-    aux = self.chi2exp(
+    ce,p = self.chi2exp(
         Nexc   = NEXC,
         trange = TLIM,
         popt   = dict(fit.pmean),
         fitcov = gv.evalcov(fit.y),
         pvalue = True
     )
+    print(fit.chi2red,ce,p)
 
-    
-
-    print(len(fit.y) - len(np.concatenate([v for x,v in fit.p.items()])))
-
-    print(aux)
+    print(
+        self.diff_cost(NEXC, trange=TLIM, **data_spec)(
+            gv.mean(fit.y),dict(fit.pmean)
+        )
+    )
