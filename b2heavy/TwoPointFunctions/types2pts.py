@@ -1,24 +1,121 @@
 import os
 import h5py
+import sys
 
 import matplotlib.pyplot as plt
+import itertools
 import numpy  as np
-import autograd 
-from autograd import numpy as np
-
-from scipy.optimize import curve_fit
-
 import xarray as xr
 import gvar   as gv
 import lsqfit
-import sys
+import scipy
+
+import jax
+from jax import numpy as jnp
+jax.config.update("jax_enable_x64", True)
+
 
 from ..     import FnalHISQMetadata
-from .utils import jkCorr, covariance_shrinking, ConstantModel, ConstantFunc
+from .utils import jkCorr, compute_covariance, ConstantModel, ConstantDictModel
+
+# ConstantModel, ConstantFunc
 
 ENSEMBLE_LIST = ['MediumCoarse', 'Coarse-2', 'Coarse-1', 'Coarse-Phys', 'Fine-1', 'SuperFine', 'Fine-Phys'] 
 MESON_LIST    = ["Dsst", "Bs", "B", "D", "Ds", "Dst", "Dsst", "K", "pi", "Bc", "Bst", "Bsst"]
 MOMENTUM_LIST = ["000", "100", "200", "300", "400", "110", "211", "222"]
+
+
+
+def plot_effective_coeffs(trange,X,AEFF,aeff,Apr,MEFF,meff,mpr,Aknob=2.):
+    NROWS = len(np.unique([k[1] for k in X]))+1
+    
+    # Effective coeffs -------------------------------------------------------------------------------
+    for i,(k,x) in enumerate(X.items()):
+        axj = plt.subplot(NROWS,3,i+1)
+
+        # Points inside the fit
+        iok = np.array([min(trange)<=x<=max(trange) for x in X[k]])
+        xplot = x[iok]
+        yplot = gv.mean(aeff[k][iok])
+        yerr  = gv.sdev(aeff[k][iok])
+        axj.errorbar(xplot,yplot, yerr=yerr,fmt=',',color=f'C{i}', capsize=2)
+        axj.scatter(xplot,yplot, marker='o', s=15 ,c=f'white', edgecolors=f'C{i}', label=k)
+
+        # Points outside the fit
+        xplot = x[~iok]
+        yplot = gv.mean(aeff[k][~iok])
+        yerr  = gv.sdev(aeff[k][~iok])
+        axj.scatter(xplot,yplot, marker='s', s=15 ,facecolors='none', edgecolors=f'C{i}' ,alpha=0.2)
+        axj.errorbar(xplot,yplot, yerr=yerr, fmt=',',color=f'C{i}', capsize=2,alpha=0.2)
+        
+        # Prior
+        axj.axhspan(Apr[k].mean+Apr[k].sdev,Apr[k].mean-Apr[k].sdev,color=f'C{i}',alpha=0.14)
+
+        # Final result
+        axj.axhspan(AEFF[k].mean+AEFF[k].sdev,AEFF[k].mean-AEFF[k].sdev,color=f'C{i}',alpha=0.3)#,label=AEFF[k])
+
+        # Delimiter for timespan
+        axj.axvline(min(trange),color='gray',linestyle=':')
+        axj.axvline(max(trange),color='gray',linestyle=':')
+
+        # # Delimiter on y axis
+        # dispersion = abs(gv.mean(aeff[k][iok]) - gv.mean(aeff[k][iok]).mean()).mean()
+        # dispersion = Aknob*Apr[k].sdev
+        # axj.set_ylim(ymax=AEFF[k].mean+dispersion,ymin=AEFF[k].mean-dispersion)
+        axj.set_ylim(ymin=Apr[k].mean-Aknob*Apr[k].sdev,ymax=Apr[k].mean+Aknob*Apr[k].sdev)
+
+
+        axj.grid(alpha=0.2)
+        # axj.title.set_text(k)
+        axj.legend()
+
+        axj.set_xlabel(r'$t/a$')
+        if i%3==0:
+            axj.set_ylabel(r'$\frac{\mathcal{C}(t)}{e^{-M_{eff}t} + e^{-M_{eff}(N_t-t)}}$')
+
+    # Effective mass -------------------------------------------------------------------------------
+    ax = plt.subplot(NROWS,1,NROWS)
+    for i,(k,y) in enumerate(meff.items()):
+        mar = 's' if k[1]=='Unpol' else '^' if k[1]=='Par' else 'v'
+        col = f'C{i}'
+
+
+        # Plot point for the fit considered range
+        # iok = np.array([j for j,x in enumerate(X[k]) if x>=min(trange) and x<=max(trange)])
+        iok = np.array([min(trange)<=x<=max(trange) for x in X[k][1:-1]])
+        xplot = X[k][1:-1][iok]
+        yplot = gv.mean(y[iok])
+        yerr  = gv.sdev(y[iok])
+        ax.errorbar(xplot+(-0.1 + 0.1*i),yplot, yerr=yerr, fmt=',' ,color=col, capsize=3)
+        ax.scatter(xplot+(-0.1 + 0.1*i), yplot, marker=mar, s=20 ,facecolors='white', edgecolors=col, label=f'({k[0]},{k[1]})')
+
+        # Plot point outside considered range
+        xplot = X[k][1:-1][~iok]
+        yplot = gv.mean(y[~iok])
+        yerr  = gv.sdev(y[~iok])
+        ax.errorbar(xplot+0.1*i,yplot,yerr=yerr,fmt=',',color=f'C{i}',alpha=0.2, capsize=3)
+        ax.scatter(xplot+0.1*i,yplot, marker=mar, s=15, facecolors='white', edgecolors=f'C{i}',color=col,alpha=0.2)
+
+    # Prior
+    ax.axhspan(mpr.mean+mpr.sdev,mpr.mean-mpr.sdev,color=f'gray',alpha=0.2)
+
+    # # Final result
+    ax.axhspan(MEFF.mean+MEFF.sdev,MEFF.mean-MEFF.sdev,color=f'gray',alpha=0.3)#,label=MEFF)
+
+    # # Delimiter for the timerange
+    ax.axvline(min(trange),color='gray',linestyle=':')
+    ax.axvline(max(trange),color='gray',linestyle=':')
+
+    # Limit on y
+    # dispersion = (gv.mean(aeff[k]) - gv.mean(aeff[k]).mean()).mean()
+    # ax.set_ylim(ymax=AEFF[k].mean+1.5*dispersion,ymin=AEFF[k].mean-1.5*dispersion)
+    ax.set_ylim(ymin=mpr.mean-Aknob*mpr.sdev,ymax=mpr.mean+Aknob*mpr.sdev)
+
+    ax.legend(loc='upper right')
+    ax.grid(alpha=0.2)
+    ax.set_xlabel(r'$t/a$')
+    ax.set_ylabel(r'$M_{eff}(t)$')
+
 
 class CorrelatorInfo:
     """
@@ -220,377 +317,166 @@ class CorrelatorIO:
 
 
         return xd
-
-
-
 class Correlator:
-    """
-        This is the basic structure for a correlator at fixed momentum. It contains data for all possible smearings and polarization.
-    """
-    def __init__(self, io:CorrelatorIO, jkBin=None, **kwargs):
-        self.io   = io
-        self.data = io.ReadCorrelator(jkBin=jkBin,**kwargs)
-        self.Nt   = 2*self.data.timeslice.size
-        self.info = io.info  
+    def __init__(self, io:CorrelatorIO, smearing=None, polarization=None, jkBin=None, **kwargs):
+        self.io           = io
+        self.info         = io.info
         self.info.binsize = jkBin
+        self.binsize      = jkBin
+
+        data = io.ReadCorrelator(jkBin=jkBin,**kwargs)
+        self.timeslice = np.asarray(data.timeslice.to_numpy()) 
+        self.Nt   = 2*self.timeslice.size
+
+        self.smr  = smearing     if smearing     is not None else data.smearing.values
+        self.pol  = polarization if polarization is not None else data.polarization.values
+        self.keys = sorted(itertools.product(self.smr,self.pol))
+        self.data = data.loc[self.smr,self.pol,:,:]
 
     def __str__(self):
         return f'{self.info}'
+    
+    def format(self, trange=None, smearing=None, polarization=None, flatten=False, alljk=False, **cov_kwargs):
+        '''
+            Returns a pytree with formatted data whithin the time-range with given covariance properties.
+        '''
+        # Select smearings
+        if smearing is None:
+            smr = self.smr
+        else:
+            if set(smearing)<=set(self.smr):
+                smr = smearing
+            else:
+                raise KeyError(f'Smearing list {smearing=} contain at least one item which is not contained in {self.smr=}')
 
-    def jack(self, bsize):
-        self.info.binsize = bsize
+        # Select polarizations
+        if polarization is None:
+            pol = self.pol
+        else:
+            if set(polarization)<=set(self.pol):
+                pol = polarization
+            else:
+                raise KeyError(f'Polarization list {polarization=} contain at least one item which is not contained in {self.pol=}')
 
-        newshape = (
-            self.data.shape[0],
-            self.data.shape[1],
-            self.data.shape[2]//bsize,
-            self.data.shape[3],
+        # Select data in the timeranges
+        it = self.timeslice if trange is None else np.arange(min(trange),max(trange)+1)
+        xdata = self.timeslice[it]
+
+        # Compute un-jk data
+        if cov_kwargs.get('scale'):
+            ydata_full = self.io.ReadCorrelator(jkBin=1).loc[smr,pol,:,it]
+            ally = {(s,p): jnp.asarray(ydata_full.loc[s,p,:,it].to_numpy()) for s,p in self.keys}
+        else:
+            ally = None
+
+        ydata = compute_covariance(
+            {(s,p): jnp.asarray(self.data.loc[s,p,:,it]) for s,p in self.keys},
+            ysamples_full = ally,
+            **cov_kwargs
         )
-        MT = np.empty(newshape)
 
-        for ism,sm in enumerate(self.data.smearing):
-            for ipol,pol in enumerate(self.data.polarization):
-                MT[ism,ipol,:,:] = jkCorr(self.data.loc[sm,pol,:,:].values, bsize)
-
-        newcoords = [
-            self.data.smearing.values,
-            self.data.polarization.values,
-            np.arange(newshape[2]),
-            self.data.timeslice.values
-        ]
-        newattrs  = {
-            'ensemble': self.info.ensemble,
-            'meson'   : self.info.meson,
-            'momenutm': self.info.momentum,
-            'binsize' : bsize,
-            'list'    : self.data.attrs['list'],
-        }
-        xd = xr.DataArray(
-            MT,
-            dims   = ['smearing','polarization','jkbin','timeslice'],
-            coords = newcoords,
-            attrs  = newattrs, 
-            name   = self.info.name
-        )
-        self.data = xd
-        
-        return
-
-    def format(self, trange=None, flatten=False, covariance=True, scale_covariance=False, shrink_covariance=False, smearing=None, polarization=None, alljk=False):
-        """
-            Preprocess correlator and returns argument `(xfit,yfit)` for `data` field in `lsqfit.nonlinear_fit`.
-
-            Arguments
-            ----------
-            trange: tuple, optional
-                A tuple containing `tmin` and `tmax` for the fit as `(tmin,tmax)`. 
-                Default value set to `None` (`self.data` is untouched). If a tuple `(tmin,tmax)` is provided slicing is performed `self.data[:,:,:,range(tmin,tmax+1)]`.
-            flatten: bool, optional
-                Default value set to `False`: `xfit` and `yfit` will be given as dictionaries whose keys are tuples `(smr,pol)`. If `covariance` flag is set to `true`, data are flattened first, the **full** covariance matrix is calculated, then data are reshaped again.
-                If set to `True`:  Data are flattened each timeslice **for each smearing and polarization** is considered as a separate variable. 
-            covariance: bool, optional
-                Default value set to `True`. Data are averaged and full covariance matrix is calculated and passed to `gvar`. If set to false, only diagonal covariance matrix is passed as standard deviation.
-            scale_covariance: bool, optional
-                Default value set to `False`. If `True`, covariance of the jackknife covariance matrix is scaled with the diagonal of the covariance matrix of the unbinned data.
-            shrink_covariance: bool, optional
-                Default value set to `False`. If `True`, covariance of the jackknife covariance matrix is shrunk according to (? FIXME).
-            jknorm: bool, optional
-                Default value set to `True`. Covariance matrix is normalized with `(Nb-1)/Nb`, `Nb` being `data.shape[2]`
-            smearing: list, optional
-                Default value set to `None`: all smearings are considered. If a list of `str` is provided only those smearings are considered.
-            polarization: list, optional
-                Default value set to `None`: all polarizations are considered. If a list of `str` is provided only those polarizations are considered.
-
-            Returns
-            ---------
-            xfit: ndarray
-                Array of floats with x-variables for fit
-            yfit: 
-                Array of gv.gvar variables for y-variables in fit
-        """
-        # Select smearing to be considered
-        if not smearing==None:
-            if False not in np.isin(smearing,self.data.smearing):
-                SMR = sorted(smearing)
-            else:
-                raise ValueError(f'Smearing list {smearing} contain at least one item which is not contained in data.smearing')
-        else:
-            SMR = sorted(self.data.smearing.values)
-
-        # Select polarization to be considered
-        if not polarization==None:
-            if False not in np.isin(polarization,self.data.polarization):
-                POL = sorted(polarization)
-            else:
-                raise ValueError(f'Polarization list {polarization} contains at least one item which is not contained in data.polarization')
-        else:
-            POL = sorted(self.data.polarization.values)
-
-        # Build a list of ordered keys (smearing, pol)
-        keys = sorted([(smr,pol) for smr in SMR for pol in POL])
-
-        # Slice data in time-range considered
-        if trange is not None:
-            Trange = self.data.timeslice.isin(np.arange(min(trange),max(trange)+1))
-        else:
-            Trange = self.data.timeslice.values
-        X = self.data.timeslice[Trange].to_numpy()
-
-        ydata = self.data.loc[SMR,POL,:,Trange]
-        if scale_covariance and self.info.binsize is not None:
-            ydata_full = self.io.ReadCorrelator(jkBin=1).loc[SMR,POL,:,Trange] # jkBin in this must be 1 or None?  
+        if alljk:
+            yjk = {(s,p): self.data.loc[s,p,:,it].to_numpy() for s,p in self.keys}
 
 
-
-        # Flatten data temporarily to calculate covariances
-        yaux = np.hstack([ydata.loc[smr,pol,:,:] for (smr,pol) in keys])
-
-        factor = ((yaux.shape[0]-1) if self.info.binsize is not None else 1./yaux.shape[0])
-
-        if covariance:
-            cov = np.cov(yaux,rowvar=False,bias=True) * factor
-            
-            if not scale_covariance:
-                COV = cov
-            else:
-                yaux_full = np.hstack([ydata_full.loc[smr,pol,:,:] for (smr,pol) in keys])
-                cov_full = np.cov(yaux_full,rowvar=False,bias=True) * (yaux_full.shape[0]-1)
-                scale = np.sqrt(np.diag(cov)/np.diag(cov_full))
-                COV = cov_full * np.outer(scale,scale)
-
-            if shrink_covariance:
-                if scale_covariance:
-                    COV = covariance_shrinking(yaux_full.mean(axis=0),COV,yaux_full.shape[0]-1)
-                else:
-                    COV = covariance_shrinking(yaux.mean(axis=0),COV,yaux.shape[0]-1)
-
-            Y = gv.gvar(yaux.mean(axis=0),COV)
-        
-        else:
-            Y = gv.gvar(yaux.mean(axis=0),yaux.std(axis=0) * np.sqrt(factor) )
-
-        # In case flatten flag is active, reshape 
-        if flatten: 
-            xfit = np.concatenate([X for _ in keys])
-            yfit = Y
+        if flatten:
+            ydata = np.concatenate([ydata[k] for k in self.keys])
 
             if alljk:
-                yjk = np.hstack([ydata.loc[smr,pol,:,:].values for smr,pol in keys])
+                yjk = np.hstack([yjk[k] for k in self.keys])
 
-        else:
-            xfit,yfit,yjk = {},{},{}
-            for i,(smr,pol) in enumerate(keys):
-                xfit[(smr,pol)] = X
-                yfit[(smr,pol)] = Y[(len(X)*i):(len(X)*(i+1))]
-                yjk[(smr,pol)]  = ydata.loc[smr,pol,:,:].values
-        
-        return (xfit,yfit) if not alljk else (xfit,yfit,yjk)
+        return (xdata, ydata) if not alljk else (xdata,ydata,yjk)
 
-    def EffectiveMass (self, trange=None, variant='log', mprior=None, verbose=False, **kwargs):
-        """
-            Calls `format` and compute effective mass from the correlator as `log C(t)/C(t+2)`
 
-            Arguments
-            ---------
-            fit: bool, optional
-                Default value is set to `True`: returns also a dictionary with the effective masses obtained as
-            kwargs: optional
-                Same arguments that can be fed to `format`. `flatten` must *not* be specified.
 
-            Returns
-            ---------
-            (x,y) 
-                Same output of `format`
-            MEFF
-                Result of the fit
-            prior
 
-        """
 
-        # Compute effective mass according to the definition
-        (x,y) = self.format(flatten=False, **kwargs)
-        meff = {}
-        for k,c in y.items():
-            if variant=='log':
-                meff[k] = np.log(c/np.roll(c,-2))/2 
-            elif variant=='arccosh':
-                meff[k] = np.arccosh(((np.roll(c,-1) + np.roll(c,1))/c/2))/2
 
-        xdic, ydic = {}, {}
-        for k,m in meff.items():
-            iifit = np.arange(len(m)) if trange is None else [i for i,x in enumerate(x[k]) if x>=min(trange) and x<=max(trange)]
-            xdic[k] = x[k][iifit]
-            ydic[k] = m[iifit]
 
-        xfit = np.concatenate(xdic.values())
-        yfit = np.concatenate(ydic.values())
+    def meff(self, trange=None, prior=None, verbose=False, plottable=False, **kwargs):
+        xdata,ydata = self.format(trange=None, flatten=False, **kwargs)
 
+        # Compute effective masses ============================================================
+        meffs = {}
+        for k in ydata: 
+            tmp = []
+            for i,y in enumerate(ydata[k][1:-1]):
+                tmp.append(np.arccosh((ydata[k][i-1]+ydata[k][i+1])/y/2)/2)
+            meffs[k] = np.asarray(tmp)
+
+        # Slice in time-range
+        it = self.timeslice[1:-1] if trange is None else np.arange(min(trange),max(trange)+1)+1
+        yfit = np.concatenate([meffs[k][it] for k in meffs])
+        xfit = np.concatenate([xdata[it] for k in meffs])
+
+        # nan check
         nan = np.isnan(gv.mean(yfit))
         xfit = xfit[~nan]
         yfit = yfit[~nan]
+        
+        aver = np.average(gv.mean(yfit),weights=1./gv.sdev(yfit)**2)
+        disp = np.abs(gv.mean(yfit) - aver).mean()
 
-        if mprior is None:
-            aux = gv.mean(yfit).mean()
-            pr = gv.gvar(aux,aux)
-        else:
-            pr = mprior
-
-        # Perform fit
+        # Fit effective mass
+        mpr = prior if prior is not None else gv.gvar(aver,disp)
         fit = lsqfit.nonlinear_fit(
-            data  = (xfit,yfit),
-            fcn   = ConstantModel,
-            prior = {'const': pr}
+            data   = (xfit,yfit),
+            fcn    = ConstantModel,
+            prior  = {'const': mpr },
         )
-        MEFF = fit.p['const']
-
-        print(MEFF)
+        Meff = fit.p['const']
+        e0 = Meff.mean
 
         if verbose:
             print(fit)
+        # =====================================================================================
 
-        return (x,meff), MEFF, pr
+        # Build effective coeffs ==============================================================
+        it = self.timeslice if trange is None else np.arange(min(trange),max(trange)+1)
 
-    def EffectiveCoeff(self, trange=None, variant='log', aprior=None, mprior=None, verbose=False, **kwargs):
-        # Compute effective mass according to the definition
-        (X,meff), MEFF, m_pr = self.EffectiveMass(trange=trange, variant=variant, verbose=verbose, mprior=mprior, **kwargs)
-        (_,C) = self.format(flatten=False, **kwargs)
+        aplt, Aeff, apr = {},{},{}
+        xfit, yfit = {},{}
+        for k,y in ydata.items():
+            aplt[k] = y/(np.exp(-e0*xdata)+np.exp(-e0*(self.Nt-xdata)))
 
-        apr = {}
-        aeff = {}
-        AEFF = {}
-        for k,x in X.items():
-            if variant=='log':
-                Aeff = np.exp(MEFF.mean*x) * C[k]   #*Y[k][iok]
-            elif variant=='arccosh':
-                Aeff = C[k]/(np.exp(-MEFF.mean*C[k]) + np.exp(-MEFF.mean*(self.Nt-x)))
-            aeff[k] = Aeff
+            aver   = np.average(gv.mean(aplt[k][it]),weights=1./gv.sdev(aplt[k][it])**2)
+            disp   = np.abs(gv.mean(aplt[k][it]) - aver).mean()
+            apr[k] = gv.gvar(aver,disp)            
 
-            iok = np.arange(len(x)) if trange is None else [i for i,x in enumerate(x) if x>=min(trange) and x<=max(trange)]
-            Aeff = Aeff[iok]
-
-            if aprior is None:
-                pr = {'const': gv.gvar(gv.mean(Aeff).mean(),gv.mean(Aeff).mean())}
-            else:
-                pr = {'const': aprior[k]}
-
-            fit = lsqfit.nonlinear_fit(
-                data=(x[iok],Aeff),
-                fcn=ConstantModel,
-                prior=pr
-            )
-            if verbose:
-                print(k,fit)
-        
-            AEFF[k] = fit.p['const']
-            apr[k] = pr['const']
-        
-        return (X,meff,aeff), MEFF,AEFF, m_pr, apr
+            xfit[k] = xdata[it]
+            yfit[k] = aplt[k][it]
 
 
-def plot_effective_coeffs(trange,X,AEFF,aeff,Apr,MEFF,meff,mpr,Aknob=2.):
-    NROWS = len(np.unique([k[1] for k in X]))+1
-    
-    # Effective coeffs -------------------------------------------------------------------------------
-    for i,(k,x) in enumerate(X.items()):
-        axj = plt.subplot(NROWS,3,i+1)
-
-        # Points inside the fit
-        iok = [j for j,x in enumerate(x) if x>=min(trange) and x<=max(trange)]
-        xplot = x[iok]
-        yplot = gv.mean(aeff[k][iok])
-        yerr  = gv.sdev(aeff[k][iok])
-        axj.scatter(xplot,yplot, marker='o', s=15 ,facecolors='none', edgecolors=f'C{i}')
-        axj.errorbar(xplot,yplot, yerr=yerr,fmt=',',color=f'C{i}', capsize=2)
-
-        # Points outside the fit
-        iout = [j for j,x in enumerate(x) if x<min(trange) or x>max(trange)]
-        xplot = x[iout]
-        yplot = gv.mean(aeff[k][iout])
-        yerr  = gv.sdev(aeff[k][iout])
-        axj.scatter(xplot,yplot, marker='s', s=15 ,facecolors='none', edgecolors=f'C{i}' ,alpha=0.2)
-        axj.errorbar(xplot,yplot, yerr=yerr, fmt=',',color=f'C{i}', capsize=2,alpha=0.2)
-        
-        # Prior
-        axj.axhspan(Apr[k].mean+Apr[k].sdev,Apr[k].mean-Apr[k].sdev,color=f'C{i}',alpha=0.14)
-
-        # Final result
-        axj.axhspan(AEFF[k].mean+AEFF[k].sdev,AEFF[k].mean-AEFF[k].sdev,color=f'C{i}',alpha=0.3)#,label=AEFF[k])
-
-        # Delimiter for timespan
-        axj.axvline(min(trange),color='gray',linestyle=':')
-        axj.axvline(max(trange),color='gray',linestyle=':')
-
-        # # Delimiter on y axis
-        # dispersion = abs(gv.mean(aeff[k][iok]) - gv.mean(aeff[k][iok]).mean()).mean()
-        dispersion = Aknob*Apr[k].sdev
-        axj.set_ylim(ymax=AEFF[k].mean+dispersion,ymin=AEFF[k].mean-dispersion)
-
-        axj.grid(alpha=0.2)
-        axj.title.set_text(k)
-        axj.legend()
-
-        axj.set_xlabel(r'$t/a$')
-        if i%3==0:
-            axj.set_ylabel(r'$\mathcal{C}(t)e^{tM_{eff}}$')
-
-    # Effective mass -------------------------------------------------------------------------------
-    ax = plt.subplot(NROWS,1,NROWS)
-    for i,(k,y) in enumerate(meff.items()):
-        mar = 's' if k[1]=='Unpol' else '^' if k[1]=='Par' else 'v'
-        col = f'C{i}'
-
-        # Plot point for the fit considered range
-        iok = [j for j,x in enumerate(X[k]) if x>=min(trange) and x<=max(trange)]
-        xplot = X[k][iok]
-        yplot = gv.mean(y[iok])
-        yerr  = gv.sdev(y[iok])
-        ax.scatter(xplot+(-0.1 + 0.1*i), yplot, marker=mar, s=15 ,facecolors='none', edgecolors=col, label=f'({k[0]},{k[1]})')
-        ax.errorbar(xplot+(-0.1 + 0.1*i),yplot, yerr=yerr, fmt=',' ,color=col, capsize=2)
-
-        # Plot point outside considered range
-        iout = [j for j,x in enumerate(X[k]) if x<min(trange) or x>max(trange)]
-        xplot = X[k][iout]
-        yplot = gv.mean(y[iout])
-        yerr  = gv.sdev(y[iout])
-        ax.scatter(xplot+0.1*i,yplot, marker=mar, s=15, facecolors='none', edgecolors=f'C{i}',color=col,alpha=0.2)
-        ax.errorbar(xplot+0.1*i,yplot,yerr=yerr,fmt='.',color=f'C{i}',alpha=0.2, capsize=2)
-
-    # Prior
-    ax.axhspan(mpr.mean+mpr.sdev,mpr.mean-mpr.sdev,color=f'gray',alpha=0.2)
-
-    # Final result
-    ax.axhspan(MEFF.mean+MEFF.sdev,MEFF.mean-MEFF.sdev,color=f'gray',alpha=0.3)#,label=MEFF)
-
-    # Delimiter for the timerange
-    ax.axvline(min(trange),color='gray',linestyle=':')
-    ax.axvline(max(trange),color='gray',linestyle=':')
-
-    # Limit on y
-    dispersion = (gv.mean(aeff[k]) - gv.mean(aeff[k]).mean()).mean()
-    # ax.set_ylim(ymax=AEFF[k].mean+1.5*dispersion,ymin=AEFF[k].mean-1.5*dispersion)
-    ax.set_ylim(ymin=1.45,ymax=1.6)
-
-    ax.legend(loc='upper right')
-    ax.grid(alpha=0.2)
-    ax.set_ylim(ymax=MEFF.mean+0.03,ymin=MEFF.mean-0.03)
-    ax.set_xlabel(r'$t/a$')
-    ax.set_ylabel(r'$M_{eff}(t)$')
+        afit = lsqfit.nonlinear_fit(
+            data  = (xfit,yfit),
+            fcn   = ConstantDictModel,
+            prior = apr
+        )
+        Aeff = afit.p
+        if verbose:
+            print(fit)
+        # =====================================================================================
 
 
 
 
 
+        if plottable:
+            return {k: xdata for k in ydata}, Aeff, aplt, apr, Meff, meffs, mpr
+        else:
+            return Meff,Aeff
 
-def test():
-    ens      = 'Coarse-1'
-    data_dir = '/Users/pietro/code/data_analysis/BtoD/Alex'
-    meson    = 'Dst'
-    mom      = '200'
-    binsize  = 11
 
-    io   = CorrelatorIO(ens,meson,mom,PathToDataDir=data_dir)
-    corr = Correlator(io,jkBin=binsize)
-    corr.EffectiveMass(trange=(10,24),covariance=False)
 
-if __name__ == "__main__":
-    test()
+def main():
+    data_dir = '/Users/pietro/code/data_analysis/BtoD/Alex/'
+    smlist   = ['1S-1S','d-d','d-1S'] 
+
+    io = CorrelatorIO('Coarse-1','Dst','200',PathToDataDir=data_dir)
+    stag = Correlator(io, smearing=smlist, jkBin=11)
+
+    args = stag.meff(trange=(15,20),verbose=True,plottable=True)
+    plot_effective_coeffs((15,20),*args)
+    plt.show()
+
+

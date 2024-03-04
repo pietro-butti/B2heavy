@@ -6,11 +6,12 @@ import jax
 import jax.numpy         as jnp
 import numpy             as np
 import gvar              as gv
+import matplotlib.pyplot as plt
 
 from warnings import warn
 
 from .types2pts import CorrelatorInfo, CorrelatorIO, Correlator
-from .fitter    import CorrFitter
+# from .fitter    import CorrFitter
 
 def ExpDecay(Nt, osc=False):
     return lambda t,E,Z : Z * (anp.exp(-E*t) + anp.exp(-E*(Nt-t))) * ((-1)**(t+1) if osc else 1.)
@@ -41,9 +42,6 @@ def Energies(Evec):
     for n in range(1,len(Evec)):
         erg.append(anp.exp(Evec[n]) + erg[n-(1 if n==1 else 2)])
     return erg
-
-
-
 
 
 def PeriodicExpDecay(Nt):
@@ -82,7 +80,7 @@ class StagFitter(Correlator):
 
         self.keys = sorted(itertools.product(self.smr,self.pol))
 
-
+    # ----------------------------- OLD FUNCTIONS ------------------------------------
     def Kpars(self,Nexc):
         '''
             Builds all the keys for dictionary of parameters and returns a dictionary:
@@ -223,6 +221,50 @@ class StagFitter(Correlator):
             return res @ res
 
         return _vector_cost if vcost else _scalar_cost
+    # ---------------------------------------------------------------------------------
+
+
+    def correlation_diagnostics(self, ysamples, verbose=True, plot=False, svd=1e-12):
+        '''
+            Analyze the correlation between data
+        
+            Parameters
+            ----------
+                - `ysamples`: array: Each column contains all the samples (MC chain) of a single observables.
+        '''
+        # Compute covariance of data
+        ydata = gv.dataset.avg_data(ysamples)
+        cov = gv.evalcov(ydata)
+
+        # Compute correlation matrix
+        cdiag = np.diag(1./np.sqrt(np.diag(cov)))
+        cor = cdiag @ cov @ cdiag
+
+        # Compute condition number of the matrix.
+        condn = np.linalg.cond(cor)
+        if condn > 1e13:
+            warn(f'Correlation matrix may be ill-conditioned, condition number: {condn:1.2e}', RuntimeWarning)
+        if condn > 0.1 / np.finfo(float).eps:
+            warn(f'Correlation matrix condition number exceed machine precision {condn:1.2e}', RuntimeWarning)
+        if verbose:
+            print(f'Condition number of the correlation matrix is {condn:1.2e}')
+
+        # Plot correlation matrix
+        if plot:
+            plt.matshow(cor,vmin=-1,vmax=1,cmap='RdBu')
+            plt.colorbar()
+            plt.tight_layout()
+            plt.show()
+
+        # SVD analysis from gvar
+        if svd:
+            svd = gv.dataset.svd_diagnosis(ysamples,svdcut=svd)
+            svd.plot_ratio(show=plot)
+            svdcut = svd.svdcut
+
+        return 0
+
+
 
     def diff_model(self, xdata, Nexc):
         '''
@@ -252,12 +294,16 @@ class StagFitter(Correlator):
             
         return _model, _jac, _hes
 
-
-    def diff_cost(self, Nexc, W2=None, **fitdata_args):
+    def diff_cost(self, Nexc, W2=None, **format_args):
         '''
             Return a `jax`-differentiable cost function.
+
+            Parameters
+            ----------
+                - Nexc: int. Number of excited states to be fitted.
+                - W2: matrix, optional. Weight matrix of the fit (see notes below).
         '''
-        xdata,ydata = self.format(flatten=False, **fitdata_args)
+        xdata,ydata = self.format(flatten=False, **format_args)
 
         # Prepare model, vector with y-data and weight matrix
         model, jac, hess = self.diff_model(xdata,Nexc)
@@ -268,13 +314,7 @@ class StagFitter(Correlator):
             res = y - model(pdict)
             return jnp.matmul(jnp.transpose(res),jnp.matmul(wmat2,res))
 
-        def _
-
         return _cost
-
-
-
-
 
     def chi2exp(self, Nexc, trange, popt, fitcov, pvalue=True, Nmc=10000):
         # Format data and estimate covariance matrix
@@ -364,17 +404,24 @@ def test():
     fit = fitter.fits[NEXC,TLIM]
     # ===========================================================================================
 
-    ce,p = self.chi2exp(
-        Nexc   = NEXC,
-        trange = TLIM,
-        popt   = dict(fit.pmean),
-        fitcov = gv.evalcov(fit.y),
-        pvalue = True
-    )
-    print(fit.chi2red,ce,p)
+    # ce,p = self.chi2exp(
+    #     Nexc   = NEXC,
+    #     trange = TLIM,
+    #     popt   = dict(fit.pmean),
+    #     fitcov = gv.evalcov(fit.y),
+    #     pvalue = True
+    # )
+    # print(fit.chi2red,ce,p)
 
-    print(
-        self.diff_cost(NEXC, trange=TLIM, **data_spec)(
-            gv.mean(fit.y),dict(fit.pmean)
-        )
+    # print(
+    #     self.diff_cost(NEXC, trange=TLIM, **data_spec)(
+    #         gv.mean(fit.y),dict(fit.pmean)
+    #     )
+    # )
+
+
+    self.correlation_diagnostics(
+        smearing=['1S-1S'],
+        polarization=['Par'],
+        plot=False,
     )
