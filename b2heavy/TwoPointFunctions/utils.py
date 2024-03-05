@@ -108,7 +108,8 @@ def correlation_diagnostics(ysamples, jk=True, verbose=True, plot=False):
 
     # SVD analysis from gvar
     svd = gv.dataset.svd_diagnosis(ysamples)
-    svd.plot_ratio(show=plot)
+    if plot:
+        svd.plot_ratio(show=plot)
     
     if verbose:
         print(f'Condition number of the correlation matrix is {condn:1.2e}')

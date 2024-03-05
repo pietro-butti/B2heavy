@@ -2,6 +2,8 @@ import os
 import itertools
 import jax 
 import jax.numpy         as jnp
+jax.config.update("jax_enable_x64", True)
+
 import numpy             as np
 import gvar              as gv
 import matplotlib.pyplot as plt
@@ -176,10 +178,12 @@ def set_priors_phys(corr, Nstates, Meff=None, Aeff=None, prior_policy=None):
     return priors  
 
 
+
 class StagFitter(Correlator):
     def __init__(self, io:CorrelatorIO, priors_policy=None, **kwargs):
         super().__init__(io,**kwargs)
         self.priors_policy = priors_policy
+        self.fits = {}
 
     def priors(self, Nstates, Meff=None, Aeff=None, prior_policy=None):
         prs = self.priors_policy if prior_policy is None else prior_policy
@@ -214,34 +218,35 @@ class StagFitter(Correlator):
             
         return _model, _jac, _hes
 
-    def diff_cost(self, Nexc, W2=None, **format_args):
+    def diff_cost(self, Nexc, xdata, W2):
         '''
             Return a `jax`-differentiable cost function.
 
             Parameters
             ----------
                 - Nexc: int. Number of excited states to be fitted.
-                - W2: matrix, optional. Weight matrix of the fit (see notes below).
+                - xdata: array. Vector of timeslices to be fitted.
+                - W2: matrix. Weight matrix of the fit.
         '''
-        xdata,ydata = self.format(flatten=False, **format_args)
 
-        # Prepare model, vector with y-data and weight matrix
-        model, jac, hess = self.diff_model(xdata,Nexc)
+        model,_,_ = self.diff_model(xdata,Nexc)
+        w2mat = jnp.asarray(W2)
 
-        if W2 is not None:
-            yvec = np.concatenate([ydata[k] for k in self.keys])
-            wmat2 = jnp.asarray(W2) if W2 is not None else jnp.linalg.inv(gv.evalcov(yvec))
-        else:
-            wmat2 = W2
+        # Prepare model dependent on parameters and data
+        def _cost(pars,ydata):
+            res = model(pars) - ydata
+            return jnp.dot(res,jnp.matmul(w2mat,res))
+
+        def hess_par(popt,ydata):
+            return jax.jacfwd(jax.jacrev(_cost))(popt,ydata)
+
+        def hess_mix(popt,ydata):
+            return jax.jacfwd(jax.jacrev(_cost,argnums=1))(popt,ydata)
+
+        return _cost, hess_par, hess_mix
 
 
-        def _cost(y,pdict):
-            res = y - model(pdict)
-            return jnp.matmul(jnp.transpose(res),jnp.matmul(wmat2,res))
-
-        return _cost
-
-    def fit(self, Nstates, trange, verbose=False, priors=None, p0=None, maxit=50000, svdcut=0., **data_kwargs):
+    def fit(self, Nstates, trange, verbose=False, priors=None, p0=None, maxit=50000, svdcut=0., jkfit=False, **data_kwargs):
         xdata, ydata = self.format(trange=trange, flatten=True, **data_kwargs)
 
         def model(xdata,pdict):
@@ -263,11 +268,58 @@ class StagFitter(Correlator):
             maxit  = maxit,
             svdcut = svdcut
         )
+        self.fits[Nstates,trange] = fit
 
         if verbose:
             print(fit)
 
-        return fit
+
+        if jkfit:
+            xdata, ydata, ally = self.format(trange=trange, flatten=True, alljk=True, **data_kwargs)
+            cov = gv.evalcov(ydata)
+
+            pkeys = sorted(fit.p.keys())
+            fitpjk = []
+            for ijk in range(ally.shape[0]):
+                if verbose: print(f'{ijk+1} of {ally.shape[0]}')
+                ydata = gv.gvar(ally[ijk,:],cov)
+
+                fit = lsqfit.nonlinear_fit(
+                    data   = (xdata,ydata),
+                    fcn    = model,
+                    prior  = pr,
+                    p0     = p0,
+                    maxit  = maxit,
+                    svdcut = svdcut
+                )
+
+                fitpjk.append(
+                    np.hstack([fit.pmean[k] for k in pkeys])
+                )
+
+        return fitpjk if jkfit else fit
+
+    def fit_error(self, Nexc, xdata, yvec, fitcov, popt):
+        pkeys = sorted(popt.keys())
+
+        # Evaluate hessian for error propagation
+        cost,hpar,hmix = self.diff_cost(Nexc,xdata,W2=jnp.linalg.inv(fitcov))
+        fity = jnp.asarray(gv.mean(yvec))
+        chi2 = cost(popt,fity)
+        
+        _hp = hpar(popt,fity) # Parameters hessian
+        Hess_par = np.vstack([np.hstack([_hp[kr][kc] for kc in pkeys]) for kr in pkeys])
+        
+        _hm = hmix(popt,fity) # Mixed hessian
+        Hess_mix = np.hstack([_hm[k] for k in pkeys]).T
+
+        dpdy = -1. * np.linalg.pinv(Hess_par) @ Hess_mix
+        pcov = dpdy @ fitcov @ dpdy.T
+
+        pmean = np.concatenate([popt[k] for k in pkeys])
+        pars = gv.gvar(pmean,pcov)
+
+        return pars, chi2
 
     def chi2exp(self, Nexc, trange, popt, fitcov, pvalue=True, Nmc=10000):
         # Format data and estimate covariance matrix
@@ -275,12 +327,14 @@ class StagFitter(Correlator):
         yvec = np.concatenate([ydata[k] for k in self.keys])
         cov = gv.evalcov(yvec)
 
-        # Estimate jacobian and hessian
-        fun,jac,hes = self.diff_model(xdata,Nexc)
-        j = jac(popt)
-        Jac = np.hstack([j[k] for k in popt])
+        pkeys = sorted(popt.keys())
 
-        # Calculate chi2 from fit
+        # Estimate jacobian
+        fun,jac,_ = self.diff_model(xdata,Nexc)
+        _jc = jac(popt)
+        Jac = np.hstack([_jc[k] for k in pkeys])
+
+        # Check chi2 from fit
         w2 = jnp.linalg.inv(fitcov)
         res = gv.mean(yvec) - fun(popt)
         chi2 = res.T @ w2 @ res
@@ -296,7 +350,7 @@ class StagFitter(Correlator):
 
 
         if not pvalue:
-            return chiexp
+            return chi2, chiexp
         
         else:
             l,evec = np.linalg.eig(cov)
@@ -319,6 +373,65 @@ class StagFitter(Correlator):
             
             return chi2, chiexp, p
         
+    def fit_result(self, Nexc, trange, verbose=True, error=False):
+        fit = self.fits[Nexc,trange]
+        xdata  = fit.x
+        yvec   = gv.mean(fit.y)
+        fitcov = gv.evalcov(fit.y)
+        popt   = dict(fit.pmean)
+
+        chi2, chiexp, p = self.chi2exp(Nexc, trange, popt, fitcov, pvalue=True)
+        if verbose:
+            print(f'# ---------- {Nexc}+{Nexc} fit in {trange} for mes: {self.info.meson} of ens: {self.info.ensemble} for mom: {self.info.momentum} --------------')
+            print(fit)
+
+            print(f'# red chi2     = {chi2:.2f}')
+            print(f'# chi2_exp     = {chiexp:.2f}')
+            print(f'# chi2/chi_exp = {chi2/chiexp:.2f}')
+            print(f'# p-value      = {p:.2f}')
+
+        res = dict(
+            fit    = fit,
+            chi2   = chi2,
+            chiexp = chiexp,
+            pvalue = p,
+        )
+
+        if error:
+            pars, chi2cost  = self.fit_error(Nexc,xdata,yvec,fitcov, popt)
+            assert np.isclose(chi2cost,chi2,atol=1e-14)
+            res['pars']   = pars
+
+
+        return res
+
+    def plot_fit(self,ax,Nexc,trange):
+        fit = self.fits[Nexc,trange]
+        xdata,ydata = self.format()
+
+        # for i,k in enumerate(self.keys):
+        for i,sm in enumerate(self.smr):
+            for j,pl in enumerate(self.pol):
+                model = NplusN2ptModel(Nexc,self.Nt,sm,pl)
+                axi = ax[i,j]
+
+                iin = np.array([min(trange)<=x<=max(trange) for x in xdata])
+
+                xin = xdata[iin]
+                yin = ydata[sm,pl][iin]/model(xin,fit.pmean)
+
+                axi.errorbar(xin,gv.mean(yin),gv.sdev(yin),fmt='o', ecolor='C0', mfc='w', capsize=2.5, label=(sm,pl))
+                
+                ye = gv.mean(ydata[sm,pl][iin])/model(xin,fit.p)
+                axi.fill_between(xin,1+gv.sdev(ye),1-gv.sdev(ye),color='C1',alpha=0.3)
+
+                axi.axhline(1 , color='gray',alpha=0.5, linestyle=':')
+                axi.set_ylim(.95,1.05)
+                axi.legend()
+
+
+
+
 
 def main():
     jax.config.update("jax_enable_x64", True)
@@ -333,7 +446,7 @@ def main():
     data_dir = '/Users/pietro/code/data_analysis/BtoD/Alex/'
     smlist   = ['1S-1S','d-d','d-1S'] 
 
-    TLIM     = (15,20)
+    TLIM     = (8,20)
     NEXC     = 2
 
     io   = CorrelatorIO(ens,mes,mom,PathToDataDir=data_dir)
@@ -343,23 +456,22 @@ def main():
         smearing = smlist
     )
 
-    x,y,yall = stag.format(trange=TLIM, alljk=True, flatten=True)
-
-
 
     # ========================================= fit =============================================
-    cut = correlation_diagnostics(yall)
+    x,y,yall = stag.format(trange=TLIM, alljk=True, flatten=True)
 
-    meff,aeff = stag.meff(trange=(15,20))
-    pr = stag.priors(NEXC,Meff=meff,Aeff=aeff)
+    cut = correlation_diagnostics(yall)
     cov_specs = dict(
         diag   = False,
         block  = False,
         scale  = True,
         shrink = True,
-        cutsvd = None,
+        cutsvd = cut,
     )
 
+    meff,aeff = stag.meff(trange=(15,20),**cov_specs)
+
+    pr = stag.priors(NEXC,Meff=meff,Aeff=aeff)
     fit = stag.fit(
         Nstates = NEXC,
         trange  = TLIM,
@@ -367,15 +479,6 @@ def main():
         verbose = True,
         **cov_specs
     )
-    # # ===========================================================================================
 
-    xdata,ydata =  stag.format(trange=TLIM,flatten=True,**cov_specs)
-
-    chi2, ce,p = stag.chi2exp(
-        Nexc   = NEXC,
-        trange = TLIM,
-        popt   = dict(fit.pmean),
-        fitcov = gv.evalcov(ydata),
-        pvalue = True
-    )
-    print(chi2/ce, ce,p)
+    stag.fit_result(NEXC,TLIM)
+    # ===========================================================================================

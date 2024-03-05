@@ -1,4 +1,3 @@
-
 # Configs
 author = 'pietro.butti'
 title = '2pts fits'
@@ -209,32 +208,32 @@ title = '2pts fits'
             #     tag    = 'Coarse-1_Ds_222'
             #     trange = []
         [fit.Coarse-1.Dst]
-            nstates = 3
             smlist  = ['d-d','1S-1S','d-1S']
             [fit.Coarse-1.Dst.mom.000]
                 tag    = 'Coarse-1_Dst_000'
+                nstates = 2
                 trange = [12,17]
             [fit.Coarse-1.Dst.mom.100]
                 tag    = 'Coarse-1_Dst_100'
+                nstates = 2
                 trange = [12,15]
             [fit.Coarse-1.Dst.mom.200]
                 tag    = 'Coarse-1_Dst_200'
-                trange = [10,17]
+                nstates = 2
+                trange     = [8,20]
+                trange_eff = [15,20]
             [fit.Coarse-1.Dst.mom.300]
                 tag    = 'Coarse-1_Dst_300'
+                nstates = 2
                 trange = [10,13]
-            # [fit.Coarse-1.Dst.mom.400]
-            #     tag    = 'Coarse-1_Dst_400'
-            #     trange = []
             [fit.Coarse-1.Dst.mom.110]
                 tag    = 'Coarse-1_Dst_110'
+                nstates = 2
                 trange = [10,17]
             [fit.Coarse-1.Dst.mom.211]
                 tag    = 'Coarse-1_Dst_211'
+                nstates = 2
                 trange = [10,13]
-            # [fit.Coarse-1.Dst.mom.222]
-            #     tag    = 'Coarse-1_Dst_222'
-            #     trange = []
         [fit.Coarse-1.Dsst]
             nstates = 3
             smlist  = ['d-d','1S-1S','d-1S']

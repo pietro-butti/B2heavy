@@ -387,12 +387,6 @@ class Correlator:
 
         return (xdata, ydata) if not alljk else (xdata,ydata,yjk)
 
-
-
-
-
-
-
     def meff(self, trange=None, prior=None, verbose=False, plottable=False, **kwargs):
         xdata,ydata = self.format(trange=None, flatten=False, **kwargs)
 

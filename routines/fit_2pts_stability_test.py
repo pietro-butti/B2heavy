@@ -12,13 +12,13 @@ python 2pts_fit_stability_test.py --config        [file location of the toml con
                                   --read_from    [name of the .pickle file of previous analysis]
                                   --override     [ ]
                                   --not_average  [list of tmins that do not have to be taken in model average]
-                                  --showfig      [do you want to display the plot with plt.show()?]
+                                  --show      [do you want to display the plot with plt.show()?]
                                   --plot         [do you want to plot data?]
                                   --plot_ymax    [set maximum y in the plot]
                                   --plot_ymin    [set minimum y in the plot]
                                   --plot_AIC     [do you want to plot also the AIC weight?]
 Examples
-python 2pts_fit_stability_test.py --ensemble MediumCoarse --meson Dst --mom 000 --Nstates 1 2 3 --tmins  6 7 8 9 10 --tmaxs 15 --plot --showfig --saveto . --plot_AIC
+python 2pts_fit_stability_test.py --ensemble MediumCoarse --meson Dst --mom 000 --Nstates 1 2 3 --tmins  6 7 8 9 10 --tmaxs 15 --plot --show --saveto . --plot_AIC
 '''
 
 from DEFAULT_ANALYSIS_ROOT import DEFAULT_ANALYSIS_ROOT
@@ -31,88 +31,97 @@ import argparse
 import os
 import matplotlib.pyplot as plt
 import datetime
+import jax 
+import jax.numpy         as jnp
+jax.config.update("jax_enable_x64", True)
 
-from b2heavy.TwoPointFunctions.types2pts  import CorrelatorIO, Correlator
-from b2heavy.TwoPointFunctions.fitter import CorrFitter
+from b2heavy.TwoPointFunctions.utils     import correlation_diagnostics
+from b2heavy.TwoPointFunctions.types2pts import CorrelatorIO, plot_effective_coeffs
+from b2heavy.TwoPointFunctions.fitter    import StagFitter
 
 import fit_2pts_utils as utils
 
-def stability_test_fit(ens,meson,mom,data_dir,binsize,smslist,nexcrange,tminrange,tmaxrange,prior_trange,saveto='./'):
+def stability_test_fit(ens,meson,mom,data_dir,binsize,smslist,nexcrange,tminrange,tmaxrange,prior_trange,saveto='./',**cov_specs):
     io = CorrelatorIO(ens,meson,mom,PathToDataDir=data_dir)
-    corr = Correlator(io)
-    corr.jack(binsize)
+    stag = StagFitter(
+        io       = io,
+        jkBin    = binsize,
+        smearing = smslist
+    )
 
-    fitter = CorrFitter(corr, smearing=smslist)
+    effm,effa = stag.meff(prior_trange,**cov_specs)
 
-    _,MEFF,AEFF,_,_ = corr.EffectiveCoeff(prior_trange,smearing=smslist)
-
+    aux = {}
     for nstates in nexcrange:
         for tmin in tminrange:
             for tmax in tmaxrange:
                 trange = (tmin,tmax)
+            
+                pr = stag.priors(nstates,Meff=effm,Aeff=effa)
+                stag.fit(
+                    Nstates = nstates,
+                    trange  = trange,
+                    priors  = pr,
+                    verbose = True,
+                    **cov_specs
+                )
+                d = stag.fit_result(nstates,trange)
 
-                priors = fitter.set_priors_phys(nstates,Meff=MEFF,Aeff=AEFF)
-                try:
-                    fitter.fit(
-                        Nstates = nstates,
-                        trange  = trange,
-                        verbose = True,
-                        pval    = True,
-                        priors  = priors,
-                        scale_covariance  = True,
-                        shrink_covariance = True 
-                    )
-                except ValueError:
-                    print(nstates,tmin)
-
-    aux = {}
-    for k,fit in fitter.fits.items():
-        aux[k] = dict(
-            x       = fit.x,
-            y       = fit.y,
-            p       = fit.p,
-            pvalue  = fit.pvalue,
-            chi2    = fit.chi2,
-            chi2red = fit.chi2red
-        )
+                fit = d['fit']
+                aux[nstates,trange] = dict(
+                    x       = fit.x,
+                    y       = fit.y,
+                    p       = fit.p,
+                    pvalue  = d['pvalue'],
+                    chi2    = fit.chi2,
+                    chi2red = d['chi2'],
+                    chiexp  = d['chiexp']
+                )
 
     with open(saveto,'wb') as handle:
         pickle.dump(aux, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     return aux
             
-def stability_test_model_average(fits,Nt,not_average):
+def stability_test_model_average(fits,Nt,not_average,IC='tic'):
     Ws = []
     E0  = []
-    for Nstates,(tmin,tmax) in fits:
-        if tmin not in not_average:
+    for (Nstates,(tmin,tmax)),fit in fits.items():
+        if (Nstates,(tmin,tmax)) not in not_average:
             Ncut = Nt//2 - (tmax+1-tmin)
             Npars = 2*Nstates + 2*Nstates*2 + (2*Nstates-2)
-            ic = fits[Nstates,(tmin,tmax)]['chi2'] + 2*Npars + 2*Ncut
+
+            if IC=='aic':
+                ic = fit['chi2red'] + 2*Npars + 2*Ncut
+            elif IC=='tic':
+                ic = 2*fit['chi2red']/fit['chiexp']
+
             Ws.append(np.exp(-ic/2))
-            E0.append(fits[Nstates,(tmin,tmax)]['p']['E'][0])
+            E0.append(fit['p']['E'][0])
+
     E0 = np.array(E0)
     Ws = np.array(Ws)/sum(Ws)
 
     stat = sum(Ws*E0)
     syst = np.sqrt(gv.mean(sum(Ws*E0*E0) - (sum(Ws*E0))**2))
 
-    return stat,syst
+    return stat,syst,sum(Ws)
 
 def stability_test_plot(ax,fits,Nstates,modav):
-    pnorm = sum([fit['pvalue'] for fit in fits.values()])
+    pnorm = sum([fit['pvalue'] for fit in fits.values()])/500
+    # pnorm = sum([fit['chi2red']/fit['chiexp'] for fit in fits.values()])/500
 
     # Energy plot for different tmin and Nexc
-    # for nexc in np.arange(1,Nmax+1):
     for nexc in Nstates:
         E0 = [f['p']['E'][0] for k,f in fits.items() if k[0]==nexc]
-        pvaln = [f['pvalue'] for k,f in fits.items() if k[0]==nexc]/pnorm*500
+        # pvaln = np.array([f['chi2red']/f['chiexp'] for k,f in fits.items() if k[0]==nexc])/pnorm
+        pvaln = np.array([f['pvalue'] for k,f in fits.items() if k[0]==nexc])/pnorm
         xplot = np.array([k[1][0] for k,f in fits.items() if k[0]==nexc])
         yplot = gv.mean(E0)
         yerr  = gv.sdev(E0)
 
-        ax.scatter( xplot+(-0.1 + 0.1*(nexc-1)), yplot, marker='s', s=pvaln ,facecolors='none', edgecolors=f'C{nexc-1}')
         ax.errorbar(xplot+(-0.1 + 0.1*(nexc-1)), yplot, yerr=yerr, fmt=',' ,color=f'C{nexc-1}', capsize=2)
+        ax.scatter( xplot+(-0.1 + 0.1*(nexc-1)), yplot, marker='s', s=pvaln , facecolors='w', edgecolors=f'C{nexc-1}')
         ax.errorbar([], [], yerr=[], fmt='s' ,color=f'C{nexc-1}', capsize=2, label=f'{nexc}+{nexc}')
     
     # Plot model average
@@ -129,21 +138,23 @@ def stability_test_plot(ax,fits,Nstates,modav):
 
     return
 
-def stability_test_plot_AIC(a1,Nt,fits):
+def stability_test_plot_AIC(a1,Nt,fits, sum_ws, IC='tic'):
     a1.grid(alpha=0.2)
 
     icall = {}
     for (Nstates,trange),fit in fits.items():
-        Ncut  = Nt/2 - (max(trange)+1-min(trange))
-        Npars = 2*Nstates + 2*Nstates*2 + (2*Nstates-2)
-        ic = fit['chi2'] + 2*Npars + 2*Ncut
-        icall[Nstates,trange] = np.exp(-ic/2) 
+        if IC=='aic':
+            Ncut  = Nt/2 - (max(trange)+1-min(trange))
+            Npars = 2*Nstates + 2*Nstates*2 + (2*Nstates-2)
+            ic = fit['chi2'] + 2*Npars + 2*Ncut
+        elif IC=='tic':
+            ic = 2*fit['chi2red']/fit['chiexp']
 
-    norm = sum(list(icall.values()))
+        icall[Nstates,trange] = np.exp(-ic/2) 
 
     for nexc in [1,2,3]:
         x = [min(trange) for (n,trange),f in fits.items() if n==nexc]
-        w = [icall[n,t]/norm for (n,t),f in fits.items() if n==nexc]
+        w = [icall[n,t]/sum_ws for (n,t),f in fits.items() if n==nexc]
         a1.scatter(x,w)
         a1.plot(x,w,alpha=0.2)
 
@@ -172,15 +183,24 @@ def log(tag,ens,meson,mom,prior_trange,Nstates,tmins,tmaxs,not_average):
     }
     return st, logg
 
+
+
 prs = argparse.ArgumentParser(usage=usage)
 prs.add_argument('-c','--config', type=str,  default='./2pts_fit_config.toml')
-prs.add_argument('--ensemble', type=str)
-prs.add_argument('--meson'   , type=str)
-prs.add_argument('--mom'     , type=str)
+prs.add_argument('-e','--ensemble', type=str)
+prs.add_argument('-m','--meson'   , type=str)
+prs.add_argument('-mm','--mom'     , type=str)
 prs.add_argument('--prior_trange' , type=int, nargs='+')
 prs.add_argument('--Nstates' , type=int, nargs='+')
 prs.add_argument('--tmins'   , type=int, nargs='+')
 prs.add_argument('--tmaxs'   , type=int, nargs='+')
+
+prs.add_argument('--shrink', action='store_true')
+prs.add_argument('--scale' , action='store_true')
+prs.add_argument('--diag'  , action='store_true')
+prs.add_argument('--block' , action='store_true')
+prs.add_argument('--svd'   , type=float, default=None)
+
 
 prs.add_argument('--saveto'   , type=str,  default=None)
 prs.add_argument('--read_from', type=str,  default=None)
@@ -192,7 +212,17 @@ prs.add_argument('--plot',      action='store_true')
 prs.add_argument('--plot_ymax', type=float, default=None)
 prs.add_argument('--plot_ymin', type=float, default=None)
 prs.add_argument('--plot_AIC', action='store_true')
-prs.add_argument('--showfig', action='store_true')
+prs.add_argument('--show', action='store_true')
+
+
+
+
+
+
+
+
+
+
 
 def main():
     args = prs.parse_args()
@@ -206,11 +236,11 @@ def main():
     tag = config['fit'][ens][mes]['mom'][mom]['tag']
     
     
-    READFROM = f'{DEFAULT_ANALYSIS_ROOT}/fit2pts_stability_test_{tag}.pickle' if args.read_from=='default' else args.read_from
+    READFROM = f'{DEFAULT_ANALYSIS_ROOT}/fit2pt_stability_test_{tag}.pickle' if args.read_from=='default' else args.read_from
     SAVETO = DEFAULT_ANALYSIS_ROOT if args.saveto=='default' else args.saveto
     
     fits = None
-    if args.read_from is not None: 
+    if args.read_from is not None and not args.override: 
         with open(READFROM,'rb') as f:
             fits = pickle.load(f)
 
@@ -231,14 +261,22 @@ def main():
                     with open(f'{SAVETO}/fit2pt_stability_test_{tag}.pickle','rb') as f:
                         fits = pickle.load(f)
     
-
-    
     if not os.path.isdir(SAVETO):
         raise NameError(f'{SAVETO} is not a directory')
     else:
         saveto = f'{SAVETO}/fit2pt_stability_test_{tag}.pickle'
 
+
+
     if fits is None:
+        cov_specs = dict(
+            shrink = args.shrink ,
+            scale  = args.scale  ,
+            diag   = args.diag   ,
+            block  = args.block  ,
+            cutsvd = args.svd   
+        )
+
         fits = stability_test_fit(
             ens          = args.ensemble,
             meson        = args.meson,
@@ -250,14 +288,14 @@ def main():
             nexcrange    = args.Nstates,
             tminrange    = args.tmins,
             tmaxrange    = args.tmaxs,
-            saveto       = saveto
+            saveto       = saveto,
+            **cov_specs
         ) 
 
 
-    e0,syst = stability_test_model_average(
+    e0,syst,sum_ws = stability_test_model_average(
         fits, config['data'][ens]['Nt'], args.not_average
     )
-
 
     if args.plot:
         plt.rcParams['text.usetex'] = True
@@ -275,27 +313,27 @@ def main():
 
 
         if args.plot_AIC:
-            stability_test_plot_AIC(a1,config['data'][ens]['Nt'],fits)
+            stability_test_plot_AIC(a1,config['data'][ens]['Nt'],fits,sum_ws)
 
-        saveplot = f'{SAVETO}/PLOTS/fit2pt_stability_test_{tag}.pdf' if args.saveto=='default' else f'{args.saveto}/PLOTS/fit2pt_stability_test_{tag}.pdf'
+        saveplot = f'{SAVETO}/fit2pt_stability_test_{tag}.pdf' if args.saveto=='default' else f'{args.saveto}/fit2pt_stability_test_{tag}.pdf'
         plt.savefig(saveplot)
 
-        if args.showfig:
+        if args.show:
             plt.show()
 
 
         
-        # LOG analysis =======================================================================
-        if SAVETO is not None:
-            string,data = log(tag,ens,mes,mom,args.prior_trange,args.Nstates,args.tmins,args.tmaxs,args.not_average)
+    #     # LOG analysis =======================================================================
+    #     if SAVETO is not None:
+    #         string,data = log(tag,ens,mes,mom,args.prior_trange,args.Nstates,args.tmins,args.tmaxs,args.not_average)
             
-            logfile = f'{SAVETO}/fit2pt_stability_test_{tag}.log'
-            with open(logfile,'w') as f:
-                f.write(string)
+    #         logfile = f'{SAVETO}/fit2pt_stability_test_{tag}.log'
+    #         with open(logfile,'w') as f:
+    #             f.write(string)
             
-            logdata = f'{SAVETO}/fit2pt_stability_test_{tag}_d.log'
-            with open(logdata,'wb') as handle:
-                pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    #         logdata = f'{SAVETO}/fit2pt_stability_test_{tag}_d.log'
+    #         with open(logdata,'wb') as handle:
+    #             pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
         
 
 

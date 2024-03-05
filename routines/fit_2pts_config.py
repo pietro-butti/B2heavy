@@ -1,6 +1,4 @@
-# THIS ROUTINE DEALS WITH THE FIRST ANALYSIS OF 2PTS FUNCTIONS
-# -------------------------------- usage --------------------------------
-usage = '''
+USAGE = '''
 python 2pts_fit_config.py --config [file location of the toml config file]         
                    --ensemble [list of ensembles analyzed]                    
                    --meson    [list of meson analyzed]                        
@@ -9,81 +7,37 @@ python 2pts_fit_config.py --config [file location of the toml config file]
                    --saveto        [*where* do you want to save files.]             
                    --logto         [Log file name]                                 
                    --override      [do you want to override pre-existing analysis?]
+
+                   --diag
+                   --block
+                   --svd
                    --scale         [rescale the covariance matrix with the diagonal]
                    --shrink        [shrink covariance matrix]
 
                    --plot_eff
                    --plot_fit
-                   --plot_show
+                   --show
 
 Examples
-python 2pts_fit_config.py --only_ensemble MediumCoarse --only_meson Dsst --only_mom 000 100 --saveto .     
+python 2pts_fit_config.py --ensemble MediumCoarse --meson Dsst --mom 000 100 --saveto .     
 '''
+import pickle
+import argparse
+import os
+import datetime
+import jax 
+import jax.numpy         as jnp
+jax.config.update("jax_enable_x64", True)
+import matplotlib.pyplot as plt
+
 
 from DEFAULT_ANALYSIS_ROOT import DEFAULT_ANALYSIS_ROOT
 
-
-import argparse
-import pickle
-import sys
-import tomllib
-import os
-import gvar as gv
-
-import matplotlib.pyplot as plt
-import numpy as np
-
-import datetime
-
-from b2heavy.TwoPointFunctions.types2pts  import CorrelatorIO, Correlator, plot_effective_coeffs
-from b2heavy.TwoPointFunctions.fitter import CorrFitter
+from b2heavy.TwoPointFunctions.utils     import correlation_diagnostics
+from b2heavy.TwoPointFunctions.types2pts import CorrelatorIO, plot_effective_coeffs
+from b2heavy.TwoPointFunctions.fitter    import StagFitter
 
 import fit_2pts_utils as utils
-
-
-def plot_corr_fit(fitter,Nstates,trange):
-    Npol = len(set([pol for (sm,pol) in fitter.keys]))
-    Nsmr = len(set([sm for (sm,pol) in fitter.keys]))
-
-    fit = fitter.fits[Nstates,trange]
-
-    yteo = fit.fcn(fit.x,fit.p)
-    ydata = (fit.y-gv.mean(yteo))/gv.mean(yteo)
-    ydata = np.reshape(ydata,(Npol*Nsmr,len(ydata)//(Npol*Nsmr)))
-
-    xx,yy = fitter.corr.format(smearing=fitter.smearing)
-    xtot = list(xx.values())
-    ytot = (np.concatenate([yy[k] for k in fitter.keys]) - fit.fcn(xtot,fit.pmean))/fit.fcn(xtot,fit.pmean)
-    ytot = np.reshape(ytot,(Npol*Nsmr,len(ytot)//(Npol*Nsmr)))
-
-    res = fit.fcn(xtot,fit.p)
-    yshade = gv.sdev( (np.concatenate([gv.mean(yy[k]) for k in fitter.keys])-res)/res)
-    yshade = np.reshape(yshade,(Npol*Nsmr,len(yshade)//(Npol*Nsmr)))
-
-    for i,(sm,pol) in enumerate(fitter.keys):
-        axi = plt.subplot(Npol,Nsmr,i+1)
-
-        xplot = fit.x[i]
-        yplot = gv.mean(ydata[i])
-        yerr = gv.sdev( ydata[i])
-        axi.scatter(xplot,yplot, marker='o', s=15 ,facecolors='none', edgecolors=f'C{i}')
-        axi.errorbar(xplot,yplot, yerr=yerr,fmt=',',color=f'C{i}', capsize=2)
-
-        iok = [i for i,xi in enumerate(xx[sm,pol]) if xi<min(trange) or xi>max(trange)]
-        xall = xtot[i][iok]
-        yall = ytot[i][iok]
-        yaplot = gv.mean(yall)
-        yaerr = gv.sdev( yall)
-        axi.scatter( xall,yaplot, marker='o', s=15 ,facecolors='none', edgecolors=f'C{i}',alpha=0.2)
-        axi.errorbar(xall,yaplot, yerr=yaerr,fmt=',',color=f'C{i}', capsize=2,alpha=0.2)
-
-        axi.fill_between(xall,yshade[i][iok],-yshade[i][iok],color=f'C{i}',alpha=0.3)
-
-        axi.grid(alpha=0.2)
-
-        axi.set_ylim(ymin=-.5,ymax=.5)
-        axi.set_xlim(xmin=0.)
-        axi.set_title(f'({sm},{pol})')
 
 
 
@@ -94,112 +48,96 @@ def fit_2pts_single_corr(
     smslist, 
     nstates, 
     trange, 
-    saveto = None, 
-    meff   = False, 
-    aeff   = False, 
-    jkfit  = False,
-    scale  = False,
-    shrink = False,
+    saveto     = None, 
+    meff       = True, 
+    trange_eff = None, 
+    jkfit      = False,
+    **cov_specs
 ):
-    """
-        This function perform a fit to 2pts correlation function
 
-        Arguments
-        ---------
 
-            ens: str
-                Ensemble name, e.g. `MediumCoarse`
-            meson: str
-                Meson name, e.g. `Dsst`
-            mom: str
-                Momentum string, e.g. `200`
-            data_dir: str
-                Location of the `Ensemble` directory
-            binsize: int
-                Bin size for jackknife error
-            smslist: list
-                List of smearing to be considered
-            nstates: int
-                Number of states to be fitted. E.g. set to 2 for "2+2" fits.
-            saveto: str
-                Path of the location where to save the results
-            meff: bool
-    """
-    
-    # initialize structures
-    io = CorrelatorIO(ens,meson,mom,PathToDataDir=data_dir)
-    corr = Correlator(io,jkBin=binsize)
+    # Initialize objets and fits
+    io   = CorrelatorIO(ens,meson,mom,PathToDataDir=data_dir)
+    stag = StagFitter(
+        io       = io,
+        jkBin    = binsize,
+        smearing = smslist
+    )
 
+    # Calculate effective mass 
     if meff:
-        _,MEFF,_ = corr.EffectiveMass(trange=trange,smearing=smslist)
-    if aeff:
-       (X,m_eff,a_eff), MEFF, AEFF, Mpr, Apr = corr.EffectiveCoeff(trange,smearing=smslist)
+        tr = trange if trange_eff is None else trange_eff 
+        effm,effa = stag.meff(tr,**cov_specs)
+    else:
+        effm, effa = None, None
 
-
-    fitter = CorrFitter(corr,smearing=smslist)
-    priors = fitter.set_priors_phys(nstates,Meff=MEFF if meff else None, Aeff=AEFF if aeff else None)
-    fit = fitter.fit(
-        Nstates           = nstates,
-        trange            = trange,
-        verbose           = True,
-        pval              = True,
-        jkfit             = jkfit,
-        priors            = priors,
-        scale_covariance  = scale,
-        shrink_covariance = shrink,
+    # Perform fit
+    pr = stag.priors(nstates,Meff=effm,Aeff=effa)
+    fit = stag.fit(
+        Nstates = nstates,
+        trange  = trange,
+        priors  = pr,
+        verbose = True,
+        **cov_specs
     )
 
 
     if saveto is not None:
-        name = f'{saveto}_fit.pickle'
         if jkfit:
-            with open(name, 'wb') as handle:
+            name = f'{saveto}_fit.pickle'
+            with open(name,'wb') as handle:
                 pickle.dump(fit, handle, protocol=pickle.HIGHEST_PROTOCOL)
         else:
-            f = fitter.fits[nstates,trange]
-            utils.dump_fit_object(f,saveto)
+            fitres = stag.fit_result(nstates,trange,verbose=True)
+            utils.dump_fit_object(saveto,fit,**fitres)
 
-    aux = (
-        # (corr,fitter.fits[nstates,trange],fitter.keys),
-        fitter,
-        ((X,m_eff,a_eff),MEFF,AEFF,Mpr,Apr) if aeff else 0
-    )
-    return aux
+    return stag,fitres
 
-def log(tag,ens,meson,mom,data_dir,smlist,trange,saveto,JKFIT,shrink,scale):
+
+
+
+def log(tag,ens,meson,mom,data_dir,smlist,trange,trange_eff,nexc,saveto,JKFIT,**cov_specs):
     return f'''
 # ================================== ({tag}) ==================================
 # fit_2pts_single_corr from {__file__} called at {datetime.datetime.now()} with
-#        ens      = {ens}                                                           
-#        meson    = {meson}                                                       
-#        mom      = {mom}                                                        
-#        data_dir = {data_dir}                                                      
-#        smlist   = {smlist}                                                      
-#        trange   = {trange}                                                       
-#        saveto   = {saveto}                                                       
-#        jkfit    = {JKFIT}                                                        
-#        meff     = True,
-#        aeff     = True,                                                           
-#        shrink   = {shrink},
-#        scale    = {scale}                          
+#        ens        = {ens}                                                           
+#        meson      = {meson}                                                       
+#        mom        = {mom}                                                        
+#        data_dir   = {data_dir}                                                      
+#        smlist     = {smlist}                                                      
+#        trange     = {trange}                                                       
+#        trange_eff = {trange_eff}                                                   
+#        nstates    = {nexc}                                                       
+#        saveto     = {saveto}                                                       
+#        jkfit      = {JKFIT}                                                        
+#        meff       = True,
+#        diag       = {cov_specs.get("diag")},
+#        block      = {cov_specs.get("block")},                                                       
+#        shrink     = {cov_specs.get("shrink")},
+#        scale      = {cov_specs.get("scale")},
+#        svd        = {cov_specs.get("cutsvd")},                     
 # =============================================================================
 ''' 
 
 
 
-prs = argparse.ArgumentParser(usage=usage)
+
+prs = argparse.ArgumentParser(usage=USAGE)
 prs.add_argument('-c','--config'  , type=str,  default='./2pts_fit_config.toml')
-prs.add_argument('--ensemble', type=str,  nargs='+',  default=None)
-prs.add_argument('--meson'   , type=str,  nargs='+',  default=None)
-prs.add_argument('--mom'     , type=str,  nargs='+',  default=None)
-prs.add_argument('--saveto'       , type=str,  default=None)
-prs.add_argument('--jkfit'        , action='store_true')
-prs.add_argument('--override'     , action='store_true')
-prs.add_argument('--logto'        , type=str, default=None)
-prs.add_argument('--debug'        , action='store_true')
-prs.add_argument('--scale'        , action='store_true')
-prs.add_argument('--shrink'       , action='store_true')
-prs.add_argument('--verbose'       , action='store_true')
+prs.add_argument('-e','--ensemble', type=str,  nargs='+',  default=None)
+prs.add_argument('-m','--meson'   , type=str,  nargs='+',  default=None)
+prs.add_argument('-mm','--mom'     , type=str,  nargs='+',  default=None)
+prs.add_argument('--saveto'         , type=str,  default=None)
+prs.add_argument('--jkfit'          , action='store_true')
+prs.add_argument('--override'       , action='store_true')
+prs.add_argument('--logto'          , type=str, default=None)
+prs.add_argument('--debug'          , action='store_true')
+prs.add_argument('--diag'           , action='store_true')
+prs.add_argument('--block'          , action='store_true')
+prs.add_argument('--scale'          , action='store_true')
+prs.add_argument('--shrink'         , action='store_true')
+prs.add_argument('--svd'            , type=float, default=None)
+prs.add_argument('--verbose'        , action='store_true')
 prs.add_argument('--plot_eff'       , action='store_true')
 prs.add_argument('--plot_fit'       , action='store_true')
 prs.add_argument('--show'           , action='store_true')
@@ -229,9 +167,11 @@ def main():
                 data_dir = config['data'][ens]['data_dir']
                 binsize  = config['data'][ens]['binsize'] 
                 smlist   = config['fit'][ens][meson]['smlist'] 
-                nstates  = config['fit'][ens][meson]['nstates'] 
+                nstates  = config['fit'][ens][meson]['mom'][mom]['nstates'] 
                 trange   = tuple(config['fit'][ens][meson]['mom'][mom]['trange']) 
+                trange_eff = tuple(config['fit'][ens][meson]['mom'][mom]['trange_eff']) 
 
+                # 
                 SAVETO = DEFAULT_ANALYSIS_ROOT if args.saveto=='default' else args.saveto
                 saveto = None
                 if SAVETO is not None:
@@ -253,58 +193,66 @@ def main():
 
 
                 # Perform analysis ===================================================================
-                # try:
-                fitter,eff = fit_2pts_single_corr(
-                    ens, meson, 
-                    mom, 
+                cov_specs = dict(
+                    diag   = args.diag,
+                    block  = args.block,
+                    scale  = args.scale,
+                    shrink = args.shrink,
+                    cutsvd = args.svd
+                )
+
+                stag,fitres = fit_2pts_single_corr(
+                    ens, meson, mom, 
                     data_dir, 
                     binsize, 
                     smlist, 
                     nstates, 
                     trange, 
-                    saveto  = saveto, 
-                    jkfit   = JKFIT,
-                    meff    = True, 
-                    aeff    = True,
-                    shrink  = args.shrink,
-                    scale   = args.scale,
+                    saveto     = saveto, 
+                    meff       = True, 
+                    trange_eff = trange_eff, 
+                    jkfit      = JKFIT,
+                    **cov_specs
                 )
-                # except Exception:
-                #     pass
 
                 # LOG analysis and PLOTS =======================================================================
                 if SAVETO is not None:
                     logfile = f'{saveto}.log' if args.logto==None else args.logto
                     with open(logfile,'w') as f:
-                        f.write(log(tag,ens,meson,mom,data_dir,smlist,trange,saveto,JKFIT,args.shrink,args.scale))
+                        f.write(
+                            log(tag,ens,meson,mom,data_dir,smlist,trange,trange_eff,nstates,saveto,JKFIT,**cov_specs)
+                        )
 
-                (X,m_eff,a_eff),MEFF,AEFF,Mpr,Apr = eff
                 if args.plot_eff:
+                    toplot = stag.meff(trange_eff,**cov_specs,plottable=True)
+
                     plt.rcParams['text.usetex'] = True
                     plt.rcParams['font.size'] = 12
-                    plt.figure(figsize=(12, 6 if len(np.unique([k[1] for k in X]))==1 else 8))
 
-                    plot_effective_coeffs(trange,X,AEFF,a_eff,Apr,MEFF,m_eff,Mpr,Aknob=1.)
+                    plt.figure(figsize=(12, 6 if len(stag.keys)/len(smlist)==1 else 8))
+                    plot_effective_coeffs(trange_eff,*toplot)
 
                     plt.tight_layout()
+
                     if SAVETO is not None:
-                        plt.savefig(f'{SAVETO}/PLOTS/fit2pt_config_{tag}_eff.pdf')
-                        print(f'Effective mass and coeff plot saved to {SAVETO}/PLOTS/fit2pt_config_{tag}_eff.pdf')
+                        plt.savefig(f'{SAVETO}/fit2pt_config_{tag}_eff.pdf')
+                        print(f'Effective mass and coeff plot saved to {SAVETO}/fit2pt_config_{tag}_eff.pdf')
                     if args.show:
                         plt.show()
 
                 if args.plot_fit:
                     plt.rcParams['text.usetex'] = True
                     plt.rcParams['font.size'] = 12
-                    plt.figure(figsize=(12, 6))
 
-                    plt.title(tag)
-                    plot_corr_fit(fitter,nstates,trange)
+                    npol = len(stag.keys)//len(smlist)
+                    f, ax = plt.subplots(3,npol,figsize=(12,8))
+                    stag.plot_fit(ax,nstates,trange)
 
-                    # plt.tight_layout()
+                    plt.tight_layout()
+
                     if SAVETO is not None:
-                        plt.savefig(f'{SAVETO}/PLOTS/fit2pt_config_{tag}_fit.pdf')
-                        print(f'Effective mass and coeff plot saved to {SAVETO}/PLOTS/fit2pt_config_{tag}_fit.pdf')
+                        plt.savefig(f'{SAVETO}/fit2pt_config_{tag}_fit.pdf')
+                        print(f'Effective mass and coeff plot saved to {SAVETO}/fit2pt_config_{tag}_fit.pdf')
                     if args.show:
                         plt.show()              
 
