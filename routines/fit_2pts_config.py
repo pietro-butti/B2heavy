@@ -3,10 +3,10 @@ python 2pts_fit_config.py --config [file location of the toml config file]
                    --ensemble [list of ensembles analyzed]                    
                    --meson    [list of meson analyzed]                        
                    --mom      [list of momenta considered]                    
-                   --jkfit         [repeat same fit inside each bin. Default: false]               
-                   --saveto        [*where* do you want to save files.]             
-                   --logto         [Log file name]                                 
-                   --override      [do you want to override pre-existing analysis?]
+                   --jkfit    [repeat same fit inside each bin. Default: false]               
+                   --saveto   [*where* do you want to save files.]             
+                   --logto    [Log file name]                                 
+                   --override [do you want to override pre-existing analysis?]
 
                    --diag
                    --block
@@ -52,6 +52,7 @@ def fit_2pts_single_corr(
     meff       = True, 
     trange_eff = None, 
     jkfit      = False,
+    wpriors    = False,
     **cov_specs
 ):
 
@@ -81,14 +82,18 @@ def fit_2pts_single_corr(
         **cov_specs
     )
 
-
     if saveto is not None:
         if jkfit:
             name = f'{saveto}_fit.pickle'
             with open(name,'wb') as handle:
                 pickle.dump(fit, handle, protocol=pickle.HIGHEST_PROTOCOL)
         else:
-            fitres = stag.fit_result(nstates,trange,verbose=True)
+            fitres = stag.fit_result(
+                nstates,
+                trange,
+                verbose = True,
+                priors  = pr if wpriors else None
+            )
             utils.dump_fit_object(saveto,fit,**fitres)
 
     return stag,fitres
@@ -126,21 +131,22 @@ prs = argparse.ArgumentParser(usage=USAGE)
 prs.add_argument('-c','--config'  , type=str,  default='./2pts_fit_config.toml')
 prs.add_argument('-e','--ensemble', type=str,  nargs='+',  default=None)
 prs.add_argument('-m','--meson'   , type=str,  nargs='+',  default=None)
-prs.add_argument('-mm','--mom'     , type=str,  nargs='+',  default=None)
-prs.add_argument('--saveto'         , type=str,  default=None)
-prs.add_argument('--jkfit'          , action='store_true')
-prs.add_argument('--override'       , action='store_true')
-prs.add_argument('--logto'          , type=str, default=None)
-prs.add_argument('--debug'          , action='store_true')
-prs.add_argument('--diag'           , action='store_true')
-prs.add_argument('--block'          , action='store_true')
-prs.add_argument('--scale'          , action='store_true')
-prs.add_argument('--shrink'         , action='store_true')
-prs.add_argument('--svd'            , type=float, default=None)
-prs.add_argument('--verbose'        , action='store_true')
-prs.add_argument('--plot_eff'       , action='store_true')
-prs.add_argument('--plot_fit'       , action='store_true')
-prs.add_argument('--show'           , action='store_true')
+prs.add_argument('-mm','--mom'    , type=str,  nargs='+',  default=None)
+prs.add_argument('--saveto'       , type=str,  default=None)
+prs.add_argument('--jkfit'        , action='store_true')
+prs.add_argument('--override'     , action='store_true')
+prs.add_argument('--logto'        , type=str, default=None)
+prs.add_argument('--debug'        , action='store_true')
+prs.add_argument('--diag'         , action='store_true')
+prs.add_argument('--block'        , action='store_true')
+prs.add_argument('--scale'        , action='store_true')
+prs.add_argument('--shrink'       , action='store_true')
+prs.add_argument('--svd'          , type=float, default=None)
+prs.add_argument('--no_priors_chi', action='store_true')
+prs.add_argument('--verbose'      , action='store_true')
+prs.add_argument('--plot_eff'     , action='store_true')
+prs.add_argument('--plot_fit'     , action='store_true')
+prs.add_argument('--show'         , action='store_true')
 
 def main():
     args = prs.parse_args()
@@ -212,6 +218,7 @@ def main():
                     meff       = True, 
                     trange_eff = trange_eff, 
                     jkfit      = JKFIT,
+                    wpriors    = False if args.no_priors_chi else True,
                     **cov_specs
                 )
 

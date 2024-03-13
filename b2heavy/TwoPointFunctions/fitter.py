@@ -11,7 +11,7 @@ import lsqfit
 
 
 from .utils     import MPHYS, load_toml, NplusN2ptModel, correlation_diagnostics
-from .types2pts import CorrelatorInfo, CorrelatorIO, Correlator
+from .types2pts import CorrelatorInfo, CorrelatorIO, Correlator, plot_effective_coeffs
 
 
 
@@ -99,6 +99,7 @@ def set_priors_phys(corr, Nstates, Meff=None, Aeff=None, prior_policy=None):
         E[0] = gv.gvar(MPHYS[corr.info.meson],dE/dE_E0err) * Scale * aGeV # fundamental physical state
     else:
         # E[0] = gv.gvar(Meff.mean,dE/dE_E0err*Scale*aGeV)
+        # E[0] = gv.gvar(Meff.mean,0.5)
         E[0] = Meff
 
     E[1] = np.log(gv.gvar(dG, dE/dE_E1err)*Scale*aGeV)
@@ -172,8 +173,8 @@ def set_priors_phys(corr, Nstates, Meff=None, Aeff=None, prior_policy=None):
                 # priors[f'Z_{sm1}_{pol}'][0] = np.log(v)/2
                 v = np.log(v)/2
                 # priors[f'Z_{sm1}_{pol}'][0] = gv.gvar(np.log(v.mean)/2,priors[f'Z_{sm1}_{pol}'][0].sdev)
+                # priors[f'Z_{sm1}_{pol}'][0] = gv.gvar(v.mean,v.sdev*1000/2)
                 priors[f'Z_{sm1}_{pol}'][0] = gv.gvar(v.mean,v.sdev*100)
-                # priors[f'Z_{sm1}_{pol}'][0] = gv.gvar(v.mean,v.sdev)
 
     return priors  
 
@@ -204,7 +205,6 @@ class StagFitter(Correlator):
             - _jac  : func. `jax` jacobian of the function (same signature of `_model`)
             - _hes  : func. `jax` hessian of the function (same signature of `_model`)
         '''
-
         def _model(pdict):  
             return jnp.concatenate(
                 [NplusN2ptModel_jax(Nstates,self.Nt,smr,pol)(xdata,pdict) for smr,pol in self.keys]
@@ -244,7 +244,6 @@ class StagFitter(Correlator):
             return jax.jacfwd(jax.jacrev(_cost,argnums=1))(popt,ydata)
 
         return _cost, hess_par, hess_mix
-
 
     def fit(self, Nstates, trange, verbose=False, priors=None, p0=None, maxit=50000, svdcut=0., jkfit=False, **data_kwargs):
         xdata, ydata = self.format(trange=trange, flatten=True, **data_kwargs)
@@ -321,7 +320,7 @@ class StagFitter(Correlator):
 
         return pars, chi2
 
-    def chi2exp(self, Nexc, trange, popt, fitcov, pvalue=True, Nmc=10000):
+    def chi2exp(self, Nexc, trange, popt, fitcov, priors=None, pvalue=True, Nmc=10000):
         # Format data and estimate covariance matrix
         xdata,ydata = self.format(trange=trange,flatten=False)
         yvec = np.concatenate([ydata[k] for k in self.keys])
@@ -339,8 +338,28 @@ class StagFitter(Correlator):
         res = gv.mean(yvec) - fun(popt)
         chi2 = res.T @ w2 @ res
 
+        # Add prior part if needed
+        if priors is not None:
+            # Enlarge jacobian
+            Jac = np.vstack([Jac,-np.eye(Jac.shape[-1])])
+
+            # Enlarge chi2
+            prio_v = np.concatenate([priors[k] for k in pkeys])
+            popt_v = np.concatenate([popt[k]   for k in pkeys])
+            r      = (gv.mean(prio_v) - popt_v)**2
+
+            dpr   = np.diag(1/gv.sdev(prio_v))
+            chi2 += r.T @ dpr @ r
+
+            # Augment covariance matrices            
+            O = np.zeros((fitcov.shape[0],dpr.shape[1]))
+            fcov = np.block([[fitcov,O], [O.T, dpr]])
+            cov = np.block([[cov,O], [O.T,dpr]])
+        else:
+            fcov = fitcov
+
         # Calculate expected chi2
-        w = np.linalg.pinv(fitcov)
+        w = np.linalg.inv(fcov)
         Hmat = Jac.T @ w @ Jac
         Hinv = np.linalg.pinv(Hmat)
         wg = w @ Jac
@@ -355,11 +374,12 @@ class StagFitter(Correlator):
         else:
             l,evec = np.linalg.eig(cov)
 
-            if np.any(np.real(l))<0:
+            if np.any(np.real(l)<0):
                 mask = np.real(l)>1e-12
                 Csqroot = evec[:,mask] @ np.diag(np.sqrt(l[mask])) @ evec[:,mask].T
             else:
                 Csqroot= evec @ np.diag(np.sqrt(l)) @ evec.T
+
 
             numat = Csqroot @ proj @ Csqroot
             l,_ = np.linalg.eig(numat)
@@ -373,14 +393,14 @@ class StagFitter(Correlator):
             
             return chi2, chiexp, p
         
-    def fit_result(self, Nexc, trange, verbose=True, error=False):
+    def fit_result(self, Nexc, trange, verbose=True, error=False, priors=None):
         fit = self.fits[Nexc,trange]
         xdata  = fit.x
         yvec   = gv.mean(fit.y)
         fitcov = gv.evalcov(fit.y)
         popt   = dict(fit.pmean)
 
-        chi2, chiexp, p = self.chi2exp(Nexc, trange, popt, fitcov, pvalue=True)
+        chi2, chiexp, p = self.chi2exp(Nexc, trange, popt, fitcov, pvalue=True, priors=priors)
         if verbose:
             print(f'# ---------- {Nexc}+{Nexc} fit in {trange} for mes: {self.info.meson} of ens: {self.info.ensemble} for mom: {self.info.momentum} --------------')
             print(fit)
@@ -413,7 +433,8 @@ class StagFitter(Correlator):
         for i,sm in enumerate(self.smr):
             for j,pl in enumerate(self.pol):
                 model = NplusN2ptModel(Nexc,self.Nt,sm,pl)
-                axi = ax[i,j]
+
+                axi = ax[i,j] if len(self.pol)>1 else ax[i]
 
                 iin = np.array([min(trange)<=x<=max(trange) for x in xdata])
 
@@ -433,21 +454,16 @@ class StagFitter(Correlator):
 
 
 
-def main():
-    jax.config.update("jax_enable_x64", True)
-    x = jax.random.uniform(jax.random.PRNGKey(0), (1000,))#, dtype=jnp.float64)
-    assert x.dtype == jnp.float64
-
-
+jax.config.update("jax_enable_x64", True)
+x = jax.random.uniform(jax.random.PRNGKey(0), (1000,))#, dtype=jnp.float64)
+assert x.dtype == jnp.float64
+def main(FLAG):
     ens      = 'Coarse-1'
     mes      = 'Dst'
-    mom      = '200'
+    mom      = '100'
     binsize  = 11
     data_dir = '/Users/pietro/code/data_analysis/BtoD/Alex/'
     smlist   = ['1S-1S','d-d','d-1S'] 
-
-    TLIM     = (8,20)
-    NEXC     = 2
 
     io   = CorrelatorIO(ens,mes,mom,PathToDataDir=data_dir)
     stag = StagFitter(
@@ -456,29 +472,50 @@ def main():
         smearing = smlist
     )
 
+    TLIM     = (6,20)
+    NEXC     = 3
 
+    # ========================================= correlation =============================================
+    if FLAG==1:
+        x,y,yall = stag.format(trange=TLIM, alljk=True, flatten=True)
+        cut = correlation_diagnostics(yall)
+        cov_specs = dict(
+            diag   = False,
+            block  = False,
+            scale  = True,
+            shrink = True,
+            cutsvd = cut,
+        )
+        print(f'{stag.tmax(threshold=0.3) = }')
     # ========================================= fit =============================================
-    x,y,yall = stag.format(trange=TLIM, alljk=True, flatten=True)
 
-    cut = correlation_diagnostics(yall)
-    cov_specs = dict(
-        diag   = False,
-        block  = False,
-        scale  = True,
-        shrink = True,
-        cutsvd = cut,
-    )
+    # ===========================================================================================
+    elif FLAG==2:
+        cov_specs = dict(
+            scale  = True,
+            shrink = True,
+            cutsvd = 0.01,
+        )
 
-    meff,aeff = stag.meff(trange=(15,20),**cov_specs)
 
-    pr = stag.priors(NEXC,Meff=meff,Aeff=aeff)
-    fit = stag.fit(
-        Nstates = NEXC,
-        trange  = TLIM,
-        priors  = pr, 
-        verbose = True,
-        **cov_specs
-    )
 
-    stag.fit_result(NEXC,TLIM)
+        meff,aeff = stag.meff(trange=(13,23),**cov_specs)
+        pr = stag.priors(NEXC,Meff=meff,Aeff=aeff)
+        fit = stag.fit(
+            Nstates = NEXC,
+            trange  = TLIM,
+            priors  = pr, 
+            # verbose = True,
+            **cov_specs
+        )
+
+        # xdata  = fit.x
+        # yvec   = gv.mean(fit.y)
+        # fitcov = gv.evalcov(fit.y)
+        # popt   = dict(fit.pmean)
+        # stag.chi2exp(NEXC,TLIM,popt,fitcov,priors=pr)
+        # stag.chi2exp(NEXC,TLIM,popt,fitcov)
+
+        stag.fit_result(NEXC,TLIM)
+        stag.fit_result(NEXC,TLIM,priors=pr)
     # ===========================================================================================

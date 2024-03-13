@@ -9,14 +9,16 @@ import xarray as xr
 import gvar   as gv
 import lsqfit
 import scipy
+import tomllib
 
 import jax
 from jax import numpy as jnp
 jax.config.update("jax_enable_x64", True)
 
+from tqdm import tqdm
 
 from ..     import FnalHISQMetadata
-from .utils import jkCorr, compute_covariance, ConstantModel, ConstantDictModel
+from .utils import jkCorr, compute_covariance, ConstantModel, ConstantDictModel, correlation_diagnostics
 
 # ConstantModel, ConstantFunc
 
@@ -26,7 +28,7 @@ MOMENTUM_LIST = ["000", "100", "200", "300", "400", "110", "211", "222"]
 
 
 
-def plot_effective_coeffs(trange,X,AEFF,aeff,Apr,MEFF,meff,mpr,Aknob=2.):
+def plot_effective_coeffs(trange,X,AEFF,aeff,Apr,MEFF,meff,mpr,Aknob=10.):
     NROWS = len(np.unique([k[1] for k in X]))+1
     
     # Effective coeffs -------------------------------------------------------------------------------
@@ -79,24 +81,23 @@ def plot_effective_coeffs(trange,X,AEFF,aeff,Apr,MEFF,meff,mpr,Aknob=2.):
         mar = 's' if k[1]=='Unpol' else '^' if k[1]=='Par' else 'v'
         col = f'C{i}'
 
-
         # Plot point for the fit considered range
-        # iok = np.array([j for j,x in enumerate(X[k]) if x>=min(trange) and x<=max(trange)])
         iok = np.array([min(trange)<=x<=max(trange) for x in X[k][1:-1]])
         xplot = X[k][1:-1][iok]
-        yplot = gv.mean(y[iok])
-        yerr  = gv.sdev(y[iok])
+
+        yplot = gv.mean(y[1:-1][iok])
+        yerr  = gv.sdev(y[1:-1][iok])
         ax.errorbar(xplot+(-0.1 + 0.1*i),yplot, yerr=yerr, fmt=',' ,color=col, capsize=3)
         ax.scatter(xplot+(-0.1 + 0.1*i), yplot, marker=mar, s=20 ,facecolors='white', edgecolors=col, label=f'({k[0]},{k[1]})')
 
         # Plot point outside considered range
         xplot = X[k][1:-1][~iok]
-        yplot = gv.mean(y[~iok])
-        yerr  = gv.sdev(y[~iok])
+        yplot = gv.mean(y[1:-1][~iok])
+        yerr  = gv.sdev(y[1:-1][~iok])
         ax.errorbar(xplot+0.1*i,yplot,yerr=yerr,fmt=',',color=f'C{i}',alpha=0.2, capsize=3)
         ax.scatter(xplot+0.1*i,yplot, marker=mar, s=15, facecolors='white', edgecolors=f'C{i}',color=col,alpha=0.2)
 
-    # Prior
+    # # Prior
     ax.axhspan(mpr.mean+mpr.sdev,mpr.mean-mpr.sdev,color=f'gray',alpha=0.2)
 
     # # Final result
@@ -115,6 +116,41 @@ def plot_effective_coeffs(trange,X,AEFF,aeff,Apr,MEFF,meff,mpr,Aknob=2.):
     ax.grid(alpha=0.2)
     ax.set_xlabel(r'$t/a$')
     ax.set_ylabel(r'$M_{eff}(t)$')
+
+def effective_mass(corrd,variant='cosh'):
+    tmp = {}
+    for k,y in corrd.items():
+        if variant=='cosh':
+            tmp[k] = []
+            for it in range(len(y)):
+                try:
+                    m = np.arccosh( (y[(it+1)%len(y)]+y[(it-1)%len(y)])/y[it]/2 )
+                except ZeroDivisionError:
+                    m = np.nan
+                tmp[k].append(m)
+            tmp[k] = np.array(tmp[k])
+
+        elif variant=='log':
+            tmp[k] = np.log( np.roll(y,2)/np.roll(y,-2) ) / 4
+    return tmp
+
+def effective_amplitude(corrd,e0,time,variant='cosh',Nt=None):
+    tmp = {}
+    for k,y in corrd.items():
+        if variant=='cosh':
+            tmp[k] = y / (np.exp(-e0*time) + np.exp(-e0*(Nt-time)))
+        elif variant=='log':
+            tmp[k] = y / np.exp(-e0*time)
+    return tmp
+
+def smeared_correlator(corrd,e0,time):
+    yeff = {}
+    for k,y in corrd.items():
+        expt = np.exp(- e0 * time)
+        tmp = y / expt
+        yeff[k] = 0.25*expt * (tmp + 2*np.roll(tmp,-1) + np.roll(tmp,-2))
+    return yeff
+
 
 
 class CorrelatorInfo:
@@ -387,31 +423,33 @@ class Correlator:
 
         return (xdata, ydata) if not alljk else (xdata,ydata,yjk)
 
-    def meff(self, trange=None, prior=None, verbose=False, plottable=False, **kwargs):
-        xdata,ydata = self.format(trange=None, flatten=False, **kwargs)
+    def meff(self, trange=None, prior=None, verbose=False, plottable=False, variant='cosh', **cov_kwargs):
+        xdata,ydata = self.format(trange=None, flatten=False, **cov_kwargs)
 
-        # Compute effective masses ============================================================
-        meffs = {}
-        for k in ydata: 
-            tmp = []
-            for i,y in enumerate(ydata[k][1:-1]):
-                tmp.append(np.arccosh((ydata[k][i-1]+ydata[k][i+1])/y/2)/2)
-            meffs[k] = np.asarray(tmp)
+        # Compute effective masses
+        meffs = effective_mass(ydata, variant=variant)
 
-        # Slice in time-range
+        # Slice in time-range and filter nans
         it = self.timeslice[1:-1] if trange is None else np.arange(min(trange),max(trange)+1)+1
         yfit = np.concatenate([meffs[k][it] for k in meffs])
-        xfit = np.concatenate([xdata[it] for k in meffs])
+        yfit = yfit[~np.isnan(gv.mean(yfit))]
 
-        # nan check
-        nan = np.isnan(gv.mean(yfit))
-        xfit = xfit[~nan]
-        yfit = yfit[~nan]
-        
+        # Compute smeared_correlator
+        aver = np.average(gv.mean(yfit),weights=1./gv.sdev(yfit)**2)
+        ydata = smeared_correlator(ydata,xdata,aver)
+
+        # Compute effective masses
+        meffs = effective_mass(ydata, variant=variant)
+        yfit = np.concatenate([meffs[k][it] for k in meffs])
+        yfit = yfit[~np.isnan(gv.mean(yfit))]
+
+
+        # Fit effective masses
+        xfit = np.arange(len(yfit))
+
         aver = np.average(gv.mean(yfit),weights=1./gv.sdev(yfit)**2)
         disp = np.abs(gv.mean(yfit) - aver).mean()
 
-        # Fit effective mass
         mpr = prior if prior is not None else gv.gvar(aver,disp)
         fit = lsqfit.nonlinear_fit(
             data   = (xfit,yfit),
@@ -423,23 +461,19 @@ class Correlator:
 
         if verbose:
             print(fit)
-        # =====================================================================================
+
 
         # Build effective coeffs ==============================================================
-        it = self.timeslice if trange is None else np.arange(min(trange),max(trange)+1)
-
-        aplt, Aeff, apr = {},{},{}
-        xfit, yfit = {},{}
-        for k,y in ydata.items():
-            aplt[k] = y/(np.exp(-e0*xdata)+np.exp(-e0*(self.Nt-xdata)))
-
+        aplt = effective_amplitude(ydata,xdata,e0,variant=variant,Nt=self.Nt)
+        
+        apr, xfit, yfit = {},{},{}
+        for k in aplt:
             aver   = np.average(gv.mean(aplt[k][it]),weights=1./gv.sdev(aplt[k][it])**2)
             disp   = np.abs(gv.mean(aplt[k][it]) - aver).mean()
-            apr[k] = gv.gvar(aver,disp)            
 
+            apr[k] = gv.gvar(aver,disp)            
             xfit[k] = xdata[it]
             yfit[k] = aplt[k][it]
-
 
         afit = lsqfit.nonlinear_fit(
             data  = (xfit,yfit),
@@ -448,29 +482,332 @@ class Correlator:
         )
         Aeff = afit.p
         if verbose:
-            print(fit)
-        # =====================================================================================
-
-
-
-
+            print(afit)
+        # # =====================================================================================
 
         if plottable:
             return {k: xdata for k in ydata}, Aeff, aplt, apr, Meff, meffs, mpr
         else:
             return Meff,Aeff
 
+    def chiexp_meff(self, trange, variant, pvalue=False, Nmc=5000, **cov_kwargs):
+        args = self.meff(trange=trange,plottable=True,variant=variant, **cov_kwargs)
+
+        # Slice effective mass in trange and flatten
+        meffs = [x[min(trange):(max(trange)+1)] for x in args[-2].values()]
+        meffs = np.concatenate(meffs)
+
+        # Filter nans
+        iok = ~np.isnan(gv.mean(meffs))
+        meffs = meffs[iok]
+
+        # Evaluate cov
+        fitcov = gv.evalcov(meffs)
+
+        # Compute inverse covarince and chi2
+        w = np.linalg.inv(fitcov)
+
+        res = gv.mean(meffs) - args[4].mean
+        chi2 = res.T @ w @ res
+
+        # Compute projector
+        s = w.sum(axis=1)
+        proj = w - np.outer(s,s)/w.sum()
+        
+        
+        # Compute full covariance matrix
+        args = self.meff(trange=trange,plottable=True,variant=variant)
+        meffs = [x[min(trange):(max(trange)+1)] for x in args[-2].values()]
+        meffs = np.concatenate(meffs)
+        iokn = ~np.isnan(gv.mean(meffs))
+        assert np.all(iok==iokn)
+
+        meffs = meffs[iokn]
+        cov = gv.evalcov(meffs)
+
+        # Compute chi2 expected
+        chiexp = np.trace(proj*cov)
 
 
-def main():
+
+        if not pvalue:
+            return chi2,chiexp 
+        else:
+            # Compute p-value
+            l,evec = np.linalg.eig(cov)
+
+            if np.any(np.real(l))<0:
+                mask = np.real(l)>1e-12
+                Csqroot = evec[:,mask] @ np.diag(np.sqrt(l[mask])) @ evec[:,mask].T
+            else:
+                Csqroot= evec @ np.diag(np.sqrt(l)) @ evec.T
+
+            numat = Csqroot @ proj @ Csqroot
+            l,_ = np.linalg.eig(numat)
+            ls = l[l.real>=1e-14].real
+            
+            p = 0
+            for _ in range(Nmc):
+                ri = np.random.normal(0.,1.,len(ls))
+                p += 1. if (ls.T @ (ri**2) - chi2)>=0 else 0.
+            p /= Nmc
+            
+            return chi2, chiexp, p
+
+
+    def tmax(self, threshold=0.25):
+        xdata,ydata = self.format()
+        rel = np.vstack([abs(gv.sdev(y)/gv.mean(y)) for y in ydata.values()]).mean(axis=0)
+        Tmax = max([t for t,r in enumerate(rel) if r<=threshold])
+        return Tmax
+
+
+
+
+
+
+def eff_coeffs(FLAG):
+    ens      = 'MediumCoarse'
+    mes      = 'Dst'
+    mom      = '400'
+    binsize  = 13
     data_dir = '/Users/pietro/code/data_analysis/BtoD/Alex/'
     smlist   = ['1S-1S','d-d','d-1S'] 
 
-    io = CorrelatorIO('Coarse-1','Dst','200',PathToDataDir=data_dir)
-    stag = Correlator(io, smearing=smlist, jkBin=11)
+    io   = CorrelatorIO(ens,mes,mom,PathToDataDir=data_dir)
+    stag = Correlator(
+        io       = io,
+        jkBin    = binsize,
+        smearing = smlist
+    )
 
-    args = stag.meff(trange=(15,20),verbose=True,plottable=True)
-    plot_effective_coeffs((15,20),*args)
-    plt.show()
+    # ----------------------------- Correlation analysis -----------------------------
+    if FLAG==1:
+        tmin = 15
+        tmax = 19
+        trange = (tmin,tmax)
+        tmaxe = stag.tmax(threshold=0.3)
+        xdata,ydata,yjk = stag.format(trange=(tmin,tmax),alljk=True,flatten=True)
+
+        print(f'-------- Correlation diagnostics whithin ({tmin},{tmax}) --------- ')
+        print(f'{tmaxe = }')
+        correlation_diagnostics(yjk,plot=True)
+        plt.show()
+    # --------------------------------------------------------------------------------
+
+    # ----------------------------- Effective corr analysis -----------------------------
+    elif FLAG==2:
+        tmin = 12
+        tmaxe = stag.tmax(threshold=0.3)
+        tmax = 19
+        trange = (tmin,tmax)
+
+        print(tmaxe,trange)
+
+        cov_specs = dict(
+            diag   = False,
+            block  = False,
+            scale  = True,
+            shrink = True,
+            cutsvd = 0.01,
+        )
+
+        args = stag.meff(trange=trange,verbose=True,plottable=True,variant='cosh', **cov_specs)
+        chi2, chiexp,p = stag.chiexp_meff(trange=trange,variant='cosh',pvalue=True,**cov_specs)
+
+        print('--------------------------')
+        print(tmaxe,trange)
+        print(f'meff = {args[-3]}')
+        print(f'{trange = }')
+        print(f'{chi2/chiexp = :.2f}')
+        print(f'{p = }')
+        print('--------------------------')
+        print(f'{chi2/chiexp:.2f} {p:.2f}')
+        plot_effective_coeffs(trange, *args)
+        plt.show()
+    # --------------------------------------------------------------------------------
+
+    # ------------------------- Effective range analysis -----------------------------
+    elif FLAG==3:
+        cov_specs = dict(
+            diag   = False,
+            block  = False,
+            scale  = True,
+            shrink = True,
+            cutsvd = None,
+        )
+
+        tmins = np.arange(9,15)
+        tmaxs = np.arange(19,23)
+        tranges = itertools.product(tmins,tmaxs)
+
+        MEFF = []
+        AEFF = []
+        TIC = []
+        Tranges = []
+        for trange in tqdm(tranges):
+            ydata, Aeff, aplt, apr, Meff, meffs, mpr = stag.meff(
+                trange    = trange,
+                plottable = True,
+                variant   = 'cosh', 
+                **cov_specs
+            )
+
+            try:
+                chi2, chiexp = stag.chiexp_meff(
+                    trange  = trange,
+                    variant = 'cosh',
+                    **cov_specs
+                )
+            except:
+                continue
+
+            MEFF.append(Meff)
+            AEFF.append([Aeff[k] for k in stag.keys])
+            TIC.append(chi2-2*chiexp)
+            Tranges.append(trange)
+
+        MEFF = np.array(MEFF)
+        AEFF = np.array(AEFF)
+        TIC = np.array(TIC)
+
+        tic = np.exp(-TIC/2)
+        tic = tic/tic.sum()
+
+        tmin = np.array([min(t) for t in Tranges])
+        tmax = np.array([max(t) for t in Tranges])
+
+        print(f't_min = {np.sum(tmin*tic)}')
+        print(f't_min = {np.sum(tmax*tic)}')
+        print(f'E_eff = {np.sum(MEFF*tic)}')
+        for i,k in enumerate(stag.keys):
+            print(f'A_eff[{k}] = {np.sum(AEFF[:,i]*tic)}')
+    # --------------------------------------------------------------------------------
 
 
+
+def global_eff_coeffs(ens, mes, trange, chiexp=True, config_file='/Users/pietro/code/software/B2heavy/routines/2pts_fit_config.toml', **cov_specs):
+    with open(config_file,'rb') as f:
+        config = tomllib.load(f)
+
+    mom_list = config['data'][ens]['mom_list']
+
+    Meffs = {}
+    xdata_meff = {}
+    data_meff = {}
+    fullcov_data = {}
+    prior_meff = {}
+    for mom in mom_list:
+        io   = CorrelatorIO(ens,mes,mom,PathToDataDir=config['data'][ens]['data_dir'])
+        stag = Correlator(
+            io       = io,
+            jkBin    = config['data'][ens]['binsize'],
+            smearing = config['fit'][ens][mes]['smlist']
+        )
+
+        trange_eff = config['fit'][ens][mes]['mom'][mom]['trange_eff']
+        # Compute effective masses and ampls. for priors calc
+        Xdict, Aeff, aplt, apr, Meff, meffs, mpr = stag.meff(
+            trange    = trange_eff,
+            plottable = True,
+            **cov_specs
+        )
+        _,_,_,_,_,fully,_ = stag.meff(trange=trange, plottable=True)
+
+        # Slice and create fit data
+        tmp,tmp1 = [],[]
+        for k in meffs:
+            inan = np.isnan(gv.mean(meffs[k][min(trange):(max(trange)+1)])) 
+            tmp.append(
+                meffs[k][min(trange):(max(trange)+1)][~inan]
+            )
+            tmp1.append(
+                fully[k][min(trange):(max(trange)+1)][~inan]
+            )
+        data_meff[mom] = np.concatenate(tmp)
+        xdata_meff[mom] = np.arange(len(data_meff[mom]))
+        prior_meff[mom] = gv.gvar(Meff.mean,Meff.sdev)
+        Meffs[mom] = Meff
+
+        # Compute effective masses and ampls. for priors calc
+        fullcov_data[mom] = np.concatenate(tmp1)
+
+    # Perform fit
+    fit = lsqfit.nonlinear_fit(
+        data  = (xdata_meff,data_meff),
+        fcn   = ConstantDictModel,
+        prior = prior_meff
+    )
+
+    if not chiexp:
+        return fit
+    else:
+        # Compute chiexp and p value -------------------------------------
+        meffs = np.concatenate([data_meff[k] for k in mom_list])
+        fitcov = gv.evalcov(meffs)
+        w = np.linalg.inv(fitcov)
+        res = np.concatenate(
+            [gv.mean(ConstantDictModel(xdata_meff,fit.p)[k]) - gv.mean(data_meff[k]) for k in mom_list]
+        )
+        chi2 = res.T @ w @ res
+
+        fullc = np.concatenate([fullcov_data[k] for k in mom_list])
+        cov = gv.evalcov(fullc)
+
+        # Compute jacobian
+        jac = []
+        for i,_ in enumerate(mom_list):
+            tmp = []
+            for j,p in enumerate(mom_list):
+                tmp.append(
+                    np.full_like(data_meff[p], 1. if i==j else 0.)
+                )
+            tmp = np.concatenate(tmp)
+            jac.append(tmp)
+        jac = np.array(jac).T
+
+        # Calculate expected chi2
+        Hmat = jac.T @ w @ jac
+        Hinv = np.diag(1/np.diag(Hmat))
+        wg = w @ jac
+        proj = np.asfarray(w - wg @ Hinv @ wg.T)
+        chiexp = np.trace(proj @ cov)
+
+        l,evec = np.linalg.eig(cov)
+        
+        if np.any(np.real(l))<0:
+            mask = np.real(l)>1e-12
+            Csqroot = evec[:,mask] @ np.diag(np.sqrt(l[mask])) @ evec[:,mask].T
+        else:
+            Csqroot= evec @ np.diag(np.sqrt(l)) @ evec.T
+
+        numat = Csqroot @ proj @ Csqroot
+
+        l,_ = np.linalg.eig(numat)
+        ls = l[l.real>=1e-14].real
+
+        p = 0
+        for _ in range(50000):
+            ri = np.random.normal(0.,1.,len(ls))
+            p += 1. if (ls.T @ (ri**2) - chi2)>=0 else 0.
+        p /= 50000
+
+        return fit, chi2, chiexp, p
+
+
+def main():
+    ensemble = 'Coarse-1'
+    meson    = 'Dst'
+
+    cov_specs = dict(
+        shrink = True,
+        scale  = True,
+        svd = 0.05
+    )
+
+    trange = (10,19)
+    fit,chi2,chiexp,p = global_eff_coeffs(ensemble,meson,trange)
+
+    print(fit)
+    print(f'{chi2/chiexp = }')
+    print(f'{p = }')

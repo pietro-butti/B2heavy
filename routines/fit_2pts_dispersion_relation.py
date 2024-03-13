@@ -14,7 +14,7 @@ python 2pts_disp_rel.py --config   [file location of the toml config file]
 Examples
 '''
 
-from .DEFAULT_ANALYSIS_ROOT import DEFAULT_ANALYSIS_ROOT
+from DEFAULT_ANALYSIS_ROOT import DEFAULT_ANALYSIS_ROOT
 
 import argparse
 import pickle
@@ -28,15 +28,17 @@ import tomllib
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 
+import fit_2pts_utils as utils
 
-def extract_single_energy(filename,N=0,jk=False):
-    with open(filename,'rb') as f:
-        dfit = pickle.load(f)
+
+def extract_single_energy(tag,path=None,N=0,jk=False):
+    # tg = tag.split('_fit')[0]
+    ret = utils.read_config_fit(tag,jk=jk,path=path)
 
     if not jk:
-        return dfit['p']['E'][N]
+        return ret[1]['E'][N]
     else:
-        return gv.mean(dfit['E'][:,N])
+        return gv.mean(ret['E'][:,N])
 
 def extract_energies(ensemble,meson,momlist=None,jk=False,readfrom='.',tag='fit2pt_config'):
     if not os.path.exists(readfrom):
@@ -48,10 +50,13 @@ def extract_energies(ensemble,meson,momlist=None,jk=False,readfrom='.',tag='fit2
     if momlist is None:
         for file in os.listdir(readfrom):
             f = os.path.join(readfrom,file)
-            if file.startswith(filename) and file.endswith('.pickle'):
-                name,_ = f.split('.pickle')
+            if file.startswith(filename) and file.endswith('fit.pickle'):
+                name,_ = f.split('_fit.pickle')
                 mom = name.split('_')[-1]
-                E[mom] = extract_single_energy(f,N=0,jk=jk)
+
+                tag = name.split('/')[-1]
+                path = name.split(tag)[0]
+                E[mom] = extract_single_energy(tag,path=path,N=0,jk=jk)
     else:
         for mom in momlist:
             f = os.path.join(readfrom,f'{filename}{mom}.pickle')
@@ -59,14 +64,14 @@ def extract_energies(ensemble,meson,momlist=None,jk=False,readfrom='.',tag='fit2
 
     return E
 
-def mom_to_p2(mom):
-    return sum([float(px)**2 for px in mom])
+def mom_to_p2(mom,L=2*np.pi):
+    return sum([(2*np.pi/L*float(px))**2 for px in mom])
 
-def format_energies(E,jk=False):
+def format_energies(E,L=2*np.pi,jk=False):
     psort = list(E.keys())
-    psort.sort(key=lambda x: mom_to_p2(x))
+    psort.sort(key=lambda x: mom_to_p2(x,L=L))
 
-    xfit = np.array([mom_to_p2(mom) for mom in psort])
+    xfit = np.array([mom_to_p2(mom,L=L) for mom in psort])
     yfit = np.array([E[mom] for mom in psort])
 
     if jk:
@@ -88,9 +93,9 @@ def dispersion_relation(pvec,M1,M2,M4,w4):
 def model(pvec,M1,M2,M4,w4):
     return [dispersion_relation(p,M1,M2,M4,w4) for p in pvec]
 
-def fit_dispersion_relation(momlist,E0):
+def fit_dispersion_relation(momlist,E0,L=2*np.pi):
     # Define fit points
-    xfit = [[float(px) for px in mom] for mom in momlist]
+    xfit = [[float(px)*2*np.pi/L for px in mom] for mom in momlist]
     yfit = E0**2
 
     # Fit function
@@ -122,18 +127,32 @@ def plot_dispersion_relation(ax,mom,p2,E0,fitpar=None,chi2=None):
         ax.fill_between(xplot,gv.mean(yplot)-gv.sdev(yplot),gv.mean(yplot)+gv.sdev(yplot),alpha=0.2)
 
 
+def plot_discretization_errors(ax,mom,p2,E0,pars,alphas,L=1):
+    xplot = p2
+
+    p2M2 = p2 + pars[0]
+    yplot = E0**2/p2M2
+
+    ax.errorbar(xplot,gv.mean(yplot),gv.sdev(yplot),fmt='o', ecolor='C0', mfc='w', capsize=2.5)
+
+    ax.axhline(1.,color='gray',alpha=0.5,linestyle=':')
+
+    xcone = np.arange(0,max(xplot),0.01)
+    ax.fill_between(xcone, alphas*xcone+1,-alphas*xcone+1,alpha=0.1)
 
 
 prs = argparse.ArgumentParser(usage=usage)
-prs.add_argument('--ensemble', type=str)
-prs.add_argument('--meson', type=str)
-prs.add_argument('--momlist', type=str, nargs='+', default=[])
+prs.add_argument('-c','--config'  , type=str,  default='./2pts_fit_config.toml')
+prs.add_argument('-e','--ensemble', type=str)
+prs.add_argument('-m','--meson', type=str)
+prs.add_argument('-mm','--momlist', type=str, nargs='+', default=[])
 prs.add_argument('--jkfit', action='store_true')
 prs.add_argument('--read_from', type=str, default='./')
 prs.add_argument('--saveto',   type=str, default='./')
 prs.add_argument('--override', action='store_true')
 prs.add_argument('--plot', action='store_true')
 prs.add_argument('--showfig', action='store_true')
+prs.add_argument('--alphas', type=float)
 
 
 
@@ -141,17 +160,20 @@ prs.add_argument('--showfig', action='store_true')
 def main():
     args = prs.parse_args()
 
+    config_file = args.config
+    config = utils.load_toml(config_file)
+
     ens = args.ensemble
     mes = args.meson
 
     tag = f'{ens}_{mes}'
     
 
-    readfrom = f'{DEFAULT_ANALYSIS_ROOT}/{ens}' if args.saveto=='default' else args.read_from
+    readfrom = f'{DEFAULT_ANALYSIS_ROOT}/' if args.saveto=='default' else args.read_from
     if not os.path.exists(readfrom):
         raise NameError(f'{readfrom} is not an existing location')
 
-    saveto = f'{DEFAULT_ANALYSIS_ROOT}/{ens}' if args.saveto=='default' else args.saveto
+    saveto = f'{DEFAULT_ANALYSIS_ROOT}/' if args.saveto=='default' else args.saveto
     if not os.path.exists(saveto):
         raise NameError(f'{saveto} is not an existing location')
     saveplot = f'{DEFAULT_ANALYSIS_ROOT}/PLOTS' if args.saveto=='default' else args.saveto
@@ -165,8 +187,8 @@ def main():
         jk       = JK,
         readfrom = readfrom  
     )
-
-    mom,p2,E0 = format_energies(E,jk=JK)
+    
+    mom,p2,E0 = format_energies(E,L=config['data'][ens]['Nt'],jk=JK)
     pars,chi2 = fit_dispersion_relation(mom,E0)
     tosave = dict(pars=pars,chi2=chi2)
 
@@ -176,77 +198,110 @@ def main():
         pickle.dump(tosave, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     if args.plot:
-        plt.rcParams['text.usetex'] = True
-        plt.rcParams['font.size'] = 12
+        # Discrretization error fit ---------------------------------------------------
         plt.figure(figsize=(6, 4))
         ax = plt.subplot(1,1,1)
 
-        plot_dispersion_relation(ax,mom,p2,E0,fitpar=pars,chi2=chi2)
+        # plot_dispersion_relation(ax,mom,p2,E0,fitpar=pars,chi2=chi2)
+        plot_discretization_errors(
+            ax,
+            mom,
+            p2,
+            E0,
+            pars,
+            args.alphas,
+            L=config['data'][ens]['Nt']    
+        )
 
-        ax.legend()
-        ax.grid(alpha=0.2)
 
         ax.set_ylabel(r'$a^2 E^2(\mathbf{p})$')
         ax.set_xlabel(r'$a^2\mathbf{p}^2$')
 
-        ax.set_xlim(xmin=-0.1)
-
-        plt.title(f'{tag}')
-        plt.tight_layout()
-        plt.savefig(f'{saveplot}/fit2pt_disp_rel_{tag}.pdf')
-
-
+        # plt.title(f'{tag}')
+        # plt.tight_layout()
+        # plt.savefig(f'{saveplot}/fit2pt_disp_rel_{tag}.pdf')
+        
+        
         if args.showfig:
             plt.show()
+        # -----------------------------------------------------------------------------
 
 
 
-def test():
-    JK = True
-    PLOT = True
-    MOMLIST = [
-        "000", 
-        "100", 
-        "110", 
-        "200", 
-        "211", 
-        "300", 
-        # "222",
-        "400" 
-    ]
+        # # Dispersion relation fit ---------------------------------------------------
+        # plt.rcParams['text.usetex'] = True
+        # plt.rcParams['font.size'] = 12
+        # plt.figure(figsize=(6, 4))
+        # ax = plt.subplot(1,1,1)
+
+        # plot_dispersion_relation(ax,mom,p2,E0,fitpar=pars,chi2=chi2)
+
+        # ax.legend()
+        # ax.grid(alpha=0.2)
+
+        # ax.set_ylabel(r'$a^2 E^2(\mathbf{p})$')
+        # ax.set_xlabel(r'$a^2\mathbf{p}^2$')
+
+        # ax.set_xlim(xmin=-0.1)
+
+        # plt.title(f'{tag}')
+        # plt.tight_layout()
+        # # plt.savefig(f'{saveplot}/fit2pt_disp_rel_{tag}.pdf')
+
+        # if args.showfig:
+        #     plt.show()
+        # # -----------------------------------------------------------------------------
 
 
-    E = extract_energies(
-        ensemble='MediumCoarse',
-        meson='Dsst',
-        momlist=MOMLIST,
-        jk=JK,
-        readfrom='./PROCESSED_DATA'
-    )
 
-    mom,p2,E0 = format_energies(E,jk=JK)
 
-    pars,chi2 = fit_dispersion_relation(mom,E0)
 
-    if PLOT:
-        plt.rcParams['text.usetex'] = True
-        plt.rcParams['font.size'] = 12
-        plt.figure(figsize=(6, 4))
-        ax = plt.subplot(1,1,1)
+# def test():
+#     JK = True
+#     PLOT = True
+#     MOMLIST = [
+#         "000", 
+#         "100", 
+#         "110", 
+#         "200", 
+#         "211", 
+#         "300", 
+#         # "222",
+#         "400" 
+#     ]
 
-        plot_dispersion_relation(ax,mom,p2,E0,fitpar=pars,chi2=chi2)
 
-        ax.legend()
-        ax.grid(alpha=0.2)
+#     E = extract_energies(
+#         ensemble='MediumCoarse',
+#         meson='Dsst',
+#         momlist=MOMLIST,
+#         jk=JK,
+#         readfrom='./PROCESSED_DATA'
+#     )
 
-        ax.set_ylabel(r'$a^2 E^2(\mathbf{p})$')
-        # ax.set_xlabel(r'$a|\mathbf{p}|$')
-        ax.set_xlabel(r'$a^2\mathbf{p}^2$')
+#     mom,p2,E0 = format_energies(E,jk=JK)
 
-        ax.set_xlim(xmin=-0.1)
+#     pars,chi2 = fit_dispersion_relation(mom,E0)
 
-        plt.tight_layout()
-        plt.show()
+#     if PLOT:
+#         plt.rcParams['text.usetex'] = True
+#         plt.rcParams['font.size'] = 12
+#         plt.figure(figsize=(6, 4))
+#         ax = plt.subplot(1,1,1)
+
+#         plot_dispersion_relation(ax,mom,p2,E0,fitpar=pars,chi2=chi2)
+
+#         ax.legend()
+#         ax.grid(alpha=0.2)
+
+#         ax.set_ylabel(r'$a^2 E^2(\mathbf{p})$')
+#         # ax.set_xlabel(r'$a|\mathbf{p}|$')
+#         ax.set_xlabel(r'$a^2\mathbf{p}^2$')
+
+#         ax.set_xlim(xmin=-0.1)
+
+#         plt.tight_layout()
+#         plt.show()
 
     return
 

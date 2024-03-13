@@ -1,0 +1,23 @@
+import sys
+import argparse
+
+from b2heavy.TwoPointFunctions import fitter, types2pts
+
+
+
+if __name__ == "__main__":
+    prs = argparse.ArgumentParser()
+    prs.add_argument('-f','--fit',  action='store_true')
+    prs.add_argument('-t','--type', action='store_true')
+    prs.add_argument('--do', type=int)
+    
+    args = prs.parse_args()
+    if args.fit:
+        fitter.main(args.do)
+
+    elif args.type:
+        types2pts.eff_coeffs(args.do)
+        # types2pts.global_eff_coeffs()
+        # types2pts.main()
+
+
