@@ -30,6 +30,8 @@ from scipy.optimize import curve_fit
 
 import fit_2pts_utils as utils
 
+from b2heavy import FnalHISQMetadata
+
 
 def extract_single_energy(tag,path=None,N=0,jk=False):
     # tg = tag.split('_fit')[0]
@@ -59,7 +61,7 @@ def extract_energies(ensemble,meson,momlist=None,jk=False,readfrom='.',tag='fit2
                 E[mom] = extract_single_energy(tag,path=path,N=0,jk=jk)
     else:
         for mom in momlist:
-            f = os.path.join(readfrom,f'{filename}{mom}.pickle')
+            f = os.path.join(readfrom,f'{filename}{mom}')
             E[mom] = extract_single_energy(f,N=0,jk=jk)
 
     return E
@@ -67,50 +69,53 @@ def extract_energies(ensemble,meson,momlist=None,jk=False,readfrom='.',tag='fit2
 def mom_to_p2(mom,L=2*np.pi):
     return sum([(2*np.pi/L*float(px))**2 for px in mom])
 
-def format_energies(E,L=2*np.pi,jk=False):
-    psort = list(E.keys())
-    psort.sort(key=lambda x: mom_to_p2(x,L=L))
 
-    xfit = np.array([mom_to_p2(mom,L=L) for mom in psort])
-    yfit = np.array([E[mom] for mom in psort])
-
-    if jk:
-        yfit =  gv.gvar(
-            yfit.mean(axis=1),
-            np.cov(yfit) * (yfit.shape[1]-1)
-        )
-
-    return psort,xfit,yfit
-
-def dispersion_relation(pvec,M1,M2,M4,w4):
-    px,py,pz = pvec
-    p2 = px**2 + py**2 + pz**2
+def dispersion_relation(p,M1,M2,M4,w4):
+    p2  = sum(p**2)
     p22 = p2**2
-    p4  = px**4 + py**4 + pz**4
+    p4  = sum(p**4)
 
     return M1**2 + (M1/M2 * p2) + ((1/M1**2 - M1/M4**3)/4 * p22) - (M1*w4/3 * p4)
 
-def model(pvec,M1,M2,M4,w4):
-    return [dispersion_relation(p,M1,M2,M4,w4) for p in pvec]
+def dispersion_relation_vec(pvec,M1,M2,M4,w4):
+    return np.asarray([dispersion_relation(p,M1,M2,M4,w4) for p in pvec])
 
-def fit_dispersion_relation(momlist,E0,L=2*np.pi):
-    # Define fit points
-    xfit = [[float(px)*2*np.pi/L for px in mom] for mom in momlist]
-    yfit = E0**2
 
-    # Fit function
-    popt,pcov = curve_fit(
-        model,
-        xfit, gv.mean(yfit),
-        sigma = gv.evalcov(yfit),
-    )
-    pars = gv.gvar(popt,pcov)
+def dispersion_relation_lsqfit(pveclist,d):
+    M1,M2,M4,w4 = d['M1'],d['M2'],d['M4'],d['w4']
 
-    # Calculate chi2
-    r = gv.mean(yfit) - model(xfit,*popt)
-    chisq = r.T @ np.linalg.inv(gv.evalcov(yfit)) @ r
+    res = []
+    for pvec in pveclist:
+        p2  = sum(pvec**2)
+        p22 = p2**2
+        p4  = sum(pvec**4)
 
-    return pars,chisq
+        res.append(
+            M1**2 + (M1/M2 * p2) + ((1/M1**2 - M1/M4**3)/4 * p22) - (M1*w4/3 * p4)
+        )
+
+    return np.array(res)
+
+
+# def fit_dispersion_relation(momlist,E0,L=2*np.pi):
+#     # Define fit points
+#     xfit = [[float(px)*2*np.pi/L for px in mom] for mom in momlist]
+#     yfit = E0**2
+
+#     # Fit function
+#     popt,pcov = curve_fit(
+#         model,
+#         xfit, gv.mean(yfit),
+#         sigma = gv.evalcov(yfit),
+#     )
+#     pars = gv.gvar(popt,pcov)
+
+#     # Calculate chi2
+#     r = gv.mean(yfit) - model(xfit,*popt)
+#     chisq = r.T @ np.linalg.inv(gv.evalcov(yfit)) @ r
+
+#     return pars,chisq
+
 
 def plot_dispersion_relation(ax,mom,p2,E0,fitpar=None,chi2=None):
     xfit = p2
@@ -147,12 +152,11 @@ prs.add_argument('-e','--ensemble', type=str)
 prs.add_argument('-m','--meson', type=str)
 prs.add_argument('-mm','--momlist', type=str, nargs='+', default=[])
 prs.add_argument('--jkfit', action='store_true')
-prs.add_argument('--read_from', type=str, default='./')
+prs.add_argument('--readfrom', type=str, default='./')
 prs.add_argument('--saveto',   type=str, default='./')
 prs.add_argument('--override', action='store_true')
 prs.add_argument('--plot', action='store_true')
 prs.add_argument('--showfig', action='store_true')
-prs.add_argument('--alphas', type=float)
 
 
 
@@ -165,18 +169,22 @@ def main():
 
     ens = args.ensemble
     mes = args.meson
-
     tag = f'{ens}_{mes}'
-    
 
-    readfrom = f'{DEFAULT_ANALYSIS_ROOT}/' if args.saveto=='default' else args.read_from
+    mdata = FnalHISQMetadata.params(ens)
+    Lvol   = mdata['L']
+    alphas = mdata['alphaS'] 
+
+
+
+    readfrom = f'{DEFAULT_ANALYSIS_ROOT}/' if args.saveto=='default' else args.readfrom
     if not os.path.exists(readfrom):
         raise NameError(f'{readfrom} is not an existing location')
 
     saveto = f'{DEFAULT_ANALYSIS_ROOT}/' if args.saveto=='default' else args.saveto
     if not os.path.exists(saveto):
         raise NameError(f'{saveto} is not an existing location')
-    saveplot = f'{DEFAULT_ANALYSIS_ROOT}/PLOTS' if args.saveto=='default' else args.saveto
+    saveplot = f'{DEFAULT_ANALYSIS_ROOT}' if args.saveto=='default' else args.saveto
 
     JK = True if args.jkfit else False
 
@@ -188,120 +196,60 @@ def main():
         readfrom = readfrom  
     )
     
-    mom,p2,E0 = format_energies(E,L=config['data'][ens]['Nt'],jk=JK)
-    pars,chi2 = fit_dispersion_relation(mom,E0)
-    tosave = dict(pars=pars,chi2=chi2)
+
+    # Create vector with fitting points ---------------------------------------
+    psort = list(E.keys())
+    psort.sort(key=lambda x: mom_to_p2(x,L=Lvol))
 
 
-    file = f'{saveto}/fit2pt_disp_rel_{tag}.pickle'
-    with open(file,'wb') as handle:
-        pickle.dump(tosave, handle, protocol=pickle.HIGHEST_PROTOCOL)
-
-    if args.plot:
-        # Discrretization error fit ---------------------------------------------------
-        plt.figure(figsize=(6, 4))
-        ax = plt.subplot(1,1,1)
-
-        # plot_dispersion_relation(ax,mom,p2,E0,fitpar=pars,chi2=chi2)
-        plot_discretization_errors(
-            ax,
-            mom,
-            p2,
-            E0,
-            pars,
-            args.alphas,
-            L=config['data'][ens]['Nt']    
-        )
+    pv = [2*np.pi/Lvol*np.array([float(px) for px in mom]) for mom in psort]
+    p2 = [sum(np.array([float(px)*2*np.pi/Lvol for px in mom])**2) for mom in psort]
+    E0 = np.asarray([E[kp] for kp in psort])    
 
 
-        ax.set_ylabel(r'$a^2 E^2(\mathbf{p})$')
-        ax.set_xlabel(r'$a^2\mathbf{p}^2$')
+    # Perform fit --------------------------------------------------------------
+    priors = dict(
+        M1 = gv.gvar(0.5,1.5),
+        M2 = gv.gvar(0.5,1.5),
+        M4 = gv.gvar(0.5,1.5),
+        w4 = gv.gvar(0.5,1.5)
+    )
+    fit = lsqfit.nonlinear_fit(
+        data  = (pv,E0**2),
+        fcn   = dispersion_relation_lsqfit,
+        prior = priors
+    )
 
-        # plt.title(f'{tag}')
-        # plt.tight_layout()
-        # plt.savefig(f'{saveplot}/fit2pt_disp_rel_{tag}.pdf')
-        
-        
-        if args.showfig:
-            plt.show()
-        # -----------------------------------------------------------------------------
+    # Plot discretization errors ------------------------------------------------
+    plt.rcParams['text.usetex'] = True
+    plt.rcParams['font.size'] = 12
+    
+    m1 = fit.p['M1']
+    denominator = np.array(p2) + m1**2
+    yplot = E0**2/denominator
 
+    plt.figure(figsize=(6, 2))
+    ax = plt.subplot(1,1,1)
 
+    ax.errorbar(p2,gv.mean(yplot),gv.sdev(yplot),fmt='o', ecolor='C0', mfc='w', capsize=2.5)
+    ax.axhline(1.,color='gray',alpha=0.5,linestyle=':')
 
-        # # Dispersion relation fit ---------------------------------------------------
-        # plt.rcParams['text.usetex'] = True
-        # plt.rcParams['font.size'] = 12
-        # plt.figure(figsize=(6, 4))
-        # ax = plt.subplot(1,1,1)
+    endp = max(p2)+p2[1]
+    xcone = np.arange(0,endp,0.01)
+    ax.fill_between(xcone, alphas*xcone+1,-alphas*xcone+1,alpha=0.1)
 
-        # plot_dispersion_relation(ax,mom,p2,E0,fitpar=pars,chi2=chi2)
+    ax.set_xlim(xmin=-0.01,xmax=endp-0.01)
 
-        # ax.legend()
-        # ax.grid(alpha=0.2)
+    ax.set_ylabel(r'$\frac{E^2(\mathbf{p})}{\mathbf{p}^2 + M_1^2}$')
+    ax.set_xlabel(r'$a^2\mathbf{p}^2$')
 
-        # ax.set_ylabel(r'$a^2 E^2(\mathbf{p})$')
-        # ax.set_xlabel(r'$a^2\mathbf{p}^2$')
+    plt.tight_layout()
+    plt.savefig(f'{saveto}/fit2pts_dispersion_relation_{tag}.pdf')
 
-        # ax.set_xlim(xmin=-0.1)
-
-        # plt.title(f'{tag}')
-        # plt.tight_layout()
-        # # plt.savefig(f'{saveplot}/fit2pt_disp_rel_{tag}.pdf')
-
-        # if args.showfig:
-        #     plt.show()
-        # # -----------------------------------------------------------------------------
+    plt.show()
 
 
 
-
-
-# def test():
-#     JK = True
-#     PLOT = True
-#     MOMLIST = [
-#         "000", 
-#         "100", 
-#         "110", 
-#         "200", 
-#         "211", 
-#         "300", 
-#         # "222",
-#         "400" 
-#     ]
-
-
-#     E = extract_energies(
-#         ensemble='MediumCoarse',
-#         meson='Dsst',
-#         momlist=MOMLIST,
-#         jk=JK,
-#         readfrom='./PROCESSED_DATA'
-#     )
-
-#     mom,p2,E0 = format_energies(E,jk=JK)
-
-#     pars,chi2 = fit_dispersion_relation(mom,E0)
-
-#     if PLOT:
-#         plt.rcParams['text.usetex'] = True
-#         plt.rcParams['font.size'] = 12
-#         plt.figure(figsize=(6, 4))
-#         ax = plt.subplot(1,1,1)
-
-#         plot_dispersion_relation(ax,mom,p2,E0,fitpar=pars,chi2=chi2)
-
-#         ax.legend()
-#         ax.grid(alpha=0.2)
-
-#         ax.set_ylabel(r'$a^2 E^2(\mathbf{p})$')
-#         # ax.set_xlabel(r'$a|\mathbf{p}|$')
-#         ax.set_xlabel(r'$a^2\mathbf{p}^2$')
-
-#         ax.set_xlim(xmin=-0.1)
-
-#         plt.tight_layout()
-#         plt.show()
 
     return
 

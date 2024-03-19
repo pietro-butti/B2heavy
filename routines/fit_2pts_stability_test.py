@@ -8,6 +8,7 @@ python 2pts_fit_stability_test.py --config       [file location of the toml conf
                                   --Nstates      [list of N for (N+N) fit (listed without comas)]
                                   --tmins        [list of tmins (listed without commas)]
                                   --tmaxs        [list of tmaxs (listed without commas)]
+                                  --nochipr      [compute chi2exp with priors?]
                                   --saveto       [where do you want to save the analysis?]
                                   --readfrom    [name of the .pickle file of previous analysis]
                                   --override     [ ]
@@ -42,7 +43,7 @@ from b2heavy.TwoPointFunctions.fitter    import StagFitter
 
 import fit_2pts_utils as utils
 
-def stability_test_fit(ens,meson,mom,data_dir,binsize,smslist,nexcrange,tminrange,tmaxrange,prior_trange,saveto='./',**cov_specs):
+def stability_test_fit(ens,meson,mom,data_dir,binsize,smslist,nexcrange,tminrange,tmaxrange,prior_trange,chipr=True,saveto='./',**cov_specs):
     io = CorrelatorIO(ens,meson,mom,PathToDataDir=data_dir)
     stag = StagFitter(
         io       = io,
@@ -66,7 +67,7 @@ def stability_test_fit(ens,meson,mom,data_dir,binsize,smslist,nexcrange,tminrang
                     # verbose = True,
                     **cov_specs
                 )
-                d = stag.fit_result(nstates,trange,priors=pr)
+                d = stag.fit_result(nstates,trange,priors=pr if chipr else None)
 
                 fit = d['fit']
                 aux[nstates,trange] = dict(
@@ -97,18 +98,32 @@ def read_results_stability_test(dumped, ic='TIC', show=True):
     # Calculate weight normalization
     sumw = sum([np.exp(-(d[k]['chi2red']-2*d[k]['chiexp'])/2) for k in d])
 
+
+    # How many polarization are there?
+    ls = [[k.split('_')[-1] for k in d[fk]['p'] if k.startswith('Z')] for fk in d]
+    ls = np.unique(np.concatenate(ls))
+    unpol = True if len(ls)==1 else False
+    Zs = ['Z_1S_Unpol','Z_d_Unpol'] if unpol else ['Z_1S_Par','Z_1S_Bot','Z_d_Par','Z_d_Bot']
+
     # Format to dataframe
-    ks = ['Nexc','tmin','tmax','chi2/chiexp','pvalue','E_0','weight']
+    ks = ['Nexc','tmin','tmax','chi2/chiexp','pvalue','weight','E_0']
+    ks = np.concatenate([ks,Zs])
+
+
     df = {k: [] for k in ks}
     for k in d:
         nexc,(tmin,tmax) = k
         df['Nexc'].append(nexc)
         df['tmin'].append(tmin)
         df['tmax'].append(tmax)
-        df['chi2/chiexp'].append(f'{d[k]["chi2red"]/d[k]["chiexp"]:.2f}')
+        df['chi2/chiexp'].append(f'[{d[k]["chi2red"]:.2f}/{d[k]["chiexp"]:.2f}] = {d[k]["chi2red"]/d[k]["chiexp"]:.2f}')
         df['pvalue'].append(f'{d[k]["pvalue"]:.3f}')
-        df['E_0'].append(d[k]['p']['E'][0])
         df['weight'].append(f'{np.exp(-(d[k]["chi2red"]-2*d[k]["chiexp"])/2)/sumw:.1e}')
+        df['E_0'].append(d[k]['p']['E'][0])
+
+        for zk in Zs:
+            df[zk].append(np.exp(d[k]['p'][zk][0])) 
+        
 
     df = pd.DataFrame(df)
     df.set_index(['Nexc','tmin','tmax'],inplace=True)
@@ -253,6 +268,8 @@ prs.add_argument('--diag'  , action='store_true')
 prs.add_argument('--block' , action='store_true')
 prs.add_argument('--svd'   , type=float, default=None)
 
+prs.add_argument('--nochipr', action='store_false')
+
 
 prs.add_argument('--saveto'  , type=str,  default=None)
 prs.add_argument('--readfrom', type=str,  default=None)
@@ -344,6 +361,7 @@ def main():
             tminrange    = args.tmins,
             tmaxrange    = args.tmaxs,
             saveto       = saveto,
+            chipr        = args.nochipr,
             **cov_specs
         ) 
 

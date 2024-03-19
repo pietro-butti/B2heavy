@@ -14,6 +14,8 @@ title = '2pts fits'
 
 
 [data]
+    mdata = '/Users/pietro/code/software/B2heavy/b2heavy/FnalHISQMetadata.py'
+
     [data.MediumCoarse]
         name     = 'MediumCoarse'
         data_dir = "/Users/pietro/code/data_analysis/BtoD/Alex"
@@ -27,6 +29,14 @@ title = '2pts fits'
         binsize  = 11
         mom_list = ['000','100','200','300','110','211']
         Nt       = 64
+    
+    [data.Coarse-2]
+        name     = 'Coarse-2'
+        data_dir = "/Users/pietro/code/data_analysis/BtoD/Alex"
+        binsize  = 16
+        mom_list = ['000','100','200','300','110','211']
+        Nt       = 64
+    
 
     
 [fit]
@@ -103,7 +113,7 @@ title = '2pts fits'
                     nstates    = 3
                     tag        = 'MediumCoarse_Dst_100'
                     trange_eff = [13,19]
-                    trange     = [4,20]
+                    trange     = [4,19]
                 [fit.MediumCoarse.Dst.mom.200] 
                     nstates    = 3
                     tag        = 'MediumCoarse_Dst_200'
@@ -113,27 +123,27 @@ title = '2pts fits'
                     nstates    = 3
                     tag        = 'MediumCoarse_Dst_300'
                     trange_eff = [13,19]
-                    trange     = [9,14]
+                    trange     = [4,17]
                 [fit.MediumCoarse.Dst.mom.400] 
                     nstates    = 3
                     tag        = 'MediumCoarse_Dst_400'
                     trange_eff = [13,19]
-                    trange     = [9,14]
+                    trange     = [4,13]
                 [fit.MediumCoarse.Dst.mom.110] 
                     nstates    = 3
                     tag        = 'MediumCoarse_Dst_110'
-                    trange_eff = [13,19]
-                    trange     = [8,15]
+                    trange_eff = [12,19]
+                    trange     = [4,19]
                 [fit.MediumCoarse.Dst.mom.211] 
                     nstates    = 3
                     tag        = 'MediumCoarse_Dst_211'
-                    trange_eff = [13,19]
-                    trange     = [8,15]
+                    trange_eff = [10,17]
+                    trange     = [4,18]
                 [fit.MediumCoarse.Dst.mom.222] 
                     nstates    = 3
                     tag        = 'MediumCoarse_Dst_222'
                     trange_eff = [13,19]
-                    trange     = [8,15]
+                    trange     = [4,15]
 
 
         [fit.MediumCoarse.Dsst]
@@ -229,18 +239,18 @@ title = '2pts fits'
             [fit.Coarse-1.Dst.mom.000]
                 tag        = 'Coarse-1_Dst_000'
                 nstates    = 3
-                trange_eff = [13,23] # 0.008    0.20 0.12
-                trange     = [5,22]  # [12,17] tmax=26
+                trange_eff = [13,20] # 0.008    0.20 0.12
+                trange     = [5,26]  # [12,17] tmax=26
             [fit.Coarse-1.Dst.mom.100]
                 tag    = 'Coarse-1_Dst_100'
                 nstates    = 3
-                trange_eff = [13,23] # 0.025    0.2 0.8
-                trange     = [5,20] # [12,15] tmax=23
+                trange_eff = [13,20] # 0.025    0.2 0.8
+                trange     = [5,23] # [12,15] tmax=23
             [fit.Coarse-1.Dst.mom.200]
                 tag        = 'Coarse-1_Dst_200'
                 nstates    = 3
-                trange_eff = [13,23] # 0.047      0.34 0.56
-                trange     = [5,18] # [8,20]
+                trange_eff = [13,20] # 0.047      0.34 0.56
+                trange     = [5,21] # [8,20]
             [fit.Coarse-1.Dst.mom.300]
                 tag        = 'Coarse-1_Dst_300'
                 nstates    = 3
@@ -250,12 +260,12 @@ title = '2pts fits'
                 tag        = 'Coarse-1_Dst_110'
                 nstates    = 3
                 trange_eff = [11,19] # 0.01         0.19 0.65
-                trange     = [5,21] #[10,17]
+                trange     = [5,23] #[10,17]
             [fit.Coarse-1.Dst.mom.211]
                 tag        = 'Coarse-1_Dst_211'
                 nstates    = 3
                 trange_eff = [11,19] # 0.01         0.32  0.3
-                trange     = [5,21]
+                trange     = [5,19]
         [fit.Coarse-1.Dsst]
             nstates = 3
             smlist  = ['d-d','1S-1S','d-1S']
@@ -285,3 +295,50 @@ title = '2pts fits'
             # [fit.Coarse-1.Dsst.mom.222]
             #     tag    = 'Coarse-1_Dst_222'
             #     trange = []
+        [fit.Coarse-1.B]
+            smlist  = ['d-d','1S-1S','d-1S']
+            [fit.Coarse-1.B.mom.000]
+                tag        = 'Coarse-1_B_000'
+                nstates    = 3
+                trange_eff = [14,20]
+                trange     = [5,26]  # [12,17] tmax=26
+            [fit.Coarse-1.B.mom.100]
+                tag    = 'Coarse-1_B_100'
+                nstates    = 3
+                trange_eff = [14,20]
+                trange     = [5,23] # [12,15] tmax=23
+            [fit.Coarse-1.B.mom.200]
+                tag        = 'Coarse-1_B_200'
+                nstates    = 3
+                trange_eff = [14,20] # 0.047      0.34 0.56
+                trange     = [5,21] # [8,20]
+            [fit.Coarse-1.B.mom.300]
+                tag        = 'Coarse-1_B_300'
+                nstates    = 3
+                trange_eff = [11,18] # 0.04         0.37 0.09
+                trange     = [5,17] # [10,13]
+            [fit.Coarse-1.B.mom.110]
+                tag        = 'Coarse-1_B_110'
+                nstates    = 3
+                trange_eff = [12,17] # 0.01         0.19 0.65
+                trange     = [5,23] #[10,17]
+            [fit.Coarse-1.B.mom.211]
+                tag        = 'Coarse-1_B_211'
+                nstates    = 3
+                trange_eff = [12,17] # 0.01         0.32  0.3
+                trange     = [5,19]
+
+    [fit.Coarse-2]
+        [fit.Coarse-2.Dst]
+            smlist  = ['d-d','1S-1S','d-1S']
+            [fit.Coarse-1.Dst.mom.000]
+                tag        = 'Coarse-2_Dst_000'
+                nstates    = 3
+                trange_eff = [14,20]
+                trange     = [5,26]  # [12,17] tmax=26
+        [fit.Coarse-2.B]
+            [fit.Coarse-1.B.mom.000]
+                tag        = 'Coarse-2_Dst_000'
+                nstates    = 3
+                trange_eff = [14,20]
+                trange     = [5,26]  # [12,17] tmax=26

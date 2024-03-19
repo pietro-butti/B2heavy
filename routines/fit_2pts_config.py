@@ -74,6 +74,7 @@ def fit_2pts_single_corr(
 
     # Perform fit
     pr = stag.priors(nstates,Meff=effm,Aeff=effa)
+
     fit = stag.fit(
         Nstates = nstates,
         trange  = trange,
@@ -195,7 +196,6 @@ def main():
                                 print(f'Already existing analysis for {tag}, but overriding...')
                             else:
                                 print(f'Analysis for {tag} already up to date')
-                                continue
 
 
                 # Perform analysis ===================================================================

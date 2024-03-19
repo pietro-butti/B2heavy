@@ -98,9 +98,9 @@ def set_priors_phys(corr, Nstates, Meff=None, Aeff=None, prior_policy=None):
     if Meff is None:
         E[0] = gv.gvar(MPHYS[corr.info.meson],dE/dE_E0err) * Scale * aGeV # fundamental physical state
     else:
-        # E[0] = gv.gvar(Meff.mean,dE/dE_E0err*Scale*aGeV)
+        E[0] = gv.gvar(Meff.mean,dE/dE_E0err*Scale*aGeV)
         # E[0] = gv.gvar(Meff.mean,0.5)
-        E[0] = Meff
+        # E[0] = Meff
 
     E[1] = np.log(gv.gvar(dG, dE/dE_E1err)*Scale*aGeV)
 
@@ -458,10 +458,10 @@ jax.config.update("jax_enable_x64", True)
 x = jax.random.uniform(jax.random.PRNGKey(0), (1000,))#, dtype=jnp.float64)
 assert x.dtype == jnp.float64
 def main(FLAG):
-    ens      = 'Coarse-1'
+    ens      = 'MediumCoarse'
     mes      = 'Dst'
-    mom      = '100'
-    binsize  = 11
+    mom      = '000'
+    binsize  = 13
     data_dir = '/Users/pietro/code/data_analysis/BtoD/Alex/'
     smlist   = ['1S-1S','d-d','d-1S'] 
 
@@ -472,7 +472,7 @@ def main(FLAG):
         smearing = smlist
     )
 
-    TLIM     = (6,20)
+    TLIM     = (13,19)
     NEXC     = 3
 
     # ========================================= correlation =============================================
@@ -499,7 +499,7 @@ def main(FLAG):
 
 
 
-        meff,aeff = stag.meff(trange=(13,23),**cov_specs)
+        meff,aeff = stag.meff(trange=TLIM,**cov_specs)
         pr = stag.priors(NEXC,Meff=meff,Aeff=aeff)
         fit = stag.fit(
             Nstates = NEXC,

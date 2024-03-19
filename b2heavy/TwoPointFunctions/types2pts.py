@@ -569,7 +569,7 @@ class Correlator:
 def eff_coeffs(FLAG):
     ens      = 'MediumCoarse'
     mes      = 'Dst'
-    mom      = '400'
+    mom      = '222'
     binsize  = 13
     data_dir = '/Users/pietro/code/data_analysis/BtoD/Alex/'
     smlist   = ['1S-1S','d-d','d-1S'] 
@@ -581,10 +581,12 @@ def eff_coeffs(FLAG):
         smearing = smlist
     )
 
+    print(f'{stag.tmax(threshold=0.3) = }')
+
     # ----------------------------- Correlation analysis -----------------------------
     if FLAG==1:
-        tmin = 15
-        tmax = 19
+        tmin = 7
+        tmax = 13
         trange = (tmin,tmax)
         tmaxe = stag.tmax(threshold=0.3)
         xdata,ydata,yjk = stag.format(trange=(tmin,tmax),alljk=True,flatten=True)
@@ -597,9 +599,9 @@ def eff_coeffs(FLAG):
 
     # ----------------------------- Effective corr analysis -----------------------------
     elif FLAG==2:
-        tmin = 12
+        tmin = 9
+        tmax = 14
         tmaxe = stag.tmax(threshold=0.3)
-        tmax = 19
         trange = (tmin,tmax)
 
         print(tmaxe,trange)
@@ -634,7 +636,7 @@ def eff_coeffs(FLAG):
             block  = False,
             scale  = True,
             shrink = True,
-            cutsvd = None,
+            cutsvd = 0.01,
         )
 
         tmins = np.arange(9,15)
@@ -683,8 +685,6 @@ def eff_coeffs(FLAG):
         for i,k in enumerate(stag.keys):
             print(f'A_eff[{k}] = {np.sum(AEFF[:,i]*tic)}')
     # --------------------------------------------------------------------------------
-
-
 
 def global_eff_coeffs(ens, mes, trange, chiexp=True, config_file='/Users/pietro/code/software/B2heavy/routines/2pts_fit_config.toml', **cov_specs):
     with open(config_file,'rb') as f:
@@ -796,18 +796,22 @@ def global_eff_coeffs(ens, mes, trange, chiexp=True, config_file='/Users/pietro/
 
 
 def main():
-    ensemble = 'Coarse-1'
-    meson    = 'Dst'
+    ens = 'Coarse-2'
+    mes = 'Dst'
+    mom = '000'
 
-    cov_specs = dict(
-        shrink = True,
-        scale  = True,
-        svd = 0.05
-    )
+    io   = CorrelatorIO(ens,mes,mom,PathToDataDir="/Users/pietro/code/data_analysis/BtoD/Alex")
+    print(io.CorrFile)
 
-    trange = (10,19)
-    fit,chi2,chiexp,p = global_eff_coeffs(ensemble,meson,trange)
+    # cov_specs = dict(
+    #     shrink = True,
+    #     scale  = True,
+    #     svd = 0.05
+    # )
 
-    print(fit)
-    print(f'{chi2/chiexp = }')
-    print(f'{p = }')
+    # trange = (10,19)
+    # fit,chi2,chiexp,p = global_eff_coeffs(ensemble,meson,trange)
+
+    # print(fit)
+    # print(f'{chi2/chiexp = }')
+    # print(f'{p = }')
