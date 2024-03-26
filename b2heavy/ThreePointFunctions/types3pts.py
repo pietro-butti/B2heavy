@@ -389,7 +389,8 @@ class Ratio:
         shapes = np.unique(shapes)
         assert len(shapes)==2
 
-        self.timeslice = np.arange(shapes[-1])
+        self.timeslice = np.arange(shapes[0])
+
 
 
     def format(self, trange=None, smearing=None, flatten=False, alljk=False, **cov_kwargs):
@@ -420,21 +421,19 @@ class Ratio:
 
         return xdata,ydata
 
-def main_():
+def main():
     ens = 'Coarse-1'
     rat = 'R0'
     mom = '100'
+    frm = '/Users/pietro/code/data_analysis/BtoD/Alex'
 
-    io  = RatioIO(ens,rat,mom,PathToDataDir='/Users/pietro/code/data_analysis/BtoD/Alex')
+    io    = RatioIO(ens,rat,mom,PathToDataDir=frm)
+    ratio = Ratio(io,jkBin=13,E0=0,m0=0) 
 
-    io.ReadRatio(jkBin=13,E0=0,m0=0,verbose=True)
+    x,y = ratio.format()
+    print(x,y)
 
-
-    # ra1 = Ratio(io, jkBin=13, E0=0, m0=0)
-    # ra1.format(trange=(5,10))
-
-
-def main():
+def main_scan_all_ratio():
     # mom_list   = ['000','100','200','300','110','211']
     mom_list   = ['000','100','200','300','400']
     ratio_list = ['RA1','ZRA1','ZRA1S','RA1S','R0','R0S','R1','R1S','XV','XVS','XFSTPAR','XFSTBOT','XFSSTPAR','XFSSTBOT']
@@ -460,33 +459,33 @@ def main():
             except Exception:
                 d = None
 
-            # if d is not None:
-            #     ydata = gv.gvar(
-            #         d['RW'].mean(axis=0),
-            #         np.cov(d['RW'],rowvar=False)*(d['RW'].shape[-1]-1)
-            #     )
-            #     y  = gv.mean(ydata)
-            #     ye = gv.sdev(ydata)
-            #     x = np.arange(len(y)) 
+            if d is not None:
+                ydata = gv.gvar(
+                    d['RW'].mean(axis=0),
+                    np.cov(d['RW'],rowvar=False)*(d['RW'].shape[-1]-1)
+                )
+                y  = gv.mean(ydata)
+                ye = gv.sdev(ydata)
+                x = np.arange(len(y)) 
 
-            #     ax[j,i].errorbar(x,y,yerr=ye,fmt='.')
-            #     ax[j,i].set_xticks([])
-            #     ax[j,i].set_yticks([])
-            # else:
-            #     ax[j,i].scatter([],[])
-            #     ax[j,i].set_xticks([])
-            #     ax[j,i].set_yticks([])
+                ax[j,i].errorbar(x,y,yerr=ye,fmt='.')
+                ax[j,i].set_xticks([])
+                ax[j,i].set_yticks([])
+            else:
+                ax[j,i].scatter([],[])
+                ax[j,i].set_xticks([])
+                ax[j,i].set_yticks([])
 
-            # if j==0:
-            #     ax[0,i].set_title(ratio)
-            # if i==0:
-            #     ax[j,0].set_ylabel(mom)
+            if j==0:
+                ax[0,i].set_title(ratio)
+            if i==0:
+                ax[j,0].set_ylabel(mom)
 
-            # print(mom,ratio)
-
-
+            print(mom,ratio)
 
 
-    # plt.tight_layout()
-    # plt.savefig('/Users/pietro/Desktop/MediumCoarse.pdf')
-    # plt.show()
+
+
+    plt.tight_layout()
+    plt.savefig('/Users/pietro/Desktop/MediumCoarse.pdf')
+    plt.show()
