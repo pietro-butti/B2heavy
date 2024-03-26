@@ -244,11 +244,9 @@ class CorrelatorIO:
                         newfiles = [f'P5_P5_{lss}_{hss}_m{self.mData["mlStr"]}_m{self.mData["mlStr"]}_p{mom}']
                     else:
                         newfiles = [f'{ch}_{lss}_{hss}_{heavy}_{light}_p{mom}' for ch in channel]
-                    
                     aux = [f for f in newfiles if f in data]
                     
                     smr_string = f'{self.checkSmear(lss)}-{self.checkSmear(hss)}'
-                    # clist.append((aux,smr_string)) if aux else 1
                     if aux:
                         cdict[smr_string] = aux
 
@@ -400,7 +398,8 @@ class Correlator:
 
         # Compute un-jk data
         if cov_kwargs.get('scale'):
-            ydata_full = self.io.ReadCorrelator(jkBin=1).loc[smr,pol,:,it]
+            # ydata_full = self.io.ReadCorrelator(jkBin=1).loc[smr,pol,:,it]
+            ydata_full = self.io.ReadCorrelator(jkBin=1)
             ally = {(s,p): jnp.asarray(ydata_full.loc[s,p,:,it].to_numpy()) for s,p in self.keys}
         else:
             ally = None
@@ -554,7 +553,6 @@ class Correlator:
             
             return chi2, chiexp, p
 
-
     def tmax(self, threshold=0.25):
         xdata,ydata = self.format()
         rel = np.vstack([abs(gv.sdev(y)/gv.mean(y)) for y in ydata.values()]).mean(axis=0)
@@ -564,15 +562,14 @@ class Correlator:
 
 
 
-
-
 def eff_coeffs(FLAG):
     ens      = 'MediumCoarse'
     mes      = 'Dst'
-    mom      = '222'
+    mom      = '000'
     binsize  = 13
     data_dir = '/Users/pietro/code/data_analysis/BtoD/Alex/'
     smlist   = ['1S-1S','d-d','d-1S'] 
+
 
     io   = CorrelatorIO(ens,mes,mom,PathToDataDir=data_dir)
     stag = Correlator(
@@ -581,12 +578,16 @@ def eff_coeffs(FLAG):
         smearing = smlist
     )
 
-    print(f'{stag.tmax(threshold=0.3) = }')
+    print(stag.format(trange=(10,19)))
+
+    return
+
+    print(f'{mom = } {stag.tmax(threshold=0.3) = }')
 
     # ----------------------------- Correlation analysis -----------------------------
     if FLAG==1:
-        tmin = 7
-        tmax = 13
+        tmin = 9
+        tmax = 19
         trange = (tmin,tmax)
         tmaxe = stag.tmax(threshold=0.3)
         xdata,ydata,yjk = stag.format(trange=(tmin,tmax),alljk=True,flatten=True)
@@ -597,10 +598,11 @@ def eff_coeffs(FLAG):
         plt.show()
     # --------------------------------------------------------------------------------
 
+
     # ----------------------------- Effective corr analysis -----------------------------
     elif FLAG==2:
-        tmin = 9
-        tmax = 14
+        tmin = 11
+        tmax = 22
         tmaxe = stag.tmax(threshold=0.3)
         trange = (tmin,tmax)
 
@@ -618,6 +620,7 @@ def eff_coeffs(FLAG):
         chi2, chiexp,p = stag.chiexp_meff(trange=trange,variant='cosh',pvalue=True,**cov_specs)
 
         print('--------------------------')
+        print(f'{ens = }, {mes = }, {mom = }')
         print(tmaxe,trange)
         print(f'meff = {args[-3]}')
         print(f'{trange = }')
@@ -640,7 +643,8 @@ def eff_coeffs(FLAG):
         )
 
         tmins = np.arange(9,15)
-        tmaxs = np.arange(19,23)
+        # tmaxs = np.arange(19,22)
+        tmaxs = [21]
         tranges = itertools.product(tmins,tmaxs)
 
         MEFF = []
@@ -796,7 +800,7 @@ def global_eff_coeffs(ens, mes, trange, chiexp=True, config_file='/Users/pietro/
 
 
 def main():
-    ens = 'Coarse-2'
+    ens = 'Coarse-1'
     mes = 'Dst'
     mom = '000'
 

@@ -1,19 +1,38 @@
 import os
 import h5py
-import gvar as gv
-import numpy as np
-import pandas as pd
+import gvar   as gv
+import numpy  as np
+import xarray as xr
+
+import matplotlib.pyplot as plt
 
 from .. import FnalHISQMetadata
-from ..TwoPointFunctions.utils import jkCorr
+from ..TwoPointFunctions.utils import jkCorr, compute_covariance
 
 
 
-def read_ratio_from_data(DATA,corrname):
+def read_ratio_from_data(corrname,DATA):
     try:
         return DATA[corrname]
     except:
-        raise Exception('WARNING: ',corrname,' not found')
+        raise KeyError(f'{corrname} not found in datafiles')
+
+def read_ratio_from_multiple_data(corrname,*datas,verbose=False):
+    d,I = None,None
+    for i,data in enumerate(datas):
+        try:
+            d = data[corrname]
+            I = i
+        except KeyError:
+            continue
+
+    if d is not None:
+        if verbose:
+            print(f'{corrname} found in {I}-th element.')
+        return d            
+    else:
+        raise Exception(f'{corrname} not found in any datadicts')
+
 
 class RatioInfo:
     def __init__(self, _name:str, _ens:str, _rat:str, _mom:str):
@@ -29,7 +48,6 @@ class RatioInfo:
     def __str__(self):
         return f' # ------------- {self.name} -------------\n # ensemble = {self.ensemble}\n #    meson = {self.meson}\n # momentum = {self.momentum}\n #  binsize = {self.binsize}\n # filename = {self.filename}\n # ---------------------------------------'
 
-
 class RatioIO:
     def __init__(self, _ens:str, _rat:str, _mom:str, PathToFile=None, PathToDataDir=None, name=None):
         dname = f'{_ens}_{_rat}_p{_mom}' if name is None else name
@@ -41,11 +59,18 @@ class RatioIO:
         if PathToFile is not None:
             self.RatioFile = PathToFile
         elif PathToDataDir is not None:
-            path = os.path.join(PathToDataDir,self.mData['folder'],self.mData['hdf5File2'])
+            path = os.path.join(PathToDataDir,self.mData['folder'],self.mData['hdf5File'])
             if os.path.exists(path):
                 self.RatioFile = path
             else:
                 raise FileNotFoundError(f'The file {path} has not been found')
+            
+            path = os.path.join(PathToDataDir,self.mData['folder'],self.mData['hdf5File2'])
+            if os.path.exists(path):
+                self.RatioFile2 = path
+            else:
+                raise FileNotFoundError(f'The file {path} has not been found')
+            
         else:
             raise FileNotFoundError(f'Please specify as optional argument either data file in `PathToFile` or `PathToDataDir` to look at default data file.')
 
@@ -164,8 +189,9 @@ class RatioIO:
             'dNames' : dNames
         }
 
-    def RatioFileString(self,name,ts,h,hss,q,l):
-        return f'{name}T{ts}{h}_RW_{hss}_rot_rot{q}{l}_p{self.info.momentum}'
+    def RatioFileString(self,name,ts,h,hss,q,l,mom=None):
+        p = self.info.momentum if mom is None else mom
+        return f'{name}T{ts}{h}_RW_{hss}_rot_rot{q}{l}_p{p}'
 
     def RatioFileDict(self,sms = ['RW','1S']):
         specs = self.RatioSpecs()
@@ -205,64 +231,78 @@ class RatioIO:
 
         return aux
 
-    def ReadRatio(self, sms = ['RW','1S'], jkBin=None):
-        DATA  = h5py.File(self.RatioFile,'r')['data']
-        DATA2 = h5py.File(self.RatioFile,'r')['data']
+    def ReadRatio(self, sms = ['RW','1S'], jkBin=None, E0=None, m0=None, verbose=False, datafiles=None):
+        datas = []
+        if datafiles is None:
+            datas = [h5py.File(self.RatioFile2,'r')['data']]
+        else:
+            for i,d in enumerate(datafiles):
+                datas.append(h5py.File(d,'r')['data'])
+                if verbose:
+                    print(f'[I={i}] {d}')
 
         specs = self.RatioSpecs()
         T = self.mData['hSinks'][0]
 
         if ('RA1' not in self.info.ratio) and (self.info.momentum!='000'):
-            FLAG_RA1 = True
+            not_RA1 = True
         elif 'RA1' in self.info.ratio:
-            FLAG_RA1 = False
+            not_RA1 = False
         else:
-            return 
+            raise Exception(f'{self.info.ratio} is not a valid ratio name') 
 
 
         PROCESSED = {}
         for hss in sms:
-            if FLAG_RA1: # ==============================================================================================
-
+            if not_RA1: # ==============================================================================================
                 AUX = []
                 for tSink in self.mData['hSinks']:
                     nuCorr = []
                     for j,(name,nFac) in enumerate(zip(specs['nNames'][0],specs['nFacs'][0])):
-                        corrname = self.RatioFileString(name,tSink,specs["hStr"],hss,specs["qStr"],specs["lStr"])
-                        nuCorr.append(
-                            read_ratio_from_data(DATA,corrname)[:]*nFac
+                        corrname = self.RatioFileString(
+                            name,tSink,specs["hStr"],hss,specs["qStr"],specs["lStr"]
                         )
-                        # print(f'### nu: {corrname}')  
-                        # print(read_ratio_from_data(DATA,corrname)[:]*nFac)
+                        nuCorr.append(
+                            read_ratio_from_multiple_data(corrname,*datas,verbose=verbose)[:]*nFac
+                        )
+
                     nuCorr = np.mean(nuCorr,axis=0)
                     nuCorr = jkCorr(nuCorr,bsize=0 if jkBin is None else jkBin)
 
                     duCorr = []
                     if len(specs['dNames'])>0:
                         for j,name in enumerate(specs['dNames']):
-                            corrname = self.RatioFileString(name,tSink,specs["hStr"],hss,specs["qStr"],specs["lStr"])
-                            duCorr.append(
-                                read_ratio_from_data(DATA,corrname)
+                            corrname = self.RatioFileString(
+                                name,tSink,specs["hStr"],hss,specs["qStr"],specs["lStr"]
                             )
+                            duCorr.append(
+                                read_ratio_from_multiple_data(corrname,*datas,verbose=verbose)
+                            )
+
                     duCorr = np.sum(duCorr,axis=0)
                     duCorr = jkCorr(duCorr,bsize=0 if jkBin is None else jkBin)
-
+                    
                     AUX.append(
                         nuCorr/duCorr if list(duCorr) else nuCorr
                     )
 
-                PROCESSED[hss] = 0.5*AUX[0][:,0:T+1] + 0.25*AUX[1][:,0:T+1] + 0.25*np.roll(AUX[1], -1, axis=1)[:,0:T+1]
+                PROCESSED[hss] = \
+                    0.5*AUX[0][:,0:T+1] + \
+                    0.25*AUX[1][:,0:T+1] + \
+                    0.25*np.roll(AUX[1], -1, axis=1)[:,0:T+1] 
 
-            if not FLAG_RA1: # =====================================================================================================
+            if not not_RA1: # ==========================================================================================
                 AUX = []
                 for tSink in self.mData['hSinks']:
                     nuCorr = []
                     aux = []
                     for name in specs['nNames'][0]:
-                        corrname = self.RatioFileString(name,tSink,specs["hStr"],hss,specs["qStr"],specs["lStr"])
+                        corrname = self.RatioFileString(
+                            name,tSink,specs["hStr"],hss,specs["qStr"],specs["lStr"]
+                        )
                         aux.append(
                             jkCorr(
-                                read_ratio_from_data(DATA,corrname)[:],
+                                read_ratio_from_multiple_data(corrname,*datas,verbose=verbose)[:],
                                 bsize=0 if jkBin is None else jkBin
                             )
                         )
@@ -273,13 +313,17 @@ class RatioIO:
                     aux = []
                     for j,name in enumerate(target):
                         if self.info.ratio=='ZRA1':
-                            corrname = self.RatioFileString(name,tSink,specs["lStr"],hss,specs["qStr"],specs["hStr"])
+                            corrname = self.RatioFileString(
+                                name,tSink,specs["lStr"],hss,specs["qStr"],specs["hStr"]
+                            )
                         else:
-                            corrname = self.RatioFileString(name,tSink,specs["hStr"],hss,specs["qStr"],specs["lStr"])
+                            corrname = self.RatioFileString(
+                                name,tSink,specs["hStr"],hss,specs["qStr"],specs["lStr"]
+                            )
 
                         aux.append(
                             jkCorr(
-                                read_ratio_from_data(DATA,corrname)[:],
+                                read_ratio_from_multiple_data(corrname,*datas,verbose=verbose)[:],
                                 bsize=0 if jkBin is None else jkBin
                             )
                         )
@@ -290,9 +334,12 @@ class RatioIO:
                     for mesStr, cName in zip([specs['lStr'],specs['hStr']],specs['dNames']):
                         aux = []
                         for name in cName:
-                            corrname = self.RatioFileString(name,tSink,mesStr,hss,specs["qStr"],mesStr)
+
+                            corrname = self.RatioFileString(
+                                name,tSink,mesStr,hss,specs["qStr"],mesStr,mom='000'
+                            )
                             aux.append(
-                                read_ratio_from_data(DATA,corrname)
+                                read_ratio_from_multiple_data(corrname,*datas,verbose=verbose)
                             )
                         aux = np.array(aux).mean(axis=0)[:,0:(tSink+1)]
                         duCorr.append(
@@ -303,25 +350,144 @@ class RatioIO:
                         (nuCorr[0]*nuCorr[1]).sum(axis=0)/(duCorr[0]*duCorr[1])
                     )
 
-                E0 = 0. # FIXME
-                m0 = 0. # FIXME
-                PROCESSED[hss] = 0.5*AUX[0][:,0:T+1]*np.exp((E0 - m0)*T) + 0.25*AUX[1][:,0:T+1]*np.exp((E0 - m0)*(T+1)) + 0.25*np.roll(AUX[1], -1, axis=1)[:,0:T+1]*np.exp((E0 - m0)*(T+1))
+                if E0 is None and m0 is None:
+                    raise Exception('Energy and rest mass must be provided')
+                elif E0==0. and m0==0.:
+                    Warning('E0 and m0 are set to 0')
+                elif E0.shape!=m0.shape:
+                    raise Exception(f'E0 ({E0.shape = }) and m0 ({m0.shape = }) must have compatible shapes ')
+                elif E0.shape!=AUX[0].shape:
+                    raise Exception(f'E0 ({E0.shape = }) and ratio data ({AUX[0].shape = }) must have compatible shapes ')
+
+                PROCESSED[hss] = \
+                    0.5*AUX[0][:,0:T+1]*np.exp((E0 - m0)*T) + \
+                    0.25*AUX[1][:,0:T+1]*np.exp((E0 - m0)*(T+1)) + \
+                    0.25*np.roll(AUX[1], -1, axis=1)[:,0:T+1]*np.exp((E0 - m0)*(T+1))
 
         return PROCESSED
 
-def test():
-    r0 = RatioIO(
-        'Coarse-1',
-        'RA1',
-        '000',
-        PathToDataDir='/Users/pietro/code/data_analysis/BtoD/Alex'
+
+class Ratio:
+    def __init__(self, io:RatioIO, jkBin=None, E0=None, m0=None, **kwargs):
+        self.io           = io
+        self.info         = io.info
+        self.info.binsize = jkBin
+        self.binsize      = jkBin
+        self.E0           = E0
+        self.m0           = m0
+
+        self.data = io.ReadRatio(
+            jkBin= jkBin,
+            E0   = E0,
+            m0   = m0,
+            **kwargs
+        )
+
+        self.smr = sorted(list(self.data.keys()))
+
+        shapes = [self.data[d].shape for d in self.data]
+        shapes = np.unique(shapes)
+        assert len(shapes)==2
+
+        self.timeslice = np.arange(shapes[-1])
+
+
+    def format(self, trange=None, smearing=None, flatten=False, alljk=False, **cov_kwargs):
+        # Select smearings
+        if smearing is None:
+            smr = self.smr
+        else:
+            if set(smearing)<=set(self.smr):
+                smr = smearing
+            else:
+                raise KeyError(f'Smearing list {smearing=} contain at least one item which is not contained in {self.smr=}')
+
+        # Select data in the timeranges
+        it = self.timeslice if trange is None else np.arange(min(trange),max(trange)+1)
+        xdata = self.timeslice[it]
+
+        # Compute un-jk data
+        if cov_kwargs.get('scale'):
+            ydata_full = self.io.ReadRatio(jkBin=1,E0=self.E0,m0=self.m0)
+            ally = {k: ydata_full[k][:,it] for k in ydata_full}
+        else:
+            ally = None
+
+        sliced = {k: self.data[k][:,it] for k in self.data}
+        ydata = compute_covariance(
+            sliced, ally=ally, **cov_kwargs
+        )
+
+        print(ydata)
+
+
+def main_():
+    ens = 'Coarse-1'
+    rat = 'R0'
+    mom = '100'
+
+    io  = RatioIO(ens,rat,mom,PathToDataDir='/Users/pietro/code/data_analysis/BtoD/Alex')
+
+    io.ReadRatio(jkBin=13,E0=0,m0=0,verbose=True)
+
+
+    # ra1 = Ratio(io, jkBin=13, E0=0, m0=0)
+    # ra1.format(trange=(5,10))
+
+
+def main():
+    # mom_list   = ['000','100','200','300','110','211']
+    mom_list   = ['000','100','200','300','400']
+    ratio_list = ['RA1','ZRA1','ZRA1S','RA1S','R0','R0S','R1','R1S','XV','XVS','XFSTPAR','XFSTBOT','XFSSTPAR','XFSSTBOT']
+
+    f,ax = plt.subplots(
+        len(mom_list),len(ratio_list),
+        layout="constrained",
+        sharex=True,
+        figsize=(20,10)
     )
-    print(r0.RatioFile)
 
-    p = r0.ReadRatio(jkBin=1)
-    
-    
-    
-    return p
+    for i,ratio in enumerate(ratio_list):
+        for j,mom in enumerate(mom_list):
+            r = RatioIO(
+                'Coarse-1',
+                ratio,
+                mom,
+                PathToDataDir='/Users/pietro/code/data_analysis/BtoD/Alex'
+            )
+
+            try:
+                d = r.ReadRatio(jkBin=11,E0=0,m0=0)
+            except Exception:
+                d = None
+
+            # if d is not None:
+            #     ydata = gv.gvar(
+            #         d['RW'].mean(axis=0),
+            #         np.cov(d['RW'],rowvar=False)*(d['RW'].shape[-1]-1)
+            #     )
+            #     y  = gv.mean(ydata)
+            #     ye = gv.sdev(ydata)
+            #     x = np.arange(len(y)) 
+
+            #     ax[j,i].errorbar(x,y,yerr=ye,fmt='.')
+            #     ax[j,i].set_xticks([])
+            #     ax[j,i].set_yticks([])
+            # else:
+            #     ax[j,i].scatter([],[])
+            #     ax[j,i].set_xticks([])
+            #     ax[j,i].set_yticks([])
+
+            # if j==0:
+            #     ax[0,i].set_title(ratio)
+            # if i==0:
+            #     ax[j,0].set_ylabel(mom)
+
+            # print(mom,ratio)
 
 
+
+
+    # plt.tight_layout()
+    # plt.savefig('/Users/pietro/Desktop/MediumCoarse.pdf')
+    # plt.show()

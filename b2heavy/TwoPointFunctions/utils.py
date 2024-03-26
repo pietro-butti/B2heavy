@@ -148,8 +148,6 @@ def compute_covariance(ysamples, jk=True, ysamples_full=None, **cov_spec):
     else: # full covariance
         cov = fullcov
 
-
-
     yout = gv.gvar(tmp.mean(axis=0),cov)
     if cov_spec.get('cutsvd') is not None: # svd cut
         yout = gv.svd(yout, svdcut=cov_spec.get('cutsvd'))
