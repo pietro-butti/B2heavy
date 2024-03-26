@@ -59,11 +59,11 @@ class RatioIO:
         if PathToFile is not None:
             self.RatioFile = PathToFile
         elif PathToDataDir is not None:
-            path = os.path.join(PathToDataDir,self.mData['folder'],self.mData['hdf5File'])
-            if os.path.exists(path):
-                self.RatioFile = path
-            else:
-                raise FileNotFoundError(f'The file {path} has not been found')
+            # path = os.path.join(PathToDataDir,self.mData['folder'],self.mData['hdf5File'])
+            # if os.path.exists(path):
+            #     self.RatioFile = path
+            # else:
+            #     raise FileNotFoundError(f'The file {path} has not been found')
             
             path = os.path.join(PathToDataDir,self.mData['folder'],self.mData['hdf5File2'])
             if os.path.exists(path):
@@ -418,8 +418,7 @@ class Ratio:
             sliced, ally=ally, **cov_kwargs
         )
 
-        print(ydata)
-
+        return xdata,ydata
 
 def main_():
     ens = 'Coarse-1'
