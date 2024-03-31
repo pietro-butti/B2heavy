@@ -10,7 +10,6 @@ from .. import FnalHISQMetadata
 from ..TwoPointFunctions.utils import jkCorr, compute_covariance
 
 
-
 def read_ratio_from_data(corrname,DATA):
     try:
         return DATA[corrname]
@@ -33,7 +32,6 @@ def read_ratio_from_multiple_data(corrname,*datas,verbose=False):
     else:
         raise Exception(f'{corrname} not found in any datadicts')
 
-
 class RatioInfo:
     def __init__(self, _name:str, _ens:str, _rat:str, _mom:str):
         self.name     = _name
@@ -44,10 +42,8 @@ class RatioInfo:
         self.binsize  = None
         self.filename = None
 
-
     def __str__(self):
         return f' # ------------- {self.name} -------------\n # ensemble = {self.ensemble}\n #    meson = {self.meson}\n # momentum = {self.momentum}\n #  binsize = {self.binsize}\n # filename = {self.filename}\n # ---------------------------------------'
-
 class RatioIO:
     def __init__(self, _ens:str, _rat:str, _mom:str, PathToFile=None, PathToDataDir=None, name=None):
         dname = f'{_ens}_{_rat}_p{_mom}' if name is None else name
@@ -87,7 +83,13 @@ class RatioIO:
                 qStr   = mStr
                 nNames = [['P5_A2_V2_'], ['P5_A2_V2_']] # 'R'
                 nFacs  = [[1., 1.], [ 1., 1.]]
-                dNames = [['V1_V4_V1_'],['P5_V4_P5_']] # 'V1_V4_V2_', 'V1_V4_V3_']
+                dNames = [['V1_V4_V1_'],['P5_V4_P5_']] # 'V1_V4_V2_', 'V1_V4_V3_']         
+                
+                self.specs  = dict(
+                    source = ['B','Dst'],
+                    sink   = ['B','Dst']
+                )
+
             case 'ZRA1':
                 hStr   = bStr
                 lStr   = cStr
@@ -95,6 +97,9 @@ class RatioIO:
                 nNames = [['P5_A1_V1_', 'P5_A2_V2_', 'P5_A3_V3_'], ['V1_A1_P5_', 'V1_A2_P5_', 'V1_A3_P5_']] # 'R'
                 nFacs  = [[1., 1., 1.], [1., 1.]]
                 dNames = [['V1_V4_V1_'],['P5_V4_P5_']] # 'V1_V4_V2_', 'V1_V4_V3_']
+                
+                self.specs  = {'num': None, 'den': None}
+
             case 'ZRA1S':
                 hStr   = bStr
                 lStr   = cStr
@@ -102,6 +107,9 @@ class RatioIO:
                 nNames = [['P5_A1_V1_', 'P5_A2_V2_', 'P5_A3_V3_']] # 'R'
                 nFacs  = [[1., 1., 1.], [1., 1.]]
                 dNames = [['V1_V4_V1_'],['P5_V4_P5_']] # 'V1_V4_V2_', 'V1_V4_V3_']
+                
+                self.specs  = {'num': None, 'den': None}
+
             case 'RA1S':
                 hStr   = bStr
                 lStr   = cStr
@@ -109,6 +117,12 @@ class RatioIO:
                 nNames = [['P5_A2_V2_', 'P5_A3_V3_'], ['V1_A1_P5_', 'V1_A2_P5_', 'V1_A3_P5_']] # 'R'
                 nFacs  = [[1., 1.], [1., 1., 1.]]
                 dNames = [['V1_V4_V1_'],['P5_V4_P5']] # 'V1_V4_V2_', 'V1_V4_V3_']
+                
+                self.specs  = dict(
+                    source = ['Bs','Dsst'],
+                    sink   = ['Bs','Dsst']
+                )
+
             case 'R0':
                 hStr   = bStr
                 lStr   = cStr
@@ -116,6 +130,12 @@ class RatioIO:
                 nNames = [['P5_A4_V1_']]
                 nFacs  = [[1.]]
                 dNames = ['P5_A2_V2_', 'P5_A3_V3_']
+                
+                self.specs  = dict(
+                    source = 'B',
+                    sink   = 'Dst'
+                )
+
             case 'R0S':
                 hStr   = bStr
                 lStr   = cStr
@@ -123,6 +143,12 @@ class RatioIO:
                 nNames = [['P5_A4_V1_']]
                 nFacs  = [[1.]]
                 dNames = ['P5_A2_V2_', 'P5_A3_V3_']
+                
+                self.specs  = dict(
+                    source = 'Bs',
+                    sink   = 'Dsst'
+                )
+
             case 'R1':
                 hStr   = bStr
                 lStr   = cStr
@@ -130,6 +156,12 @@ class RatioIO:
                 nNames = [['P5_A1_V1_']]
                 nFacs  = [[1.0]]
                 dNames = ['P5_A2_V2_', 'P5_A3_V3_']
+                
+                self.specs  = dict(
+                    source = 'B',
+                    sink   = 'Dst'
+                )
+            
             case 'R1S':
                 hStr   = bStr
                 lStr   = cStr
@@ -137,6 +169,12 @@ class RatioIO:
                 nNames = [['P5_A1_V1_']]
                 nFacs  = [[0.5]]
                 dNames = ['P5_A2_V2_', 'P5_A3_V3_']
+                
+                self.specs  = dict(
+                    source = 'Bs',
+                    sink   = 'Dsst'
+                )
+
             case 'XV':
                 hStr   = bStr
                 lStr   = cStr
@@ -144,6 +182,12 @@ class RatioIO:
                 nNames = [['P5_V3_V2_', 'P5_V2_V3_']]
                 nFacs  = [[1., -1.]]
                 dNames = ['P5_A2_V2_', 'P5_A3_V3_']
+                
+                self.specs  = dict(
+                    source = 'B',
+                    sink   = 'Dst'
+                )
+
             case 'XVS':
                 hStr   = bStr
                 lStr   = cStr
@@ -151,6 +195,12 @@ class RatioIO:
                 nNames = [['P5_V3_V2_', 'P5_V3_V2_']]
                 nFacs  = [[1., -1.]]
                 dNames = ['P5_A2_V2_', 'P5_A3_V3_']
+                
+                self.specs  = dict(
+                    source = 'Bs',
+                    sink   = 'Dsst'
+                )
+
             case 'XFSTPAR':
                 hStr   = cStr
                 lStr   = cStr
@@ -158,6 +208,12 @@ class RatioIO:
                 nNames = [['V1_V1_V1_']]
                 nFacs  = [[1.]]
                 dNames = ['V1_V4_V1_']
+                
+                self.specs  = dict(
+                    source = 'Dst',
+                    sink   = 'Dst'
+                )
+
             case 'XFSTBOT':
                 hStr   = cStr
                 lStr   = cStr
@@ -165,6 +221,12 @@ class RatioIO:
                 nNames = [['V1_V2_V1_', 'V1_V3_V1_']]
                 nFacs  = [[1., 1.]]
                 dNames = ['V1_V4_V2_', 'V1_V4_V3_']
+                
+                self.specs  = dict(
+                    source = 'Dst',
+                    sink   = 'Dst'
+                )
+
             case 'XFSSTPAR':
                 hStr   = cStr
                 lStr   = cStr
@@ -172,6 +234,12 @@ class RatioIO:
                 nNames = [['V1_V1_V1_']]
                 nFacs  = [[1.]]
                 dNames = ['V1_V4_V1_']
+                
+                self.specs  = dict(
+                    source = 'Dsst',
+                    sink   = 'Dsst'
+                )
+
             case 'XFSSTBOT':
                 hStr   = cStr
                 lStr   = cStr
@@ -179,7 +247,13 @@ class RatioIO:
                 nNames = [['V1_V2_V1_', 'V1_V3_V1_']]
                 nFacs  = [[1., 1.]]
                 dNames = ['V1_V4_V3_']#, 'V1_V4_V3_']
-            
+                
+                self.specs  = dict(
+                    source = 'Dsst',
+                    sink   = 'Dsst'
+                )
+
+
         return { 
             'hStr'   : hStr  ,
             'lStr'   : lStr  ,
@@ -365,14 +439,13 @@ class RatioIO:
                     0.25*np.roll(AUX[1], -1, axis=1)[:,0:T+1]*np.exp((E0 - m0)*(T+1))
 
         return PROCESSED
-
-
 class Ratio:
-    def __init__(self, io:RatioIO, jkBin=None, E0=None, m0=None, **kwargs):
+    def __init__(self, io:RatioIO, jkBin=None, E0=None, m0=None, smearing=None, **kwargs):
         self.io           = io
         self.info         = io.info
         self.info.binsize = jkBin
         self.binsize      = jkBin
+
         self.E0           = E0
         self.m0           = m0
 
@@ -380,8 +453,11 @@ class Ratio:
             jkBin= jkBin,
             E0   = E0,
             m0   = m0,
+            sms  = ['1S','RW'] if smearing is None else smearing,
             **kwargs
         )
+
+        self.specs = io.specs
 
         self.smr = sorted(list(self.data.keys()))
 
@@ -390,8 +466,6 @@ class Ratio:
         assert len(shapes)==2
 
         self.timeslice = np.arange(shapes[0])
-
-
 
     def format(self, trange=None, smearing=None, flatten=False, alljk=False, **cov_kwargs):
         # Select smearings
@@ -410,28 +484,46 @@ class Ratio:
         # Compute un-jk data
         if cov_kwargs.get('scale'):
             ydata_full = self.io.ReadRatio(jkBin=1,E0=self.E0,m0=self.m0)
-            ally = {k: ydata_full[k][:,it] for k in ydata_full}
+            ally = {s: ydata_full[s][:,it] for s in smr}
         else:
             ally = None
 
-        sliced = {k: self.data[k][:,it] for k in self.data}
+        sliced = {s: self.data[s][:,it] for s in smr}
         ydata = compute_covariance(
             sliced, ally=ally, **cov_kwargs
         )
+        if flatten:
+            ydata = np.concatenate([ydata[s] for s in smr])
 
-        return xdata,ydata
+        if alljk and not flatten:
+            yjk = {s: self.data[s][:,it] for s in smr}
+        elif alljk and flatten:
+            yjk = np.hstack([self.data[s][:,it] for s in smr])
+
+        return (xdata,ydata) if not alljk else (xdata,ydata,yjk)
 
 def main():
     ens = 'Coarse-1'
-    rat = 'R0'
+    rat = 'xfstpar'
     mom = '100'
     frm = '/Users/pietro/code/data_analysis/BtoD/Alex'
 
-    io    = RatioIO(ens,rat,mom,PathToDataDir=frm)
-    ratio = Ratio(io,jkBin=13,E0=0,m0=0) 
+    for mom in ['100','200','300']:
+        io    = RatioIO(ens,rat,mom,PathToDataDir=frm)
+        d = io.ReadRatio(jkBin=11,E0=0,m0=0)
 
-    x,y = ratio.format()
-    print(x,y)
+        ydata = gv.gvar(
+            d['RW'].mean(axis=0),
+            np.cov(d['RW'],rowvar=False)*(d['RW'].shape[0]-1)
+        )
+        y  = gv.mean(ydata)
+        ye = gv.sdev(ydata)
+        x = np.arange(len(y)) 
+
+        plt.errorbar(x,y,yerr=ye,fmt='.')
+    plt.grid()
+    plt.show()
+
 
 def main_scan_all_ratio():
     # mom_list   = ['000','100','200','300','110','211']
@@ -456,36 +548,37 @@ def main_scan_all_ratio():
 
             try:
                 d = r.ReadRatio(jkBin=11,E0=0,m0=0)
+                print(r.specs)
             except Exception:
                 d = None
 
-            if d is not None:
-                ydata = gv.gvar(
-                    d['RW'].mean(axis=0),
-                    np.cov(d['RW'],rowvar=False)*(d['RW'].shape[-1]-1)
-                )
-                y  = gv.mean(ydata)
-                ye = gv.sdev(ydata)
-                x = np.arange(len(y)) 
+            # if d is not None:
+            #     ydata = gv.gvar(
+            #         d['RW'].mean(axis=0),
+            #         np.cov(d['RW'],rowvar=False)*(d['RW'].shape[0]-1)
+            #     )
+            #     y  = gv.mean(ydata)
+            #     ye = gv.sdev(ydata)
+            #     x = np.arange(len(y)) 
 
-                ax[j,i].errorbar(x,y,yerr=ye,fmt='.')
-                ax[j,i].set_xticks([])
-                ax[j,i].set_yticks([])
-            else:
-                ax[j,i].scatter([],[])
-                ax[j,i].set_xticks([])
-                ax[j,i].set_yticks([])
+            #     ax[j,i].errorbar(x,y,yerr=ye,fmt='.')
+            #     ax[j,i].set_xticks([])
+            #     ax[j,i].set_yticks([])
+            # else:
+            #     ax[j,i].scatter([],[])
+            #     ax[j,i].set_xticks([])
+            #     ax[j,i].set_yticks([])
 
-            if j==0:
-                ax[0,i].set_title(ratio)
-            if i==0:
-                ax[j,0].set_ylabel(mom)
+            # if j==0:
+            #     ax[0,i].set_title(ratio)
+            # if i==0:
+            #     ax[j,0].set_ylabel(mom)
 
-            print(mom,ratio)
-
-
+            # print(mom,ratio)
 
 
-    plt.tight_layout()
-    plt.savefig('/Users/pietro/Desktop/MediumCoarse.pdf')
-    plt.show()
+
+
+    # plt.tight_layout()
+    # plt.savefig('/Users/pietro/Desktop/MediumCoarse.pdf')
+    # plt.show()

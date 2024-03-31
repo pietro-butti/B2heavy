@@ -13,6 +13,8 @@ python 2pts_fit_config.py --config [file location of the toml config file]
                    --svd
                    --scale         [rescale the covariance matrix with the diagonal]
                    --shrink        [shrink covariance matrix]
+                   
+                   --no_priors_chi [don't consider priors in the calculation of chi2]
 
                    --plot_eff
                    --plot_fit

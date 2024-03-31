@@ -48,12 +48,13 @@ title = '2pts fits'
 [fit]
     [fit.MediumCoarse]    
         [fit.MediumCoarse.D]
-            nstates = 3
             smlist = ['d-d','1S-1S','d-1S']
             [fit.MediumCoarse.D.mom]
                 [fit.MediumCoarse.D.mom.000]
-                    tag    = 'MediumCoarse_D_000'
-                    trange = [10,19]
+                    nstates    = 3
+                    tag        = 'MediumCoarse_D_000'
+                    trange_eff = [13,20]
+                    trange     = [10,19]
                 [fit.MediumCoarse.D.mom.100] 
                     tag    = 'MediumCoarse_D_100'
                     trange = [10,19]
@@ -226,8 +227,10 @@ title = '2pts fits'
             nstates = 3
             smlist  = ['d-d','1S-1S','d-1S']
             [fit.Coarse-1.D.mom.000]
-                tag    = 'Coarse-1_D_000'
-                trange = [10,25]
+                nstates    = 3
+                tag        = 'MediumCoarse_D_000'
+                trange_eff = [13,20]
+                trange     = [10,19]
             [fit.Coarse-1.D.mom.100]
                 tag    = 'Coarse-1_D_100'
                 trange = [10,23]
