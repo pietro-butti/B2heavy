@@ -79,8 +79,6 @@ class CorrelatorInfo:
         if _mom not in MOMENTUM_LIST: # Check whether momentum is recognized
             raise KeyError(f'{_mom} is not a valid momentum.')
         return super().__new__(cls)
-        # if _file is not None and not os.path.isfile(_file): # Check whether input file exist
-        #     raise RuntimeError(f'{_file} has not been found.')
 
     def __init__(self, _name:str, _ens:str, _mes:str, _mom:str):
         self.name     = _name

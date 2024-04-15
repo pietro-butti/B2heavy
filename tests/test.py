@@ -22,8 +22,8 @@ if __name__ == "__main__":
         # types2pts.main() 
 
     elif args.ratio:
-        # types3pts.main()
-        types3pts.main_scan_all_ratio()
+        types3pts.main()
+        # types3pts.main_scan_all_ratio()
 
     elif args.ratiofit:
         fitter3pts.main()

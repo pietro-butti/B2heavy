@@ -217,39 +217,42 @@ class RatioFitter(Ratio):
 
 
 def main():
-    ens = 'Coarse-1'
-    rat = 'xfstpar'
-    mom = '100'
-    frm = '/Users/pietro/code/data_analysis/BtoD/Alex'
+    print('ciaooooooooooooo')
 
-    io = RatioIO(ens,rat,mom,PathToDataDir=frm)
+    # ens = 'Coarse-1'
+    # rat = 'xfstpar'
+    # mom = '100'
+    # frm = '/Users/pietro/code/data_analysis/BtoD/Alex'
 
-    cov_specs = dict(
-        scale  = True,
-        shrink = True,
-        cutsvd = 0.01
-    )
+    # io = RatioIO(ens,rat,mom,PathToDataDir=frm)
 
-    Nstates = 2
-    trange  = (3,11)
+    # cov_specs = dict(
+    #     scale  = True,
+    #     shrink = True,
+    #     cutsvd = 0.01
+    # )
+
+    # Nstates = 2
+    # trange  = (3,11)
+
+    # xfpar = RatioFitter(
+    #     io,
+    #     jkBin    = 11,
+    #     smearing = ['1S']
+    # )
 
 
-    xfpar = RatioFitter(
-        io,
-        jkBin    = 11,
-        smearing = ['1S']
-    )
 
-    fit = xfpar.fit(
-        Nstates = Nstates,
-        trange  = trange,
-        **cov_specs  
-    )
+    # fit = xfpar.fit(
+    #     Nstates = Nstates,
+    #     trange  = trange,
+    #     **cov_specs  
+    # )
 
-    pr = xfpar.priors(Nstates)
-    popt = dict(fit.pmean)
-    fcov = gv.evalcov(fit.y)
-    xfpar.chi2exp(Nstates,trange,popt,fcov)
+    # pr = xfpar.priors(Nstates)
+    # popt = dict(fit.pmean)
+    # fcov = gv.evalcov(fit.y)
+    # xfpar.chi2exp(Nstates,trange,popt,fcov)
 
 
     # plt.figure(figsize=(8, 6))

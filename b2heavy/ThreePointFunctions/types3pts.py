@@ -37,6 +37,7 @@ class RatioInfo:
 
     def __str__(self):
         return f' # ------------- {self.name} -------------\n # ensemble = {self.ensemble}\n #    meson = {self.meson}\n # momentum = {self.momentum}\n #  binsize = {self.binsize}\n # filename = {self.filename}\n # ---------------------------------------'
+
 class RatioIO:
     def __init__(self, _ens:str, _rat:str, _mom:str, PathToFile=None, PathToDataDir=None, name=None):
         dname = f'{_ens}_{_rat}_p{_mom}' if name is None else name
@@ -433,6 +434,7 @@ class RatioIO:
                     0.25*np.roll(AUX[1], -1, axis=1)[:,0:T+1]*np.exp((E0 - m0)*(T+1))
 
         return PROCESSED
+
 class Ratio:
     def __init__(self, io:RatioIO, jkBin=None, E0=None, m0=None, smearing=None, **kwargs):
         self.io           = io
@@ -502,8 +504,8 @@ class Ratio:
 
 def main_scan_all_ratio():
     # mom_list   = ['000','100','200','300','110','211']
-    mom_list   = ['000','100','200','300','400']
-    ratio_list = ['RA1','ZRA1','ZRA1S','RA1S','R0','R0S','R1','R1S','XV','XVS','XFSTPAR','XFSTBOT','XFSSTPAR','XFSSTBOT']
+    mom_list   = ['000','100','200','300']#,'400']
+    ratio_list = ['RA1','ZRA1','ZRA1S','RA1S']#,'R0','R0S','R1','R1S','XV','XVS','XFSTPAR','XFSTBOT','XFSSTPAR','XFSSTBOT']
 
     f,ax = plt.subplots(
         len(mom_list),len(ratio_list),
@@ -558,7 +560,7 @@ def main_scan_all_ratio():
 
 def main():
     ens = 'Coarse-1'
-    rat = 'RA1'
+    rat = 'XFSTBOT'
     mom = '100'
     frm = '/Users/pietro/code/data_analysis/BtoD/Alex'
 
@@ -575,6 +577,7 @@ def main():
         x = np.arange(len(y)) 
 
         plt.errorbar(x,y,yerr=ye,fmt='.')
+
     plt.grid()
     plt.show()
 
