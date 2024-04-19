@@ -19,7 +19,7 @@ def read_ratio_from_files_list(corrname,*files,verbose=False):
                     print(f'{corrname} found in {file}')
                 break
             except KeyError:
-                continue
+                raise Exception(f'{corrname} has not been found in the following list: {files}')
 
     return d
 
@@ -36,7 +36,7 @@ class RatioInfo:
         self.filename = None
 
     def __str__(self):
-        return f' # ------------- {self.name} -------------\n # ensemble = {self.ensemble}\n #    meson = {self.meson}\n # momentum = {self.momentum}\n #  binsize = {self.binsize}\n # filename = {self.filename}\n # ---------------------------------------'
+        return f' # ------------- {self.name} -------------\n # ensemble = {self.ensemble}\n #    ratio = {self.ratio}\n # momentum = {self.momentum}\n #  binsize = {self.binsize}\n # filename = {self.filename}\n # ---------------------------------------'
 
 class RatioIO:
     def __init__(self, _ens:str, _rat:str, _mom:str, PathToFile=None, PathToDataDir=None, name=None):
@@ -368,8 +368,6 @@ class RatioIO:
                         )
                         aux.append(
                             jkCorr(
-                                # read_ratio_from_files_list(corrname,*reversed(files),verbose=verbose),
-                                # FIXME
                                 read_ratio_from_files_list(corrname,*files,verbose=verbose),
                                 bsize=0 if jkBin is None else jkBin
                             )
@@ -406,8 +404,6 @@ class RatioIO:
                                 name,tSink,mesStr,hss,specs["qStr"],mesStr,mom='000'
                             )
                             aux.append(
-                                # read_ratio_from_files_list(corrname,*reversed(files),verbose=verbose)
-                                # FIXME
                                 read_ratio_from_files_list(corrname,*files,verbose=verbose)
                             )
                         aux = np.array(aux).mean(axis=0)[:,0:(tSink+1)]
@@ -420,23 +416,42 @@ class RatioIO:
                     )
 
                 if E0 is None and m0 is None:
-                    raise Exception('Energy and rest mass must be provided')
-                elif E0==0. and m0==0.:
-                    Warning('E0 and m0 are set to 0')
-                elif E0.shape!=m0.shape:
-                    raise Exception(f'E0 ({E0.shape = }) and m0 ({m0.shape = }) must have compatible shapes ')
-                elif E0.shape!=AUX[0].shape:
-                    raise Exception(f'E0 ({E0.shape = }) and ratio data ({AUX[0].shape = }) must have compatible shapes ')
+                    if self.info.momentum!='000':
+                        raise Exception('Energy and rest mass must be provided')
+                elif isinstance(E0, np.ndarray) and isinstance(m0, np.ndarray): 
+                    perjk = True
+                    if E0.shape!=m0.shape:
+                        raise Exception(f'E0 ({E0.shape = }) and m0 ({m0.shape = }) must have compatible shapes ')
+                    elif len(E0)!=AUX[0].shape[0]:
+                        raise Exception(f'E0 ({E0.shape = }) and ratio data ({AUX[0].shape = }) must have compatible shapes ')
+                elif isinstance(E0, float) and isinstance(E0, float):
+                    perjk = False
+                    if E0==0. and m0==0.:
+                        Warning('E0 and m0 are set to 0')
 
-                PROCESSED[hss] = \
-                    0.5*AUX[0][:,0:T+1]*np.exp((E0 - m0)*T) + \
-                    0.25*AUX[1][:,0:T+1]*np.exp((E0 - m0)*(T+1)) + \
-                    0.25*np.roll(AUX[1], -1, axis=1)[:,0:T+1]*np.exp((E0 - m0)*(T+1))
+
+                if self.info.momentum!='000':
+                    expT  = np.exp((E0 - m0)*T)
+                    expTp = np.exp((E0 - m0)*(T+1))
+                    if perjk:
+                        expT  = np.vstack([expT for _ in range(T+1)]).T
+                        expTp = np.vstack([expTp for _ in range(T+1)]).T
+
+                    PROCESSED[hss] = \
+                        0.5*AUX[0][:,0:T+1] * expT + \
+                        0.25*AUX[1][:,0:T+1] * expTp + \
+                        0.25*np.roll(AUX[1], -1, axis=1)[:,0:T+1] * expTp 
+
+                else:
+                    PROCESSED[hss] = \
+                        0.5*AUX[0][:,0:T+1] +\
+                        0.25*AUX[1][:,0:T+1] +\
+                        0.25*np.roll(AUX[1], -1, axis=1)[:,0:T+1]
 
         return PROCESSED
 
 class Ratio:
-    def __init__(self, io:RatioIO, jkBin=None, E0=None, m0=None, smearing=None, **kwargs):
+    def __init__(self, io:RatioIO, jkBin=None, smearing=None, E0=None, m0=None, Zpar=None, Zbot=None, Z0=None, wrecoil=None, **kwargs):
         self.io           = io
         self.info         = io.info
         self.info.binsize = jkBin
@@ -452,8 +467,35 @@ class Ratio:
             sms  = ['1S','RW'] if smearing is None else smearing,
             **kwargs
         )
+        self.specs        = io.specs
 
-        self.specs = io.specs
+        if self.info.ratio in ['R0','R1','RA1'] and self.info.momentum!='000':
+            if self.info.ratio in ['R0','R1']:
+                if Zpar is None or Zbot is None:
+                    raise Exception('For R0 ratio, Z_1S_par and Z_1S_bot must be provided') 
+                else:
+                    factor = np.sqrt(Zbot/Zpar)
+
+            elif self.info.ratio=='RA1':
+                if E0       is None or \
+                    m0      is None or \
+                    Zbot    is None or \
+                    Z0      is None or \
+                    wrecoil is None:
+                    raise Exception('For RA1 ratio, rest mass, E0, Z_1S_bot (at 0 and non-0 momentum) and recoil parameter must be provided') 
+                
+                else:
+                    T = self.mData['hSinks'][0]
+                    factor = Zbot/Z0 / wrecoil**2 * np.exp((E0-m0)*T)
+
+
+            if isinstance(factor, float):
+                factor = np.full_like(self.data,factor)
+            else:
+                factor = np.asarray([factor for _ in range(self.data['1S'].shape[-1])]).T
+            self.data = self.data * factor
+            
+
 
         self.smr = sorted(list(self.data.keys()))
 
@@ -462,6 +504,8 @@ class Ratio:
         assert len(shapes)==2
 
         self.timeslice = np.arange(shapes[0])
+
+        return
 
     def format(self, trange=None, smearing=None, flatten=False, alljk=False, **cov_kwargs):
         # Select smearings
@@ -497,6 +541,44 @@ class Ratio:
             yjk = np.hstack([self.data[s][:,it] for s in smr])
 
         return (xdata,ydata) if not alljk else (xdata,ydata,yjk)
+
+
+
+
+def main():
+    ens = 'Coarse-1'
+    rat = 'R0'
+    mom = '100'
+    frm = '/Users/pietro/code/data_analysis/BtoD/Alex'
+
+    io = RatioIO(ens,rat,mom,PathToDataDir=frm)
+    r  = Ratio(io, 11, smearing=['1S'])
+
+
+    # d  = io.ReadRatio(
+    #     jkBin = 11,
+    #     E0    = energy[mom],#1.0941142717943992,
+    #     m0    = energy['000'],#1.081825580044622,
+    #     sms   = ['1S']
+    # )
+
+
+
+    # MOM_LIST   = ['000','100','200','300','110','211']
+    # params = {mom: np.load(f'../notebooks/jkfit_{mom}.npy') for mom in MOM_LIST}
+    # energy = {mom: params[mom][:,0] for mom in params}
+
+    # io = RatioIO(ens,rat,mom,PathToDataDir=frm)
+    # d  = io.ReadRatio(
+    #     jkBin = 11,
+    #     E0    = energy[mom],#1.0941142717943992,
+    #     m0    = energy['000'],#1.081825580044622,
+    #     sms   = ['1S']
+    # )
+    # m0 = gv.gvar(energy['000'].mean(),energy['000'].std()*np.sqrt(len(energy['000']-1)))
+    # E0 = gv.gvar(energy[mom].mean(),energy[mom].std()*np.sqrt(len(energy[mom]-1)))
+
+
 
 
 
@@ -557,27 +639,3 @@ def main_scan_all_ratio():
     plt.tight_layout()
     # plt.savefig('/Users/pietro/Desktop/MediumCoarse.pdf')
     plt.show()
-
-def main():
-    ens = 'Coarse-1'
-    rat = 'XFSTBOT'
-    mom = '100'
-    frm = '/Users/pietro/code/data_analysis/BtoD/Alex'
-
-    for mom in ['100','200','300']:
-        io    = RatioIO(ens,rat,mom,PathToDataDir=frm)
-        d = io.ReadRatio(jkBin=11,E0=0,m0=0)
-
-        ydata = gv.gvar(
-            d['RW'].mean(axis=0),
-            np.cov(d['RW'],rowvar=False)*(d['RW'].shape[0]-1)
-        )
-        y  = gv.mean(ydata)
-        ye = gv.sdev(ydata)
-        x = np.arange(len(y)) 
-
-        plt.errorbar(x,y,yerr=ye,fmt='.')
-
-    plt.grid()
-    plt.show()
-

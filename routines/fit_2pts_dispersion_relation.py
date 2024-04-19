@@ -42,6 +42,7 @@ def extract_single_energy(tag,path=None,N=0,jk=False):
     else:
         return gv.mean(ret['E'][:,N])
 
+
 def extract_energies(ensemble,meson,momlist=None,jk=False,readfrom='.',tag='fit2pt_config'):
     if not os.path.exists(readfrom):
         raise NameError(f'{readfrom} is not an existing location')
@@ -66,6 +67,7 @@ def extract_energies(ensemble,meson,momlist=None,jk=False,readfrom='.',tag='fit2
 
     return E
 
+
 def mom_to_p2(mom,L=2*np.pi):
     return sum([(2*np.pi/L*float(px))**2 for px in mom])
 
@@ -76,6 +78,7 @@ def dispersion_relation(p,M1,M2,M4,w4):
     p4  = sum(p**4)
 
     return M1**2 + (M1/M2 * p2) + ((1/M1**2 - M1/M4**3)/4 * p22) - (M1*w4/3 * p4)
+
 
 def dispersion_relation_vec(pvec,M1,M2,M4,w4):
     return np.asarray([dispersion_relation(p,M1,M2,M4,w4) for p in pvec])

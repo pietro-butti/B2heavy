@@ -8,7 +8,7 @@ import numpy             as np
 import gvar              as gv
 import matplotlib.pyplot as plt
 import lsqfit
-
+from   tqdm import tqdm
 
 from .utils     import MPHYS, load_toml, NplusN2ptModel, correlation_diagnostics
 from .types2pts import CorrelatorInfo, CorrelatorIO, Correlator, plot_effective_coeffs
@@ -279,8 +279,7 @@ class StagFitter(Correlator):
 
             pkeys = sorted(fit.p.keys())
             fitpjk = []
-            for ijk in range(ally.shape[0]):
-                if verbose: print(f'{ijk+1} of {ally.shape[0]}')
+            for ijk in tqdm(range(ally.shape[0])):
                 ydata = gv.gvar(ally[ijk,:],cov)
 
                 fit = lsqfit.nonlinear_fit(
@@ -291,12 +290,12 @@ class StagFitter(Correlator):
                     maxit  = maxit,
                     svdcut = svdcut
                 )
+                fitpjk.append(fit.pmean)
 
-                fitpjk.append(
-                    np.hstack([fit.pmean[k] for k in pkeys])
-                )
+            fitjk = {k: np.asarray([jf[k] for jf in fitpjk]) for k in pkeys}
 
-        return fitpjk if jkfit else fit
+ 
+        return fitjk if jkfit else fit
 
     def fit_error(self, Nexc, xdata, yvec, fitcov, popt):
         pkeys = sorted(popt.keys())

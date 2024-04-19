@@ -48,16 +48,18 @@ class RatioFitter(Ratio):
         self.Ta, self.Tb = io.mData['hSinks']
         self.fits = {}
 
-    def priors(self, Nstates):
+    def priors(self, Nstates, K=None, dE_src=None, dE_snk=None):
         rsp = self.specs
         single = (not isinstance(rsp['source'],list)) and rsp['source']==rsp['sink'] 
 
         pr = {
-            'ratio' : [gv.gvar(-0.9,0.5)],
-            'dE_src': [gv.gvar(-1.5,1.0) for _ in range(Nstates)],
+            'ratio' : [gv.gvar(-0.9,0.5) if K is None else K],
+            'dE_src': [gv.gvar(-1.5,1.0) for _ in range(Nstates)] if dE_src is None else dE_src,
+            # 'log(dE_src)': [gv.log(gv.gvar('0.22(22)')) for _ in range(Nstates)] if dE_src is None else dE_src,
         }
         if not single:
-            pr['dE_snk'] = [gv.gvar(-1.5,1.0) for _ in range(Nstates)]
+            pr['dE_snk'] = [gv.gvar(-1.5,1.0) for _ in range(Nstates)] if dE_snk is None else dE_snk
+            # pr['log(dE_snk)'] = [gv.log(gv.gvar('0.22(22)')) for _ in range(Nstates)] if dE_snk is None else dE_snk
 
         for sm in self.smr:
             pr[f'A_{sm}'] = [gv.gvar('0(1)') for _ in range(Nstates)]
@@ -82,14 +84,14 @@ class RatioFitter(Ratio):
 
         # Prepare priors
         pr = self.priors(Nstates) if priors is None else priors
-        p0 = p0 if p0 is not None else gv.mean(pr)
+        # p0 = p0 if p0 is not None else gv.mean(pr)
 
         # Perform fit
         fit = lsqfit.nonlinear_fit(
             data   = (xdata,ydata),
             fcn    = _model,
             prior  = pr,
-            p0     = p0,
+            # p0     = p0,
             maxit  = 50000,
             svdcut = svdcut
         )
@@ -217,51 +219,14 @@ class RatioFitter(Ratio):
 
 
 def main():
-    print('ciaooooooooooooo')
+    ens = 'Coarse-1'
+    rat = 'RA1'
+    mom = '000'
+    frm = '/Users/pietro/code/data_analysis/BtoD/Alex'
 
-    # ens = 'Coarse-1'
-    # rat = 'xfstpar'
-    # mom = '100'
-    # frm = '/Users/pietro/code/data_analysis/BtoD/Alex'
-
-    # io = RatioIO(ens,rat,mom,PathToDataDir=frm)
-
-    # cov_specs = dict(
-    #     scale  = True,
-    #     shrink = True,
-    #     cutsvd = 0.01
-    # )
-
-    # Nstates = 2
-    # trange  = (3,11)
-
-    # xfpar = RatioFitter(
-    #     io,
-    #     jkBin    = 11,
-    #     smearing = ['1S']
-    # )
-
-
-
-    # fit = xfpar.fit(
-    #     Nstates = Nstates,
-    #     trange  = trange,
-    #     **cov_specs  
-    # )
-
-    # pr = xfpar.priors(Nstates)
-    # popt = dict(fit.pmean)
-    # fcov = gv.evalcov(fit.y)
-    # xfpar.chi2exp(Nstates,trange,popt,fcov)
-
-
-    # plt.figure(figsize=(8, 6))
-    # ax = plt.subplot(1,1,1)
-    # xfpar.plot_fit(
-    #     ax,
-    #     Nstates = Nstates,
-    #     trange  = trange
-    # )
-    # plt.show()
-
-    
+    io = RatioIO(ens,rat,mom,PathToDataDir=frm)
+    ratio = RatioFitter(
+        io,
+        jkBin    = 11,
+        smearing = ['1S']
+    )

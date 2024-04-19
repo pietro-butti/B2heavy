@@ -80,6 +80,7 @@ class CorrelatorInfo:
             raise KeyError(f'{_mom} is not a valid momentum.')
         return super().__new__(cls)
 
+
     def __init__(self, _name:str, _ens:str, _mes:str, _mom:str):
         self.name     = _name
         self.ensemble = _ens
@@ -88,13 +89,16 @@ class CorrelatorInfo:
         self.binsize  = None
         self.filename = None
 
+
     def __str__(self):
         return f' # ------------- {self.name} -------------\n # ensemble = {self.ensemble}\n #    meson = {self.meson}\n # momentum = {self.momentum}\n #  binsize = {self.binsize}\n # filename = {self.filename}\n # ---------------------------------------'
+
+
 class CorrelatorIO:
     """
         This is the basic structure that deals with input/output of the correlator data.
 
-        Data are read from a typical hdf5 archive, e.g. `l3264f211b600m00507m0507m628.hdf5` that can be provided by the additional argument `PathToFile`.
+        Data are read from a typical hdf5 archive, e.g. `l3264f211b600m00507m0507m628-HISQscript.hdf5` that can be provided by the additional argument `PathToFile`.
         
         If no other additional argument are specified, the location of the hdf5 archive is *automatically* inferred from `FnalHISQMetadata`. The location of the ensemble folder *must* be specified with `PathToDataDir`.
     """
@@ -116,8 +120,10 @@ class CorrelatorIO:
         else:
             raise FileNotFoundError(f'Please specify as optional argument either data file in `PathToFile` or `PathToDataDir` to look at default data file.')
 
+
     def checkSmear(self, myStr):
         return '1S' if '1S' in myStr else 'rot' if 'rot' in myStr else 'd'
+
 
     def CorrFileList(self, sms=None):
         # Set informations for reading
@@ -161,6 +167,7 @@ class CorrelatorIO:
 
             return cdict
 
+
     def SmearingList(self,CrossSmearing=False):
         SMR = sorted(self.CorrFileList().keys())
 
@@ -172,6 +179,7 @@ class CorrelatorIO:
 
         return SMR, cross
 
+
     def ReadCorrelator(self, CrossSmearing=False, jkBin=None, verbose=False):
         # Info about correlator
         T  = self.mData['T']//2
@@ -179,7 +187,7 @@ class CorrelatorIO:
         vector    = False
 
         CorrNameDict = self.CorrFileList() 
-        SMR,cross    = self.SmearingList(CrossSmearing=CrossSmearing)    
+        SMR,cross    = self.SmearingList(CrossSmearing=CrossSmearing)
 
         # Read and store correlator ---------------------------------------------
         PROCESSED = {}
@@ -209,7 +217,6 @@ class CorrelatorIO:
                     else:
                         PROCESSED[sm,'Unpol'] = corrs.mean(axis=0)
         
-
         # Prepare polarization list -----------------------------------------------
         POL = ['Par','Bot'] if collinear and vector else ['Unpol']
 
@@ -260,6 +267,8 @@ class CorrelatorIO:
 
 
         return xd
+
+
 class Correlator:
     def __init__(self, io:CorrelatorIO, smearing=None, polarization=None, jkBin=None, **kwargs):
         self.io           = io
@@ -276,9 +285,11 @@ class Correlator:
         self.keys = sorted(itertools.product(self.smr,self.pol))
         self.data = data.loc[self.smr,self.pol,:,:]
 
+
     def __str__(self):
         return f'{self.info}'
     
+
     def format(self, trange=None, smearing=None, polarization=None, flatten=False, alljk=False, **cov_kwargs):
         '''
             Returns a pytree with formatted data whithin the time-range with given covariance properties.
@@ -330,6 +341,7 @@ class Correlator:
                 yjk = np.hstack([yjk[k] for k in self.keys])
 
         return (xdata, ydata) if not alljk else (xdata,ydata,yjk)
+
 
     def meff(self, trange=None, prior=None, verbose=False, plottable=False, variant='cosh', **cov_kwargs):
         xdata,ydata = self.format(trange=None, flatten=False, **cov_kwargs)
@@ -398,6 +410,7 @@ class Correlator:
         else:
             return Meff,Aeff
 
+
     def chiexp_meff(self, trange, variant, pvalue=False, Nmc=5000, **cov_kwargs):
         args = self.meff(trange=trange,plottable=True,variant=variant, **cov_kwargs)
 
@@ -461,6 +474,7 @@ class Correlator:
             p /= Nmc
             
             return chi2, chiexp, p
+
 
     def tmax(self, threshold=0.25):
         xdata,ydata = self.format()
@@ -791,26 +805,18 @@ def global_eff_coeffs(ens, mes, trange, chiexp=True, config_file='/Users/pietro/
         return fit, chi2, chiexp, p
 
 
-
-
-
 def main():
     ens = 'Coarse-1'
     mes = 'Dst'
     mom = '000'
 
-    io   = CorrelatorIO(ens,mes,mom,PathToDataDir="/Users/pietro/code/data_analysis/BtoD/Alex")
-    print(io.CorrFile)
+    path = '/Users/pietro/code/data_analysis/BtoD/Alex/Ensembles/FnalHISQ/a0.12/'
 
-    # cov_specs = dict(
-    #     shrink = True,
-    #     scale  = True,
-    #     svd = 0.05
-    # )
+    io  = CorrelatorIO(ens,mes,mom,PathToFile=f"{path}l3264f211b600m00507m0507m628-HISQscript.hdf5")
+    io.ReadCorrelator(jkBin=None,verbose=True)
 
-    # trange = (10,19)
-    # fit,chi2,chiexp,p = global_eff_coeffs(ensemble,meson,trange)
+    print('----------------------------')
 
-    # print(fit)
-    # print(f'{chi2/chiexp = }')
-    # print(f'{p = }')
+    io  = CorrelatorIO(ens,mes,mom,PathToFile=f"{path}l3264f211b600m00507m0507m628-HISQscript_new.hdf5")
+    io.ReadCorrelator(jkBin=None,verbose=True)
+
