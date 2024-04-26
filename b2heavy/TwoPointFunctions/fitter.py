@@ -246,12 +246,16 @@ class StagFitter(Correlator):
         return _cost, hess_par, hess_mix
 
     def fit(self, Nstates, trange, verbose=False, priors=None, p0=None, maxit=50000, svdcut=0., jkfit=False, **data_kwargs):
-        xdata, ydata = self.format(trange=trange, flatten=True, **data_kwargs)
+        xdata, ydata = self.format(
+            trange  = trange, 
+            flatten = True, 
+            **data_kwargs
+        )
 
         def model(xdata,pdict):
-            return np.concatenate(
-                [NplusN2ptModel(Nstates,self.Nt,smr,pol)(xdata,pdict) for smr,pol in self.keys]
-            )            
+            return np.concatenate([
+                NplusN2ptModel(Nstates,self.Nt,smr,pol)(xdata,pdict) for smr,pol in self.keys
+            ])            
 
         if verbose:
             print(f'---------- {Nstates}+{Nstates} fit in {trange} for mes: {self.info.meson} of ens: {self.info.ensemble} for mom: {self.info.momentum} --------------')
@@ -457,10 +461,10 @@ jax.config.update("jax_enable_x64", True)
 x = jax.random.uniform(jax.random.PRNGKey(0), (1000,))#, dtype=jnp.float64)
 assert x.dtype == jnp.float64
 def main(FLAG):
-    ens      = 'MediumCoarse'
+    ens      = 'Fine-1'
     mes      = 'Dst'
     mom      = '000'
-    binsize  = 13
+    binsize  = 16
     data_dir = '/Users/pietro/code/data_analysis/BtoD/Alex/'
     smlist   = ['1S-1S','d-d','d-1S'] 
 
@@ -471,7 +475,7 @@ def main(FLAG):
         smearing = smlist
     )
 
-    TLIM     = (13,19)
+    TLIM     = (10,37)
     NEXC     = 3
 
     # ========================================= correlation =============================================
@@ -495,8 +499,6 @@ def main(FLAG):
             shrink = True,
             cutsvd = 0.01,
         )
-
-
 
         meff,aeff = stag.meff(trange=TLIM,**cov_specs)
         pr = stag.priors(NEXC,Meff=meff,Aeff=aeff)

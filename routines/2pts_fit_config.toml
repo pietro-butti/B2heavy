@@ -4,7 +4,7 @@ title = '2pts fits'
 
 # Meson list
 [ensemble]
-    list = ['MediumCoarse','Coarse-1']
+    list = ['MediumCoarse','Coarse-1','Fine-1']
 
 [meson]
     list = ['D','Dst','Ds', 'Dsst']
@@ -29,6 +29,23 @@ title = '2pts fits'
         binsize  = 11
         mom_list = ['000','100','200','300','110','211']
         Nt       = 64
+    
+    [data.Fine-1]
+        name     = 'Fine-1'
+        data_dir = "/Users/pietro/code/data_analysis/BtoD/Alex"
+        binsize  = 16
+        mom_list = ['000','100','200','300','110','211']
+        Nt       = 96
+    
+
+# binSizes  = {'MediumCoarse':13,
+#              'Coarse-2':    16,
+#              'Coarse-1':    11,
+#              'Coarse-Phys': 19,
+#              'Fine-1':      16,
+#              'Fine-Phys':   16,
+#              'SuperFine':   22}#22}
+
 
     
 [fit]
@@ -112,4 +129,36 @@ title = '2pts fits'
                 trange_eff = [11,19] # 0.01         0.32  0.3
                 trange     = [5,19]
 
- 
+    [fit.Fine-1]
+        [fit.Fine-1.Dst]
+            smlist  = ['d-d','1S-1S','d-1S']
+            [fit.Fine-1.Dst.mom.000]
+                tag        = 'Fine-1_Dst_000'
+                nstates    = 3
+                trange_eff = [15,30] # 0.008    0.20 0.12
+                trange     = [5,26]  # [12,17] tmax=26
+            [fit.Fine-1.Dst.mom.100]
+                tag    = 'Fine-1_Dst_100'
+                nstates    = 3
+                trange_eff = [15,30] # 0.025    0.2 0.8
+                trange     = [5,23] # [12,15] tmax=23
+            [fit.Fine-1.Dst.mom.200]
+                tag        = 'Fine-1_Dst_200'
+                nstates    = 3
+                trange_eff = [15,30] # 0.047      0.34 0.56
+                trange     = [5,21] # [8,20]
+            [fit.Fine-1.Dst.mom.300]
+                tag        = 'Fine-1_Dst_300'
+                nstates    = 3
+                trange_eff = [15,30] # 0.04         0.37 0.09
+                trange     = [5,17] # [10,13]
+            [fit.Fine-1.Dst.mom.110]
+                tag        = 'Fine-1_Dst_110'
+                nstates    = 3
+                trange_eff = [15,30] # 0.01         0.19 0.65
+                trange     = [5,23] #[10,17]
+            [fit.Fine-1.Dst.mom.211]
+                tag        = 'Fine-1_Dst_211'
+                nstates    = 3
+                trange_eff = [15,30] # 0.01         0.32  0.3
+                trange     = [5,19]

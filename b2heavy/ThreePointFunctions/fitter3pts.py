@@ -7,7 +7,7 @@ import gvar              as gv
 import matplotlib.pyplot as plt
 import lsqfit
 
-
+from tqdm     import tqdm
 from .types3pts import Ratio, RatioIO
 
 
@@ -67,7 +67,7 @@ class RatioFitter(Ratio):
 
         return pr
 
-    def fit(self, Nstates, trange, verbose=True, priors=None, p0=None, svdcut=0., **data_kwargs):
+    def fit(self, Nstates, trange, verbose=True, priors=None, p0=None, svdcut=0., jkfit=False, **data_kwargs):
         # Format data
         xdata, ydata = self.format(
             trange  = trange, 
@@ -84,14 +84,12 @@ class RatioFitter(Ratio):
 
         # Prepare priors
         pr = self.priors(Nstates) if priors is None else priors
-        # p0 = p0 if p0 is not None else gv.mean(pr)
 
         # Perform fit
         fit = lsqfit.nonlinear_fit(
             data   = (xdata,ydata),
             fcn    = _model,
             prior  = pr,
-            # p0     = p0,
             maxit  = 50000,
             svdcut = svdcut
         )
@@ -100,7 +98,36 @@ class RatioFitter(Ratio):
         if verbose:
             print(fit)
 
-        return fit
+        if jkfit:
+            xdata, ydata, ally = self.format(
+                trange  = trange, 
+                flatten = True, 
+                alljk   = True,
+                **data_kwargs
+            )   
+            cov = gv.evalcov(ydata)         
+
+            pkeys = sorted(fit.p.keys())
+            fitpjk = []
+            for ijk in tqdm(range(ally.shape[0])):
+                ydata = gv.gvar(ally[ijk,:],cov)
+                fit = lsqfit.nonlinear_fit(
+                    data   = (xdata,ydata),
+                    fcn    = _model,
+                    prior  = pr,
+                    maxit  = 50000,
+                    svdcut = svdcut
+                )                
+
+                fitpjk.append(fit.pmean)
+
+            fitjk = {k: np.asarray([jf[k] for jf in fitpjk]).T for k in pkeys}
+
+        return fitjk if jkfit else fit
+
+
+
+
 
     def plot_fit(self,ax,Nstates,trange):
         fit = self.fits[Nstates,trange]
@@ -220,8 +247,8 @@ class RatioFitter(Ratio):
 
 def main():
     ens = 'Coarse-1'
-    rat = 'RA1'
-    mom = '000'
+    rat = 'xfstpar'
+    mom = '100'
     frm = '/Users/pietro/code/data_analysis/BtoD/Alex'
 
     io = RatioIO(ens,rat,mom,PathToDataDir=frm)
@@ -229,4 +256,27 @@ def main():
         io,
         jkBin    = 11,
         smearing = ['1S']
+    )
+
+    COV_SPECS = dict(
+        diag   = False,
+        block  = False,
+        scale  = True,
+        shrink = True,
+        cutsvd = 0.01
+    )
+
+    priors = {
+        'ratio':  [gv.gvar('-0.074(50)')],
+        'dE_src': [gv.gvar('-1.5(1.0)')],
+        'A_1S':   [gv.gvar('0 ± 1.0')],
+        'B_1S':   [gv.gvar('0 ± 1.0')]
+    }
+
+    fit = ratio.fit(
+        Nstates = 1,
+        trange  = (3,11),
+        priors  = priors,
+        jkfit   = True,
+        **COV_SPECS
     )

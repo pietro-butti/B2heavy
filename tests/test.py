@@ -17,9 +17,9 @@ if __name__ == "__main__":
         fitter.main(args.do)
 
     elif args.type:
-        # types2pts.eff_coeffs(args.do)
+        types2pts.eff_coeffs(args.do)
         # types2pts.global_eff_coeffs()
-        types2pts.main() 
+        # types2pts.main() 
 
     elif args.ratio:
         types3pts.main()

@@ -467,8 +467,9 @@ class Ratio:
             sms  = ['1S','RW'] if smearing is None else smearing,
             **kwargs
         )
-        self.specs        = io.specs
+        self.specs = io.specs
 
+        breakpoint()
         if self.info.ratio in ['R0','R1','RA1'] and self.info.momentum!='000':
             if self.info.ratio in ['R0','R1']:
                 if Zpar is None or Zbot is None:
@@ -493,7 +494,8 @@ class Ratio:
                 factor = np.full_like(self.data,factor)
             else:
                 factor = np.asarray([factor for _ in range(self.data['1S'].shape[-1])]).T
-            self.data = self.data * factor
+
+            self.data['1S'] = self.data['1S'] * factor
             
 
 
@@ -545,6 +547,9 @@ class Ratio:
 
 
 
+from ..TwoPointFunctions.types2pts import CorrelatorIO, Correlator
+
+
 def main():
     ens = 'Coarse-1'
     rat = 'R0'
@@ -552,7 +557,8 @@ def main():
     frm = '/Users/pietro/code/data_analysis/BtoD/Alex'
 
     io = RatioIO(ens,rat,mom,PathToDataDir=frm)
-    r  = Ratio(io, 11, smearing=['1S'])
+    r  = Ratio(io, 11, smearing=['1S'], verbose=True)
+
 
 
     # d  = io.ReadRatio(
