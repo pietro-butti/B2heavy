@@ -49,11 +49,11 @@ class RatioIO:
         if PathToFile is not None:
             self.RatioFile = PathToFile
         elif PathToDataDir is not None:
-            path = os.path.join(PathToDataDir,self.mData['folder'],self.mData['hdf5File'])
-            if os.path.exists(path):
-                self.RatioFile = path
-            else:
-                raise FileNotFoundError(f'The file {path} has not been found')
+            # path = os.path.join(PathToDataDir,self.mData['folder'],self.mData['hdf5File'])
+            # if os.path.exists(path):
+            #     self.RatioFile = path
+            # else:
+            #     raise FileNotFoundError(f'The file {path} has not been found')
             
             path = os.path.join(PathToDataDir,self.mData['folder'],self.mData['hdf5File2'])
             if os.path.exists(path):
@@ -302,7 +302,7 @@ class RatioIO:
     def ReadRatio(self, sms = ['RW','1S'], jkBin=None, E0=None, m0=None, verbose=False, datafiles=None):
         if datafiles is None:
             # files = [self.RatioFile,self.RatioFile2]
-            files = [self.RatioFile2,self.RatioFile]
+            files = [self.RatioFile2]
         else:
             files = datafiles
 
@@ -469,7 +469,6 @@ class Ratio:
         )
         self.specs = io.specs
 
-        breakpoint()
         if self.info.ratio in ['R0','R1','RA1'] and self.info.momentum!='000':
             if self.info.ratio in ['R0','R1']:
                 if Zpar is None or Zbot is None:
@@ -486,13 +485,11 @@ class Ratio:
                     raise Exception('For RA1 ratio, rest mass, E0, Z_1S_bot (at 0 and non-0 momentum) and recoil parameter must be provided') 
                 
                 else:
-                    T = self.mData['hSinks'][0]
+                    T = self.io.mData['hSinks'][0]
                     factor = Zbot/Z0 / wrecoil**2 * np.exp((E0-m0)*T)
 
 
-            if isinstance(factor, float):
-                factor = np.full_like(self.data,factor)
-            else:
+            if isinstance(factor, np.ndarray):
                 factor = np.asarray([factor for _ in range(self.data['1S'].shape[-1])]).T
 
             self.data['1S'] = self.data['1S'] * factor
@@ -548,7 +545,7 @@ class Ratio:
 
 
 from ..TwoPointFunctions.types2pts import CorrelatorIO, Correlator
-
+from routines.fit_2pts_utils import read_config_fit
 
 def main():
     ens = 'Coarse-1'
@@ -556,9 +553,20 @@ def main():
     mom = '100'
     frm = '/Users/pietro/code/data_analysis/BtoD/Alex'
 
-    io = RatioIO(ens,rat,mom,PathToDataDir=frm)
-    r  = Ratio(io, 11, smearing=['1S'], verbose=True)
 
+    tag = f'fit2pt_config_{ens}_Dst_{mom}'
+    fit,params = read_config_fit(f'fit2pt_config_{ens}_Dst_{mom}',path='/Users/pietro/code/data_analysis/data/QCDNf2p1stag/B2heavy/presentation')
+
+    Zpar = (params['Z_1S_Par'][0] * np.sqrt(2*params['E'][0])).mean
+    Zbot = (params['Z_1S_Bot'][0] * np.sqrt(2*params['E'][0])).mean
+
+    io = RatioIO(ens,rat,mom,PathToDataDir=frm)
+    ratio = Ratio(
+        io, 11, smearing=['1S'], 
+        Zpar = Zpar,
+        Zbot = Zbot
+    )
+    breakpoint()
 
 
     # d  = io.ReadRatio(

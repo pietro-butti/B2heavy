@@ -247,6 +247,7 @@ def main():
     ax.set_xlabel(r'$a^2\mathbf{p}^2$')
 
     plt.tight_layout()
+    plt.title(tag)
     plt.savefig(f'{saveto}/fit2pts_dispersion_relation_{tag}.pdf')
 
     plt.show()

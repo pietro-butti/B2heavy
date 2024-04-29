@@ -85,19 +85,29 @@ def fit_2pts_single_corr(
         **cov_specs
     )
 
+    if jkfit:
+        fitjk = stag.fit(
+            Nstates = nstates,
+            trange  = trange,
+            priors  = pr,
+            jkfit   = True,
+            verbose = False,
+            **cov_specs
+        )
+
     if saveto is not None:
+        fitres = stag.fit_result(
+            nstates,
+            trange,
+            verbose = True,
+            priors  = pr if wpriors else None
+        )
+        utils.dump_fit_object(saveto,fit,**fitres)
+
         if jkfit:
             name = f'{saveto}_fit.pickle'
             with open(name,'wb') as handle:
-                pickle.dump(fit, handle, protocol=pickle.HIGHEST_PROTOCOL)
-        else:
-            fitres = stag.fit_result(
-                nstates,
-                trange,
-                verbose = True,
-                priors  = pr if wpriors else None
-            )
-            utils.dump_fit_object(saveto,fit,**fitres)
+                pickle.dump(fitjk, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     return stag,fitres
 

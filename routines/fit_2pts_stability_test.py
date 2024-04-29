@@ -122,6 +122,7 @@ def read_results_stability_test(dumped, ic='TIC', show=True):
         df['E_0'].append(d[k]['p']['E'][0])
 
         for zk in Zs:
+            # df[zk].append(np.exp(d[k]['p'][zk][0])) 
             df[zk].append(np.exp(d[k]['p'][zk][0])) 
         
 
@@ -253,14 +254,14 @@ def log(tag,ens,meson,mom,prior_trange,Nstates,tmins,tmaxs,not_average):
 
 
 prs = argparse.ArgumentParser(usage=usage)
-prs.add_argument('-c','--config', type=str,  default='./2pts_fit_config.toml')
+prs.add_argument('-c','--config'  , type=str,  default='./2pts_fit_config.toml')
 prs.add_argument('-e','--ensemble', type=str)
 prs.add_argument('-m','--meson'   , type=str)
-prs.add_argument('-mm','--mom'     , type=str)
+prs.add_argument('-mm','--mom'    , type=str)
 prs.add_argument('--prior_trange' , type=int, nargs='+')
-prs.add_argument('--Nstates' , type=int, nargs='+')
-prs.add_argument('--tmins'   , type=int, nargs='+')
-prs.add_argument('--tmaxs'   , type=int, nargs='+')
+prs.add_argument('--Nstates'      , type=int, nargs='+')
+prs.add_argument('--tmins'        , type=int, nargs='+')
+prs.add_argument('--tmaxs'        , type=int, nargs='+')
 
 prs.add_argument('--shrink', action='store_true')
 prs.add_argument('--scale' , action='store_true')
@@ -282,14 +283,6 @@ prs.add_argument('--plot_ymax', type=float, default=None)
 prs.add_argument('--plot_ymin', type=float, default=None)
 prs.add_argument('--plot_AIC', action='store_true')
 prs.add_argument('--show', action='store_true')
-
-
-
-
-
-
-
-
 
 
 

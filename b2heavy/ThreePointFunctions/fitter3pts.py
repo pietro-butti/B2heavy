@@ -1,3 +1,4 @@
+
 import jax 
 import jax.numpy         as jnp
 jax.config.update("jax_enable_x64", True)
@@ -12,8 +13,8 @@ from .types3pts import Ratio, RatioIO
 
 
 def ModelRatio_jax(T,rsp,sm,Nexc):
-    single = (not isinstance(rsp['source'],list)) and rsp['source']==rsp['sink'] 
-    dE_k2 = 'dE_src' if single else 'dE_snk'
+    simple = (not isinstance(rsp['source'],list)) and rsp['source']==rsp['sink'] 
+    dE_k2 = 'dE_src' if simple else 'dE_snk'
 
     def _model(t,p):
         tmp = jnp.full(len(t),1.)
@@ -26,15 +27,14 @@ def ModelRatio_jax(T,rsp,sm,Nexc):
     return _model
 
 def ModelRatio(T,rsp,sm,Nexc):
-    single = (not isinstance(rsp['source'],list)) and rsp['source']==rsp['sink'] 
-    dE_k2 = 'dE_src' if single else 'dE_snk'
+    simple = (not isinstance(rsp['source'],list)) and rsp['source']==rsp['sink'] 
+    dE_k2 = 'dE_src' if simple else 'dE_snk'
 
     def _model(t,p):
         tmp = np.full(len(t),1.)
         for iexc in range(Nexc):
             tmp = tmp + p[f'A_{sm}'][iexc] * np.exp(- np.exp(p['dE_src'][iexc]) * (t)) + \
                         p[f'B_{sm}'][iexc] * np.exp(- np.exp(p[dE_k2][iexc]) * (T-t))
-                        # p[f'{"A" if single else "B"}_{sm}'][iexc] * np.exp(- np.exp(p[dE_k2][iexc]) * (T-t))
         tmp = p['ratio'][0]*tmp
         return tmp
 
@@ -48,12 +48,13 @@ class RatioFitter(Ratio):
         self.Ta, self.Tb = io.mData['hSinks']
         self.fits = {}
 
+
     def priors(self, Nstates, K=None, dE_src=None, dE_snk=None):
         rsp = self.specs
         single = (not isinstance(rsp['source'],list)) and rsp['source']==rsp['sink'] 
 
         pr = {
-            'ratio' : [gv.gvar(-0.9,0.5) if K is None else K],
+            'ratio' : [gv.gvar(-0.9,0.1 if self.ratio=='RA1' else 0.05) if K is None else K],
             'dE_src': [gv.gvar(-1.5,1.0) for _ in range(Nstates)] if dE_src is None else dE_src,
             # 'log(dE_src)': [gv.log(gv.gvar('0.22(22)')) for _ in range(Nstates)] if dE_src is None else dE_src,
         }
@@ -66,6 +67,7 @@ class RatioFitter(Ratio):
             pr[f'B_{sm}'] = [gv.gvar('0(1)') for _ in range(Nstates)]
 
         return pr
+
 
     def fit(self, Nstates, trange, verbose=True, priors=None, p0=None, svdcut=0., jkfit=False, **data_kwargs):
         # Format data
@@ -126,9 +128,6 @@ class RatioFitter(Ratio):
         return fitjk if jkfit else fit
 
 
-
-
-
     def plot_fit(self,ax,Nstates,trange):
         fit = self.fits[Nstates,trange]
         x,y = self.format()
@@ -157,6 +156,7 @@ class RatioFitter(Ratio):
 
             ax.set_xlim(-0.1,max(x)+1)          
 
+
     def diff_model(self, xdata, Nstates):
         def _model(pdict):
             return jnp.concatenate([
@@ -171,6 +171,7 @@ class RatioFitter(Ratio):
             return jax.jacfwd(jax.jacrev(_model))(pdict)
             
         return _model, _jac, _hes
+
 
     def chi2exp(self, Nexc, trange, popt, fitcov, priors=None, pvalue=True, Nmc=10000):
         # Format data and estimate covariance matrix
@@ -245,9 +246,38 @@ class RatioFitter(Ratio):
             return chi2, chiexp, p
 
 
+    def fit_result(self,Nexc,trange,verbose=True, priors=None):
+        fit = self.fits[Nexc,trange]
+        xdata  = fit.x
+        yvec   = gv.mean(fit.y)
+        fitcov = gv.evalcov(fit.y)
+        popt   = dict(fit.pmean)
+
+        chi2, chiexp, p = self.chi2exp(Nexc, trange, popt, fitcov, pvalue=True, priors=priors)
+        if verbose:
+            print(f'# ---------- {Nexc}+{Nexc} fit in {trange} for ratio: {self.info.ratio} of ens: {self.info.ensemble} for mom: {self.info.momentum} --------------')
+            print(fit)
+
+            print(f'# red chi2     = {chi2:.2f}')
+            print(f'# chi2_exp     = {chiexp:.2f}')
+            print(f'# chi2/chi_exp = {chi2/chiexp:.2f}')
+            print(f'# p-value      = {p:.2f}')
+
+        res = dict(
+            fit    = fit,
+            chi2   = chi2,
+            chiexp = chiexp,
+            pvalue = p,
+        )
+
+        return res
+
+
+
 def main():
-    ens = 'Coarse-1'
-    rat = 'xfstpar'
+    ens = 'Fine-1'
+    rat = 'XV'
+    # rat = 'RA1'
     mom = '100'
     frm = '/Users/pietro/code/data_analysis/BtoD/Alex'
 
@@ -255,8 +285,11 @@ def main():
     ratio = RatioFitter(
         io,
         jkBin    = 11,
-        smearing = ['1S']
+        smearing = ['1S'],
+        # E0 = 0., m0 = 0., Zbot=1., Z0=1., wrecoil=100000.
     )
+
+    print(ratio.Ta)
 
     COV_SPECS = dict(
         diag   = False,
@@ -266,17 +299,29 @@ def main():
         cutsvd = 0.01
     )
 
-    priors = {
-        'ratio':  [gv.gvar('-0.074(50)')],
-        'dE_src': [gv.gvar('-1.5(1.0)')],
-        'A_1S':   [gv.gvar('0 ± 1.0')],
-        'B_1S':   [gv.gvar('0 ± 1.0')]
-    }
+    nstates = 2
+    trange  = (3,11)
+
+    x,y = ratio.format()
+    priors = ratio.priors(nstates,K=gv.gvar(y['1S'][len(y['1S'])//2].mean,0.1))
 
     fit = ratio.fit(
-        Nstates = 1,
-        trange  = (3,11),
+        Nstates = nstates,
+        trange  = trange,
+        verbose = True,
         priors  = priors,
-        jkfit   = True,
         **COV_SPECS
     )
+
+    pr = fit.prior
+    popt = dict(fit.pmean)
+    fcov = gv.evalcov(fit.y)
+    c2,ce,p = ratio.chi2exp(nstates,trange,popt,fcov,priors=pr)
+    c2dof = c2/(len(fit.y)-1-(len(fit.prior.keys())-1)*nstates)
+    # res = dict(fit=fit, chi2red=c2, chiexp=ce, pvalue=p)
+
+
+    print(f'{c2dof = }')
+    print(f'{c2/ce = }')
+    print(f'{p = }')
+

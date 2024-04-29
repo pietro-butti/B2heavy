@@ -476,10 +476,10 @@ class Correlator:
             return chi2, chiexp, p
 
 
-    def tmax(self, threshold=0.25):
+    def tmax(self, threshold=0.25, criterion=max):
         xdata,ydata = self.format()
         rel = np.vstack([abs(gv.sdev(y)/gv.mean(y)) for y in ydata.values()]).mean(axis=0)
-        Tmax = max([t for t,r in enumerate(rel) if r<=threshold])
+        Tmax = criterion([t for t,r in enumerate(rel) if r<=threshold])
         return Tmax
 
 

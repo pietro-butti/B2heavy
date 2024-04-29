@@ -1,0 +1,13 @@
+#!/bin/bash
+
+# python fit_2pts_stability_test.py -e Coarse-1 -m Dst -mm 100 --prior_trange 13 20 --Nstates 1 2 3 --tmaxs 17 18 19 20 21 22 23 24 25 --tmins 4 5 6 7 8 9 10 11 12 --plot --plot_AIC --shrink --scale --svd 0.01 --saveto default --readfrom default  --nochipr --override
+# python fit_2pts_stability_test.py -e Coarse-1 -m Dst -mm 200 --prior_trange 13 20 --Nstates 1 2 3 --tmaxs 17 18 19 20 21 22 23 24 25 --tmins 4 5 6 7 8 9 10 11 12 --plot --plot_AIC --shrink --scale --svd 0.01 --saveto default --readfrom default  --nochipr --override
+# python fit_2pts_stability_test.py -e Coarse-1 -m Dst -mm 300 --prior_trange 10 17 --Nstates 1 2 3 --tmaxs 17 18 19 20 21 22 23 24 25 --tmins 4 5 6 7 8 9 10 11 12 --plot --plot_AIC --shrink --scale --svd 0.01 --saveto default --readfrom default  --nochipr --override
+
+python fit_2pts_stability_test.py -e Coarse-Phys -m Dst -mm 100 --prior_trange 15 22 --Nstates 1 2 3 --tmaxs 19 20 21 22 23 24 25  --tmins 4 5 6 7 8 9 10 11 12 --plot --plot_AIC --shrink --scale --svd 0.01 --saveto default --readfrom default  --nochipr --override --plot_ymax 1.25
+python fit_2pts_stability_test.py -e Coarse-Phys -m Dst -mm 200 --prior_trange 14 21 --Nstates 1 2 3 --tmaxs 19 20 21 22 23 24 25  --tmins 4 5 6 7 8 9 10 11 12 --plot --plot_AIC --shrink --scale --svd 0.01 --saveto default --readfrom default  --nochipr --override --plot_ymax 1.25
+python fit_2pts_stability_test.py -e Coarse-Phys -m Dst -mm 300 --prior_trange 13 19 --Nstates 1 2 3 --tmaxs 19 20 21 22 23 24 25  --tmins 4 5 6 7 8 9 10 11 12 --plot --plot_AIC --shrink --scale --svd 0.01 --saveto default --readfrom default  --nochipr --override --plot_ymax 1.25
+
+# python fit_2pts_stability_test.py -e Fine-1 -m Dst -mm 100 --prior_trange 16 31 --Nstates 1 2 3 --tmaxs 17 19 21 23 25 27 29 31 33 35 --tmins 4 5 6 7 8 9 10 11 12 --plot --plot_AIC --shrink --scale --svd 0.01 --saveto default --readfrom default  --nochipr --override --plot_ymin 0.84 --plot_ymax 1.
+# python fit_2pts_stability_test.py -e Fine-1 -m Dst -mm 200 --prior_trange 15 31 --Nstates 1 2 3 --tmaxs 17 19 21 23 25 27 29 31 33 35 --tmins 4 5 6 7 8 9 10 11 12 --plot --plot_AIC --shrink --scale --svd 0.01 --saveto default --readfrom default  --nochipr --override --plot_ymin 0.84 --plot_ymax 1.
+# python fit_2pts_stability_test.py -e Fine-1 -m Dst -mm 300 --prior_trange 15 25 --Nstates 1 2 3 --tmaxs 17 19 21 23 25 27 29 31 33 35 --tmins 4 5 6 7 8 9 10 11 12 --plot --plot_AIC --shrink --scale --svd 0.01 --saveto default --readfrom default  --nochipr --override --plot_ymin 0.84 --plot_ymax 1.
