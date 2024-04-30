@@ -183,12 +183,13 @@ def main():
             for mom in (MOM_LIST if MOM_LIST else config['fit'][ens][meson]['mom'].keys()):
 
                 tag = config['fit'][ens][meson]['mom'][mom]['tag']
-                data_dir = config['data'][ens]['data_dir']
-                binsize  = config['data'][ens]['binsize'] 
-                smlist   = config['fit'][ens][meson]['smlist'] 
-                nstates  = config['fit'][ens][meson]['mom'][mom]['nstates'] 
-                trange   = tuple(config['fit'][ens][meson]['mom'][mom]['trange']) 
+                data_dir   = config['data'][ens]['data_dir']
+                binsize    = config['data'][ens]['binsize'] 
+                smlist     = config['fit'][ens][meson]['smlist'] 
+                nstates    = config['fit'][ens][meson]['mom'][mom]['nstates'] 
+                trange     = tuple(config['fit'][ens][meson]['mom'][mom]['trange']) 
                 trange_eff = tuple(config['fit'][ens][meson]['mom'][mom]['trange_eff']) 
+                cutsvd     = config['fit'][ens][meson]['mom'][mom]['svd']
 
                 # 
                 SAVETO = DEFAULT_ANALYSIS_ROOT if args.saveto=='default' else args.saveto
@@ -211,12 +212,13 @@ def main():
 
 
                 # Perform analysis ===================================================================
+
                 cov_specs = dict(
                     diag   = args.diag,
                     block  = args.block,
                     scale  = args.scale,
                     shrink = args.shrink,
-                    cutsvd = args.svd
+                    cutsvd = args.svd if args.svd is not None else cutsvd
                 )
 
                 stag,fitres = fit_2pts_single_corr(

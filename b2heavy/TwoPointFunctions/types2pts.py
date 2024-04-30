@@ -242,6 +242,9 @@ class CorrelatorIO:
                 for pol in POL:
                     del PROCESSED[(crs,pol)]
 
+        self.nConf = np.unique([a.shape[0] for k,a in PROCESSED.items()])[0]
+
+
         # Stack data --------------------------------------------------------------
         DATA = np.array([[jkCorr(PROCESSED[smr,pol],bsize=(jkBin if jkBin is not None else 0)) for pol in POL] for smr in SMR])    
         (Nsmr,Npol,Nconf,Nt) = DATA.shape

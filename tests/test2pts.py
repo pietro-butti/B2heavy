@@ -1,38 +1,91 @@
 import sys
 import itertools
 import argparse
-import numpy as np
-import gvar  as gv
+import numpy  as np
+import gvar   as gv
+import pandas as pd
 
 from matplotlib  import pyplot as plt
 from tqdm        import tqdm
 
+from b2heavy.FnalHISQMetadata            import params as mData
 from b2heavy.TwoPointFunctions.utils     import correlation_diagnostics
 from b2heavy.TwoPointFunctions.types2pts import CorrelatorIO, Correlator, plot_effective_coeffs
-
+from routines.fit_2pts_utils             import load_toml
 
 
 def tmaxs():
-    ens      = 'Coarse-2'
+    tmin2 = 1.021 
+    tmin3 = 0.631
+
+    config = './2pts_fit_config.toml'
+
     mes      = 'Dst'
-    binsize  = 16
     data_dir = '/Users/pietro/code/data_analysis/BtoD/Alex/'
     smlist   = ['1S-1S','d-d','d-1S'] 
 
-    for mom in ['000','100','200','300','110','211']:
-        io   = CorrelatorIO(ens,mes,mom,PathToDataDir=data_dir)
-        stag = Correlator(
-            io       = io,
-            jkBin    = binsize,
-            smearing = smlist
-        )
-        print(f'{mom = } {stag.tmax(threshold=0.3,criterion=np.mean) = }')
+    binSizes  = {
+        'MediumCoarse': 13,
+        'Coarse-2'    : 16,
+        'Coarse-1'    : 11,
+        'Coarse-Phys' : 19,
+        'Fine-1'      : 16,
+        'Fine-Phys'   : 16,
+        'SuperFine'   : 22
+    }
+
+    aux = []
+    itr = itertools.product(binSizes.keys(), ['000','100','200','300','400','110','211','222'])
+
+
+    # for ens in binSizes.keys():
+    #     for mom in ['000','100','200','300','400','110','211','222']:
+    for ens,mom in itr:
+        a_fm = mData(ens)['aSpc'].mean
+        try:
+            io   = CorrelatorIO(ens,mes,mom,PathToDataDir=data_dir)
+            stag = Correlator(
+                io       = io,
+                jkBin    = binSizes[ens],
+                smearing = smlist
+            )
+        except:
+            continue
+
+        # choose tmax
+        tmax = stag.tmax(threshold=0.3)
+        
+        # choose tmin
+        tmin = int(tmin3/a_fm)
+
+        # diagnose correlation
+        xdata,ydata,yjk = stag.format(trange=(tmin,tmax),alljk=True,flatten=True)
+        svd = round(correlation_diagnostics(yjk,verbose=False),ndigits=3)
+        
+        x,y = stag.format()
+
+        # print(f'{ens,mom}, {tmin,tmax = }, {svd = }')
+        aux.append({
+            'ensemble': ens,
+            'momentum': mom,
+            'tmax'    : tmax,
+            'tmin'    : tmin,
+            'svd'     : svd,
+        })
+    
+    df = pd.DataFrame(aux).set_index(['ensemble','momentum'])
+    print(df)
+
+
+
+
+
 
 
 def eff_coeffs(FLAG):
-    ens      = 'Coarse-2'
+    ens      = 'Fine-1'
     mes      = 'Dst'
-    mom      = '211'
+    mom      = '400'
     binsize  = 16
     data_dir = '/Users/pietro/code/data_analysis/BtoD/Alex/'
     smlist   = ['1S-1S','d-d','d-1S'] 

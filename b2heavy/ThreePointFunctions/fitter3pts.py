@@ -199,9 +199,9 @@ class RatioFitter(Ratio):
             # Enlarge chi2
             prio_v = np.concatenate([priors[k] for k in pkeys])
             popt_v = np.concatenate([popt[k]   for k in pkeys])
-            r      = (gv.mean(prio_v) - popt_v)**2
+            r      = gv.mean(prio_v) - popt_v
 
-            dpr   = np.diag(1/gv.sdev(prio_v))
+            dpr   = np.diag(1/gv.sdev(prio_v))**2
             chi2 += r.T @ dpr @ r
 
             # Augment covariance matrices            

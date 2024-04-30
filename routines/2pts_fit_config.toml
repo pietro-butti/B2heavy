@@ -4,7 +4,7 @@ title = '2pts fits'
 
 # Meson list
 [ensemble]
-    list = ['MediumCoarse','Coarse-1','Coarse-Phys','Fine-1']
+    list = ['Coarse-2','Coarse-1','Coarse-Phys','Fine-1']
 
 [meson]
     list = ['D','Dst','Ds', 'Dsst']
@@ -41,14 +41,14 @@ title = '2pts fits'
         name     = 'Coarse-Phys'
         data_dir = "/Users/pietro/code/data_analysis/BtoD/Alex"
         binsize  = 19
-        mom_list = ['000','100','200','300','110','211']
+        mom_list = ['000','100','200','300','400','110','211','222']
         Nt       = 64
     
     [data.Fine-1]
         name     = 'Fine-1'
         data_dir = "/Users/pietro/code/data_analysis/BtoD/Alex"
         binsize  = 16
-        mom_list = ['000','100','200','300','110','211']
+        mom_list = ['000','100','200','300','400','110','211','222']
         Nt       = 96
     
 
@@ -115,147 +115,179 @@ title = '2pts fits'
                 tag        = 'Coarse-2_Dst_000'
                 nstates    = 3
                 trange_eff = [12,25] 
-                trange     = [9,17] 
+                trange     = [5,25] 
+                svd        = 0.021
             [fit.Coarse-2.Dst.mom.100]
                 tag    = 'Coarse-2_Dst_100'
                 nstates    = 3
                 trange_eff = [12,23]
-                trange     = [9,17] 
+                trange     = [5,23]
+                svd        = 0.043
             [fit.Coarse-2.Dst.mom.200]
                 tag        = 'Coarse-2_Dst_200'
                 nstates    = 3
                 trange_eff = [12,18]
-                trange     = [9,17]
+                trange     = [5,18]
+                svd        = 0.067
             [fit.Coarse-2.Dst.mom.300]
                 tag        = 'Coarse-2_Dst_300'
                 nstates    = 3
                 trange_eff = [8,15] 
-                trange     = [9,17]
+                trange     = [5,15]
+                svd        = 0.072
             [fit.Coarse-2.Dst.mom.110]
                 tag        = 'Coarse-2_Dst_110'
                 nstates    = 3
                 trange_eff = [13,25] 
-                trange     = [9,17]
+                trange     = [5,25]
+                svd        = 0.039
             [fit.Coarse-2.Dst.mom.211]
                 tag        = 'Coarse-2_Dst_211'
                 nstates    = 3
                 trange_eff = [9,17]
-                trange     = [9,17]
+                trange     = [5,17]
+                svd        = 0.025
 
     [fit.Coarse-1]
         [fit.Coarse-1.Dst]
             smlist  = ['d-d','1S-1S','d-1S']
             [fit.Coarse-1.Dst.mom.000]
                 tag        = 'Coarse-1_Dst_000'
-                nstates    = 2
+                nstates    = 3
                 trange_eff = [13,20] # 0.008    0.20 0.12
-                # trange     = [5,26]  # [12,17] tmax=26
-                trange     = [9,17]  # [12,17] tmax=26
+                trange     = [5,26]  # [12,17] tmax=26
+                svd        = 0.014
             [fit.Coarse-1.Dst.mom.100]
                 tag    = 'Coarse-1_Dst_100'
-                nstates    = 2
+                nstates    = 3
                 trange_eff = [13,20] # 0.025    0.2 0.8
-                # trange     = [5,23] # [12,15] tmax=23
-                trange     = [9,17] # [12,15] tmax=23
+                trange     = [5,23] # [12,15] tmax=23
+                svd        = 0.051
             [fit.Coarse-1.Dst.mom.200]
                 tag        = 'Coarse-1_Dst_200'
-                nstates    = 2
+                nstates    = 3
                 trange_eff = [13,20] # 0.047      0.34 0.56
-                # trange     = [5,21] # [8,20]
-                trange     = [9,17] # [8,20]
+                trange     = [5,21] # [8,20]
+                svd        = 0.052
             [fit.Coarse-1.Dst.mom.300]
                 tag        = 'Coarse-1_Dst_300'
-                nstates    = 2
+                nstates    = 3
                 trange_eff = [10,17] # 0.04         0.37 0.09
-                # trange     = [5,17] # [10,13]
-                trange     = [9,17] # [10,13]
+                trange     = [5,17] # [10,13]
+                svd        = 0.044
             [fit.Coarse-1.Dst.mom.110]
                 tag        = 'Coarse-1_Dst_110'
-                nstates    = 2
+                nstates    = 3
                 trange_eff = [11,19] # 0.01         0.19 0.65
-                # trange     = [5,23] #[10,17]
-                trange     = [9,17] #[10,17]
+                trange     = [5,23] #[10,17]
+                svd        = 0.022
             [fit.Coarse-1.Dst.mom.211]
                 tag        = 'Coarse-1_Dst_211'
-                nstates    = 2
+                nstates    = 3
                 trange_eff = [11,19] # 0.01         0.32  0.3
-                # trange     = [5,19]
-                trange     = [9,17]
+                trange     = [5,19]
+                svd        = 0.022
+
     [fit.Coarse-Phys]
         [fit.Coarse-Phys.Dst]
             smlist  = ['d-d','1S-1S','d-1S']
             [fit.Coarse-Phys.Dst.mom.000]
                 tag        = 'Coarse-Phys_Dst_000'
-                nstates    = 2
+                nstates    = 3
                 trange_eff = [15,24] 
-                # trange     = [5,25]
-                trange     = [9,19]
+                trange     = [5,25]
+                svd        = 0.05
             [fit.Coarse-Phys.Dst.mom.100]
                 tag        = 'Coarse-Phys_Dst_100'
-                nstates    = 2
+                nstates    = 3
                 trange_eff = [15,22]
-                # trange     = [5,22]
-                trange     = [9,19] 
+                trange     = [9,19]
+                svd        = 0.071 
             [fit.Coarse-Phys.Dst.mom.200]
                 tag        = 'Coarse-Phys_Dst_200'
-                nstates    = 2
+                nstates    = 3
                 trange_eff = [14,21]
-                # trange     = [5,21]
-                trange     = [9,19]
+                trange     = [5,21]
+                svd        = 0.074
             [fit.Coarse-Phys.Dst.mom.300]
                 tag        = 'Coarse-Phys_Dst_300'
-                nstates    = 2
+                nstates    = 3
                 trange_eff = [13,19] 
-                # trange     = [5,19]
-                trange     = [9,19] 
+                trange     = [5,19]
+                svd        = 0.078
+            [fit.Coarse-Phys.Dst.mom.400]
+                tag        = 'Coarse-Phys_Dst_400'
+                nstates    = 3
+                trange_eff = [13,18] 
+                trange     = [5,18]
+                svd        = 0.102
             [fit.Coarse-Phys.Dst.mom.110]
                 tag        = 'Coarse-Phys_Dst_110'
-                nstates    = 2
+                nstates    = 3
                 trange_eff = [15,23] 
-                # trange     = [5,23]
-                trange     = [9,19] 
+                trange     = [5,23]
+                svd        = 0.046
             [fit.Coarse-Phys.Dst.mom.211]
                 tag        = 'Coarse-Phys_Dst_211'
-                nstates    = 2
+                nstates    = 3
                 trange_eff = [14,20] 
-                # trange     = [5,20]
-                trange     = [9,19]
+                trange     = [5,20]
+                svd        = 0.057
+            [fit.Coarse-Phys.Dst.mom.222]
+                tag        = 'Coarse-Phys_Dst_222'
+                nstates    = 3
+                trange_eff = [14,19] 
+                trange     = [5,19]
+                svd        = 0.051
     [fit.Fine-1]
         [fit.Fine-1.Dst]
             smlist  = ['d-d','1S-1S','d-1S']
             [fit.Fine-1.Dst.mom.000]
                 tag        = 'Fine-1_Dst_000'
-                nstates    = 2
+                nstates    = 3
                 trange_eff = [16,28]
-                # trange     = [7,25]
-                trange     = [12,17]
+                trange     = [7,37]
+                svd        = 0.023
             [fit.Fine-1.Dst.mom.100]
                 tag        = 'Fine-1_Dst_100'
-                nstates    = 2
+                nstates    = 3
                 trange_eff = [16,31]
-                # trange     = [7,25]
-                trange     = [12,17]
+                trange     = [7,35]
+                svd        = 0.034
             [fit.Fine-1.Dst.mom.200]
                 tag        = 'Fine-1_Dst_200'
-                nstates    = 2
+                nstates    = 3
                 trange_eff = [15,31]
-                # trange     = [7,25]
-                trange     = [12,17]
+                trange     = [7,31]
+                svd        = 0.053
             [fit.Fine-1.Dst.mom.300]
                 tag        = 'Fine-1_Dst_300'
-                nstates    = 2
+                nstates    = 3
                 trange_eff = [15,25]
-                # trange     = [7,25]
-                trange     = [12,17]
+                trange     = [7,25]
+                svd        = 0.052
+            [fit.Fine-1.Dst.mom.400]
+                tag        = 'Fine-1_Dst_400'
+                nstates    = 3
+                trange_eff = [15,21]
+                trange     = [7,21]
+                svd        = 0.085
             [fit.Fine-1.Dst.mom.110]
                 tag        = 'Fine-1_Dst_110'
-                nstates    = 2
+                nstates    = 3
                 trange_eff = [16,35]
-                # trange     = [7,25] 
-                trange     = [12,17] 
+                trange     = [7,35]
+                svd        = 0.027
+                 
             [fit.Fine-1.Dst.mom.211]
                 tag        = 'Fine-1_Dst_211'
-                nstates    = 2
+                nstates    = 3
                 trange_eff = [16,29]
-                # trange     = [7,25]
-                trange     = [12,17]
+                trange     = [7,29]
+                svd        = 0.024
+            [fit.Fine-1.Dst.mom.222]
+                tag        = 'Fine-1_Dst_211'
+                nstates    = 3
+                trange_eff = [15,23]
+                trange     = [7,23]
+                svd        = 0.044

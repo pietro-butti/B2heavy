@@ -4,7 +4,7 @@ title = '3pts fits'
 
 # Meson list
 [ensemble]
-    list = ['Coarse-1','Fine-1']
+    list = ['Coarse-2','Coarse-Phys','Coarse-1','Fine-1']
 
 [ratio]
     list = ['xfstpar', 'XV', 'RA1', 'R0', 'R1']#,'ZRA1']
@@ -16,12 +16,12 @@ title = '3pts fits'
 [data]
     mdata = '/Users/pietro/code/software/B2heavy/b2heavy/FnalHISQMetadata.py'
 
-    [data.MediumCoarse]
-        name     = 'MediumCoarse'
+    [data.Coarse-2]
+        name     = 'Coarse-1'
         data_dir = "/Users/pietro/code/data_analysis/BtoD/Alex"
-        binsize  = 13
-        mom_list = ['000','100','200','300','400','110','211','222']
-        Nt       = 48
+        binsize  = 16
+        mom_list = ['000','100','200','300','110','211']
+        Nt       = 64
 
     [data.Coarse-1]
         name     = 'Coarse-1'
@@ -56,6 +56,99 @@ title = '3pts fits'
 
     
 [fit]
+    [fit.Coarse-2]
+        [fit.Coarse-2.xfstpar]
+            smlist = ['1S']
+            [fit.Coarse-2.xfstpar.mom]
+                [fit.Coarse-2.xfstpar.mom.100]
+                    nstates = 2
+                    tag     = 'Coarse-2_xfstpar_100'
+                    trange  = [3,11]
+                [fit.Coarse-2.xfstpar.mom.200]
+                    nstates = 2
+                    tag     = 'Coarse-2_xfstpar_200'
+                    trange  = [3,11]            
+                [fit.Coarse-2.xfstpar.mom.300]
+                    nstates = 2
+                    tag     = 'Coarse-2_xfstpar_300'
+                    trange  = [3,11]
+
+        [fit.Coarse-2.RA1]
+            smlist = ['1S']
+            [fit.Coarse-2.RA1.mom]
+                [fit.Coarse-2.RA1.mom.000]
+                    nstates = 2
+                    tag     = 'Coarse-2_RA1_000'
+                    trange  = [3,11]
+                [fit.Coarse-2.RA1.mom.100]
+                    nstates = 2
+                    tag     = 'Coarse-2_RA1_100'
+                    trange  = [3,11]
+                [fit.Coarse-2.RA1.mom.200]
+                    nstates = 2
+                    tag     = 'Coarse-2_RA1_200'
+                    trange  = [3,11]            
+                [fit.Coarse-2.RA1.mom.300]
+                    nstates = 2
+                    tag     = 'Coarse-2_RA1_300'
+                    trange  = [3,11]
+
+        [fit.Coarse-2.ZRA1]
+            smlist = ['1S']
+            [fit.Coarse-2.ZRA1.mom]
+                [fit.Coarse-2.ZRA1.mom.000]
+                    nstates = 2
+                    tag     = 'Coarse-2_ZRA1_000'
+                    trange  = [3,11]
+
+        [fit.Coarse-2.R0]
+            smlist = ['1S']
+            [fit.Coarse-2.R0.mom]
+                [fit.Coarse-2.R0.mom.100]
+                    nstates = 2
+                    tag     = 'Coarse-2_R0_100'
+                    trange  = [3,11]
+                [fit.Coarse-2.R0.mom.200]
+                    nstates = 2
+                    tag     = 'Coarse-2_R0_200'
+                    trange  = [3,11]            
+                [fit.Coarse-2.R0.mom.300]
+                    nstates = 2
+                    tag     = 'Coarse-2_R0_300'
+                    trange  = [3,11]
+
+        [fit.Coarse-2.R1]
+            smlist = ['1S']
+            [fit.Coarse-2.R1.mom]
+                [fit.Coarse-2.R1.mom.100]
+                    nstates = 2
+                    tag     = 'Coarse-2_R1_100'
+                    trange  = [3,11]
+                [fit.Coarse-2.R1.mom.200]
+                    nstates = 2
+                    tag     = 'Coarse-2_R1_200'
+                    trange  = [3,11]            
+                [fit.Coarse-2.R1.mom.300]
+                    nstates = 2
+                    tag     = 'Coarse-2_R1_300'
+                    trange  = [3,11]
+
+        [fit.Coarse-2.XV]
+            smlist = ['1S']
+            [fit.Coarse-2.XV.mom]
+                [fit.Coarse-2.XV.mom.100]
+                    nstates = 2
+                    tag     = 'Coarse-2_XV_100'
+                    trange  = [3,11]
+                [fit.Coarse-2.XV.mom.200]
+                    nstates = 2
+                    tag     = 'Coarse-2_XV_200'
+                    trange  = [3,11]            
+                [fit.Coarse-2.XV.mom.300]
+                    nstates = 2
+                    tag     = 'Coarse-2_XV_300'
+                    trange  = [3,11]
+
     [fit.Coarse-1]
         [fit.Coarse-1.xfstpar]
             smlist = ['1S']
@@ -148,8 +241,6 @@ title = '3pts fits'
                     nstates = 2
                     tag     = 'Coarse-1_XV_300'
                     trange  = [3,11]
-
-
 
     [fit.Coarse-Phys]
         [fit.Coarse-Phys.xfstpar]

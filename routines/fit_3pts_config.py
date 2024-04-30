@@ -73,7 +73,7 @@ def fit_ratio(
         nstates,
         trange,
         verbose = True,
-        priors = fit.priors if wpriors else None
+        priors = fit.prior if wpriors else None
     )
 
     if saveto is not None:

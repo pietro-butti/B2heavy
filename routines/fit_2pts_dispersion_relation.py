@@ -209,6 +209,8 @@ def main():
     p2 = [sum(np.array([float(px)*2*np.pi/Lvol for px in mom])**2) for mom in psort]
     E0 = np.asarray([E[kp] for kp in psort])    
 
+    print(p2,psort)
+
 
     # Perform fit --------------------------------------------------------------
     priors = dict(
@@ -222,6 +224,10 @@ def main():
         fcn   = dispersion_relation_lsqfit,
         prior = priors
     )
+
+    # Save data -----------------------------------------------------------------
+    gv.dump(fit.p,f'{saveto}/fit2pts_dispersion_relation_{tag}.pickle')
+
 
     # Plot discretization errors ------------------------------------------------
     plt.rcParams['text.usetex'] = True

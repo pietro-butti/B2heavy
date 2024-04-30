@@ -349,10 +349,11 @@ class StagFitter(Correlator):
             # Enlarge chi2
             prio_v = np.concatenate([priors[k] for k in pkeys])
             popt_v = np.concatenate([popt[k]   for k in pkeys])
-            r      = (gv.mean(prio_v) - popt_v)**2
+            r      = gv.mean(prio_v) - popt_v
 
-            dpr   = np.diag(1/gv.sdev(prio_v))
+            dpr   = np.diag(1/gv.sdev(prio_v))**2
             chi2 += r.T @ dpr @ r
+
 
             # Augment covariance matrices            
             O = np.zeros((fitcov.shape[0],dpr.shape[1]))
@@ -369,7 +370,6 @@ class StagFitter(Correlator):
         proj = w - wg @ Hinv @ wg.T
 
         chiexp = np.trace(proj @ cov)
-
 
         if not pvalue:
             return chi2, chiexp
@@ -460,10 +460,12 @@ class StagFitter(Correlator):
 jax.config.update("jax_enable_x64", True)
 x = jax.random.uniform(jax.random.PRNGKey(0), (1000,))#, dtype=jnp.float64)
 assert x.dtype == jnp.float64
+
+
 def main(FLAG):
     ens      = 'Fine-1'
     mes      = 'Dst'
-    mom      = '000'
+    mom      = '300'
     binsize  = 16
     data_dir = '/Users/pietro/code/data_analysis/BtoD/Alex/'
     smlist   = ['1S-1S','d-d','d-1S'] 
@@ -475,48 +477,33 @@ def main(FLAG):
         smearing = smlist
     )
 
-    TLIM     = (10,37)
-    NEXC     = 3
+    cov_specs = dict(
+        diag   = False,
+        block  = False,
+        scale  = True,
+        shrink = True,
+        cutsvd = 0.01   
+    )
 
-    # ========================================= correlation =============================================
-    if FLAG==1:
-        x,y,yall = stag.format(trange=TLIM, alljk=True, flatten=True)
-        cut = correlation_diagnostics(yall)
-        cov_specs = dict(
-            diag   = False,
-            block  = False,
-            scale  = True,
-            shrink = True,
-            cutsvd = cut,
-        )
-        print(f'{stag.tmax(threshold=0.3) = }')
-    # ========================================= fit =============================================
+    TRANGE_EFF = (15,25) 
+    TRANGE     = (10,17)
 
-    # ===========================================================================================
-    elif FLAG==2:
-        cov_specs = dict(
-            scale  = True,
-            shrink = True,
-            cutsvd = 0.01,
-        )
+    effm,effa = stag.meff(TRANGE_EFF,verbose=True,**cov_specs)
+    priors = stag.priors(3,Meff=effm,Aeff=effa)
 
-        meff,aeff = stag.meff(trange=TLIM,**cov_specs)
-        pr = stag.priors(NEXC,Meff=meff,Aeff=aeff)
-        fit = stag.fit(
-            Nstates = NEXC,
-            trange  = TLIM,
-            priors  = pr, 
-            # verbose = True,
-            **cov_specs
-        )
+    fit = stag.fit(
+        Nstates = 3,
+        trange  = TRANGE,
+        priors  = priors,
+        verbose = True,
+        **cov_specs
+    )
 
-        # xdata  = fit.x
-        # yvec   = gv.mean(fit.y)
-        # fitcov = gv.evalcov(fit.y)
-        # popt   = dict(fit.pmean)
-        # stag.chi2exp(NEXC,TLIM,popt,fitcov,priors=pr)
-        # stag.chi2exp(NEXC,TLIM,popt,fitcov)
+    popt   = dict(fit.pmean)
+    fitcov = gv.evalcov(fit.y)
 
-        stag.fit_result(NEXC,TLIM)
-        stag.fit_result(NEXC,TLIM,priors=pr)
-    # ===========================================================================================
+    print(stag.chi2exp(3,TRANGE,popt,fitcov))
+
+
+
+
