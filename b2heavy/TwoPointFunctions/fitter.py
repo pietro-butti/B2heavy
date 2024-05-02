@@ -99,8 +99,6 @@ def set_priors_phys(corr, Nstates, Meff=None, Aeff=None, prior_policy=None):
         E[0] = gv.gvar(MPHYS[corr.info.meson],dE/dE_E0err) * Scale * aGeV # fundamental physical state
     else:
         E[0] = gv.gvar(Meff.mean,dE/dE_E0err*Scale*aGeV)
-        # E[0] = gv.gvar(Meff.mean,0.5)
-        # E[0] = Meff
 
     E[1] = np.log(gv.gvar(dG, dE/dE_E1err)*Scale*aGeV)
 
@@ -465,7 +463,7 @@ assert x.dtype == jnp.float64
 def main(FLAG):
     ens      = 'Fine-1'
     mes      = 'Dst'
-    mom      = '300'
+    mom      = '200'
     binsize  = 16
     data_dir = '/Users/pietro/code/data_analysis/BtoD/Alex/'
     smlist   = ['1S-1S','d-d','d-1S'] 
@@ -482,11 +480,11 @@ def main(FLAG):
         block  = False,
         scale  = True,
         shrink = True,
-        cutsvd = 0.01   
+        cutsvd = 0.053
     )
 
     TRANGE_EFF = (15,25) 
-    TRANGE     = (10,17)
+    TRANGE     = (7,31)
 
     effm,effa = stag.meff(TRANGE_EFF,verbose=True,**cov_specs)
     priors = stag.priors(3,Meff=effm,Aeff=effa)

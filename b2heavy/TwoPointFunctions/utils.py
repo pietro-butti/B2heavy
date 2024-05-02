@@ -159,7 +159,6 @@ def compute_covariance(ysamples, jk=True, ysamples_full=None, **cov_spec):
 def ConstantModel(x,p):
     return np.array([p['const']]*len(x))
 
-
 def ConstantDictModel(x,p):
     return {k: np.array([p[k]]*len(x[k])) for k in x}
 

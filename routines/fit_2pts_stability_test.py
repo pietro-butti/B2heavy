@@ -41,6 +41,7 @@ from b2heavy.TwoPointFunctions.utils     import correlation_diagnostics
 from b2heavy.TwoPointFunctions.types2pts import CorrelatorIO, plot_effective_coeffs
 from b2heavy.TwoPointFunctions.fitter    import StagFitter
 
+from b2heavy.ThreePointFunctions.utils import read_config_fit, dump_fit_object
 import fit_2pts_utils as utils
 
 def stability_test_fit(ens,meson,mom,data_dir,binsize,smslist,nexcrange,tminrange,tmaxrange,prior_trange,chipr=True,saveto='./',**cov_specs):

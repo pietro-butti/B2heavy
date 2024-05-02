@@ -7,7 +7,10 @@ import xarray as xr
 import matplotlib.pyplot as plt
 
 from .. import FnalHISQMetadata
-from ..TwoPointFunctions.utils import jkCorr, compute_covariance
+from ..TwoPointFunctions.utils   import jkCorr, compute_covariance
+
+from .utils import read_config_fit, exists, exists_analysis
+
 
 
 def read_ratio_from_files_list(corrname,*files,verbose=False):
@@ -22,6 +25,74 @@ def read_ratio_from_files_list(corrname,*files,verbose=False):
                 raise Exception(f'{corrname} has not been found in the following list: {files}')
 
     return d
+
+
+def ratio_prerequisites(
+    ens  ,   
+    ratio, 
+    mom  , 
+    smearing = ['1S','d'],
+    readfrom = None, 
+    jk       = False,
+    meson    = 'Dst'
+):
+
+    req = dict(
+        E0      = None,
+        m0      = None,
+        Z0      = None,
+        Zpar    = None,
+        Zbot    = None,
+        wrecoil = None
+    )
+
+    if ratio in ['xfstpar','XV', 'ZRA1'] and mom!='000':
+        return req
+
+    elif ratio in ['R0','R1'] and mom!='000':
+        if exists_analysis(readfrom,ens,meson,mom,type='2',jkfit=jk):
+            tag = f'fit2pt_config_{ens}_{meson}_{mom}'
+            p = read_config_fit(tag, path=readfrom, jk=jk)
+
+            req['Zpar'] = {sm: None for sm in smearing}
+            req['Zbot'] = {sm: None for sm in smearing}
+
+            for sm in smearing:
+                if not jk:
+                    req['Zpar'][sm] = (np.exp(p[-1][f'Z_{sm}_Par'][0]) * np.sqrt(2*p[-1]['E'][0])).mean
+                    req['Zbot'][sm] = (np.exp(p[-1][f'Z_{sm}_Bot'][0]) * np.sqrt(2*p[-1]['E'][0])).mean
+
+                else:
+                    req['Zpar'][sm] = np.exp(p[f'Z_{sm}_Par'][:,0]) * np.sqrt(2*p['E'][:,0])
+                    req['Zbot'][sm] = np.exp(p[f'Z_{sm}_Bot'][:,0]) * np.sqrt(2*p['E'][:,0])
+
+
+    elif ratio=='RA1':
+        if exists_analysis(readfrom,ens,meson,mom,type='2',jkfit=jk) \
+            and exists_analysis(readfrom,ens,meson,mom,type='2',jkfit=jk):
+                tag = f'fit2pt_config_{ens}_{meson}_{mom}'
+                p = read_config_fit(tag, path=readfrom, jk=jk)
+                req['E0'] = p['E'][:,0] if jk else p[-1]['E'][0].mean
+
+                tag = f'fit2pt_config_{ens}_{meson}_000'
+                p0 = read_config_fit(tag, path=readfrom, jk=jk)
+                req['m0'] = p0['E'][:,0] if jk else p0[-1]['E'][0].mean
+
+        if mom!='000':
+            req['Zbot'] = {sm: None for sm in smearing}
+            req['Z0']   = {sm: None for sm in smearing}
+
+            for sm in smearing:
+                req['Zbot'][sm] = np.exp(p [f'Z_{sm}_Bot'  ][:,0] if jk else p [-1][f'Z_{sm}_Bot'  ][0].mean)
+                req['Z0']  [sm] = np.exp(p0[f'Z_{sm}_Unpol'][:,0] if jk else p0[-1][f'Z_{sm}_Unpol'][0].mean)
+
+            if exists_analysis(readfrom,ens,'xfstpar',mom,type='3',jkfit=jk):
+                tag = f'fit3pt_config_{ens}_xfstpar_{mom}'
+                p = read_config_fit(tag, path=readfrom, jk=jk)
+                xf = p['ratio'][:,0] if jk else p[-1]['ratio'][0].mean
+                req['wrecoil'] = (1+xf**2)/(1-xf**2)
+
+    return req
 
 
 
@@ -92,7 +163,10 @@ class RatioIO:
                 nFacs  = [[1., 1., 1.], [1., 1.]]
                 dNames = [['V1_V4_V1_'],['P5_V4_P5_']] # 'V1_V4_V2_', 'V1_V4_V3_']
                 
-                self.specs  = {'num': None, 'den': None}
+                self.specs  = dict(
+                    source = ['B','Dst'],
+                    sink   = ['B','Dst']
+                )
 
             case 'ZRA1S':
                 hStr   = bStr
@@ -273,7 +347,6 @@ class RatioIO:
 
                 flag = False
                 for j,(name,nFac) in enumerate(zip(specs['nNames'][0],specs['nFacs'][0])):
-                        # filename = f'{name}T{tSink}{specs["hStr"]}_RW_{hss}_rot_rot{specs["qStr"]}{specs["lStr"]}_p{self.info.momentum}'
                         filename = self.RatioFileString(name,tSink,specs["hStr"],hss,specs["qStr"],specs["lStr"])
                         nuCorr.append(filename)
 
@@ -451,11 +524,14 @@ class RatioIO:
         return PROCESSED
 
 class Ratio:
-    def __init__(self, io:RatioIO, jkBin=None, smearing=None, E0=None, m0=None, Zpar=None, Zbot=None, Z0=None, wrecoil=None, **kwargs):
+    def __init__(self, io:RatioIO, jkBin=None, smearing=None, verbose=False, datafiles=None, **kwargs):
         self.io           = io
         self.info         = io.info
         self.info.binsize = jkBin
         self.binsize      = jkBin
+
+        E0 = kwargs.get('E0')
+        m0 = kwargs.get('m0')
 
         self.E0           = E0
         self.m0           = m0
@@ -464,35 +540,48 @@ class Ratio:
             jkBin= jkBin,
             E0   = E0,
             m0   = m0,
+            datafiles = datafiles,
+            verbose = verbose,
             sms  = ['1S','RW'] if smearing is None else smearing,
-            **kwargs
         )
         self.specs = io.specs
 
+
+        factor = {}
         if self.info.ratio in ['R0','R1','RA1'] and self.info.momentum!='000':
+            Zpar = kwargs.get('Zpar')
+            Zbot = kwargs.get('Zbot')
             if self.info.ratio in ['R0','R1']:
                 if Zpar is None or Zbot is None:
-                    raise Exception('For R0 ratio, Z_1S_par and Z_1S_bot must be provided') 
+                    raise Exception('For R0 ratio, Z_1S_Par, Z_1S_Bot, Z_d_Par, Z_d_Bot must be provided')
                 else:
-                    factor = np.sqrt(Zbot/Zpar)
+                    for sm in smearing:
+                        smi = 'd' if sm=='RW' else sm
+                        factor[sm] = np.sqrt(Zbot[smi]/Zpar[smi])
 
             elif self.info.ratio=='RA1':
+                Z0      = kwargs.get('Z0')
+                wrecoil = kwargs.get('wrecoil')
                 if E0       is None or \
                     m0      is None or \
                     Zbot    is None or \
                     Z0      is None or \
                     wrecoil is None:
-                    raise Exception('For RA1 ratio, rest mass, E0, Z_1S_bot (at 0 and non-0 momentum) and recoil parameter must be provided') 
+                    raise Exception('For RA1 ratio, rest mass, E0, Z_d_Bot, Z_d_Bot (at 0 and non-0 momentum) and recoil parameter must be provided')
                 
                 else:
                     T = self.io.mData['hSinks'][0]
-                    factor = Zbot/Z0 / wrecoil**2 * np.exp((E0-m0)*T)
+                    for sm in smearing:
+                        smi = 'd' if sm=='RW' else sm
+                        factor[sm] = Zbot[smi]/Z0[smi] / wrecoil**2 * np.exp((E0-m0)*T)
 
 
             if isinstance(factor, np.ndarray):
-                factor = np.asarray([factor for _ in range(self.data['1S'].shape[-1])]).T
+                for sm in smearing:
+                    factor[sm] = np.asarray([factor for _ in range(self.data[sm].shape[-1])]).T
 
-            self.data['1S'] = self.data['1S'] * factor
+            for sm in smearing:
+                self.data[sm] = self.data[sm] * factor[sm]
             
 
 
@@ -544,54 +633,25 @@ class Ratio:
 
 
 
-from ..TwoPointFunctions.types2pts import CorrelatorIO, Correlator
-from routines.fit_2pts_utils import read_config_fit
+
+
+
 
 def main():
     ens = 'Coarse-1'
-    rat = 'R0'
-    mom = '100'
+    rat = 'ZRA1'
+    mom = '000'
     frm = '/Users/pietro/code/data_analysis/BtoD/Alex'
-
-
-    tag = f'fit2pt_config_{ens}_Dst_{mom}'
-    fit,params = read_config_fit(f'fit2pt_config_{ens}_Dst_{mom}',path='/Users/pietro/code/data_analysis/data/QCDNf2p1stag/B2heavy/presentation')
-
-    Zpar = (params['Z_1S_Par'][0] * np.sqrt(2*params['E'][0])).mean
-    Zbot = (params['Z_1S_Bot'][0] * np.sqrt(2*params['E'][0])).mean
+    readfrom = '/Users/pietro/code/data_analysis/data/QCDNf2p1stag/B2heavy/presentation'
 
     io = RatioIO(ens,rat,mom,PathToDataDir=frm)
     ratio = Ratio(
-        io, 11, smearing=['1S'], 
-        Zpar = Zpar,
-        Zbot = Zbot
+        io,
+        jkBin=11,
+        smearing=['1S','RW']
     )
-    breakpoint()
 
-
-    # d  = io.ReadRatio(
-    #     jkBin = 11,
-    #     E0    = energy[mom],#1.0941142717943992,
-    #     m0    = energy['000'],#1.081825580044622,
-    #     sms   = ['1S']
-    # )
-
-
-
-    # MOM_LIST   = ['000','100','200','300','110','211']
-    # params = {mom: np.load(f'../notebooks/jkfit_{mom}.npy') for mom in MOM_LIST}
-    # energy = {mom: params[mom][:,0] for mom in params}
-
-    # io = RatioIO(ens,rat,mom,PathToDataDir=frm)
-    # d  = io.ReadRatio(
-    #     jkBin = 11,
-    #     E0    = energy[mom],#1.0941142717943992,
-    #     m0    = energy['000'],#1.081825580044622,
-    #     sms   = ['1S']
-    # )
-    # m0 = gv.gvar(energy['000'].mean(),energy['000'].std()*np.sqrt(len(energy['000']-1)))
-    # E0 = gv.gvar(energy[mom].mean(),energy[mom].std()*np.sqrt(len(energy[mom]-1)))
-
+    print(ratio.format())
 
 
 

@@ -39,8 +39,8 @@ from b2heavy.TwoPointFunctions.utils     import correlation_diagnostics
 from b2heavy.TwoPointFunctions.types2pts import CorrelatorIO, plot_effective_coeffs
 from b2heavy.TwoPointFunctions.fitter    import StagFitter
 
+from b2heavy.ThreePointFunctions.utils     import read_config_fit, dump_fit_object
 import fit_2pts_utils as utils
-
 
 
 def fit_2pts_single_corr(
@@ -95,14 +95,14 @@ def fit_2pts_single_corr(
             **cov_specs
         )
 
+    fitres = stag.fit_result(
+        nstates,
+        trange,
+        verbose = True,
+        priors  = pr if wpriors else None
+    )
     if saveto is not None:
-        fitres = stag.fit_result(
-            nstates,
-            trange,
-            verbose = True,
-            priors  = pr if wpriors else None
-        )
-        utils.dump_fit_object(saveto,fit,**fitres)
+        dump_fit_object(saveto,fit,**fitres)
 
         if jkfit:
             name = f'{saveto}_fit.pickle'

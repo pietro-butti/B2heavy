@@ -27,6 +27,8 @@ from DEFAULT_ANALYSIS_ROOT import DEFAULT_ANALYSIS_ROOT
 
 import fit_2pts_utils as utils
 
+from b2heavy.ThreePointFunctions.utils import read_config_fit
+
 
 prs = argparse.ArgumentParser(usage=usage)
 prs.add_argument('-c2','--config2' , type=str,  default='./2pts_fit_config.toml')
@@ -46,22 +48,28 @@ def main():
 
 
     df = []
-
     for ens in set(fit2['fit']).intersection(fit3['fit']):
         for mom in fit2['data'][ens]['mom_list']:
-            # 2 pt function
             specs = fit2['fit'][ens]['Dst']['mom'][mom]
-            fit2pts,p2 = utils.read_config_fit(tag=f'fit2pt_config_{specs["tag"]}',path=DEFAULT_ANALYSIS_ROOT)
+            fit2pts,p2 = read_config_fit(
+                tag  = f'fit2pt_config_{specs["tag"]}',
+                path = READFROM
+            )
+
 
             d = {
                 'ens'        : ens,
                 'mom'        : mom,
-                # 'N_exc'      : specs['nstates'],
-                # 'trange'     : specs['trange'],
                 'E_0 (D*)'   : p2['E'][0],
-                'Z_1S_Par'   : np.exp(p2['Z_1S_Par'][0]  ) if mom not in ['000','110','211'] else 'X',
-                'Z_1S_Bot'   : np.exp(p2['Z_1S_Bot'][0]  ) if mom not in ['000','110','211'] else 'X',
-                'Z_1S_Unpol' : np.exp(p2['Z_1S_Unpol'][0]) if mom     in ['000','110','211'] else 'X',
+                'Z_1S_Par'   : np.exp(p2['Z_1S_Par'][0]  ) if mom not in ['000','110','211','222'] else 'X',
+                'Z_1S_Bot'   : np.exp(p2['Z_1S_Bot'][0]  ) if mom not in ['000','110','211','222'] else 'X',
+                'Z_1S_Unpol' : np.exp(p2['Z_1S_Unpol'][0]) if mom     in ['000','110','211','222'] else 'X',
+
+
+                'Z_d_Par\u221A2E'   : np.exp(p2['Z_1S_Par'][0]  )* np.sqrt(2*p2['E'][0]) if mom not in ['000','110','211','222'] else 'X',
+                'Z_d_Bot\u221A2E'   : np.exp(p2['Z_1S_Bot'][0]  )* np.sqrt(2*p2['E'][0]) if mom not in ['000','110','211','222'] else 'X',
+                'Z_d_Unpol\u221A 2E' : np.exp(p2['Z_1S_Unpol'][0])* np.sqrt(2*p2['E'][0]) if mom     in ['000','110','211','222'] else 'X',
+
                 'chi2/chiexp': f'{fit2pts["chi2red"]/fit2pts["chi2exp"]:.2f}',
                 'p-value'    : f'{fit2pts["pvalue"]:.2f}'
             }
@@ -75,7 +83,7 @@ def main():
 
                     try:
 
-                        fit3pts,p3 = utils.read_config_fit(tag=f'fit3pt_config_{ens}_{ratio}_{mom}',path=DEFAULT_ANALYSIS_ROOT)
+                        fit3pts,p3 = read_config_fit(tag=f'fit3pt_config_{ens}_{ratio}_{mom}',path=DEFAULT_ANALYSIS_ROOT)
                         try:
                             c = fit3pts['chi2red']/fit3pts['chi2exp']
                         except TypeError:
@@ -88,6 +96,7 @@ def main():
                         continue
 
             df.append(d)
+
 
     df = pd.DataFrame(df).set_index(['ens','mom']).replace('X',' ')
 

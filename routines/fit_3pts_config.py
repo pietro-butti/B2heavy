@@ -39,11 +39,11 @@ from b2heavy import FnalHISQMetadata
 from b2heavy.ThreePointFunctions.types3pts  import Ratio, RatioIO
 from b2heavy.ThreePointFunctions.fitter3pts import RatioFitter
 
+from b2heavy.ThreePointFunctions.utils     import read_config_fit, dump_fit_object
+from b2heavy.ThreePointFunctions.types3pts import ratio_prerequisites
 import fit_2pts_utils as utils
 
 from DEFAULT_ANALYSIS_ROOT import DEFAULT_ANALYSIS_ROOT
-
-
 
 
 
@@ -64,6 +64,7 @@ def fit_ratio(
     fit = ratio.fit(
         Nstates = nstates,
         trange  = trange,
+        verbose = False,
         priors  = ratio.priors(nstates,K=k),
         **cov_specs
     )
@@ -77,7 +78,7 @@ def fit_ratio(
     )
 
     if saveto is not None:
-        utils.dump_fit_object(saveto,fit,**res)
+        dump_fit_object(saveto,fit,**res)
     
     if jkfit:
         fitjk = ratio.fit(
@@ -97,86 +98,6 @@ def fit_ratio(
 
 
 
-def elaborate_ratio(ens, rat, mom, data_dir, binsize, smslist, readfrom=None, jk=False):
-    if rat=='R0' or rat=='R1':
-        tag = f'fit2pt_config_{ens}_Dst_{mom}'
-        fit,p = utils.read_config_fit(tag,path=readfrom)
-
-        E0      = None,
-        m0      = None,
-        Zpar    = (np.exp(p['Z_1S_Par'][0]) * np.sqrt(2. * p['E'][0])).mean
-        Zbot    = (np.exp(p['Z_1S_Bot'][0]) * np.sqrt(2. * p['E'][0])).mean
-        Z0      = None,
-        wrecoil = None,
-
-    elif rat=='RA1' and mom!='000':
-        tag = f'fit2pt_config_{ens}_Dst_{mom}'
-        fit,p = utils.read_config_fit(tag,path=readfrom)
-        E0   = p['E'][0].mean
-        Zbot = (np.exp(p['Z_1S_Bot'][0]) * np.sqrt(2. * E0)).mean
-
-        tag = f'fit3pt_config_{ens}_xfstpar_{mom}'
-        fit,p = utils.read_config_fit(tag,path=readfrom)
-        xf = p['ratio'][0].mean
-        wrecoil = (1+xf**2)/(1-xf**2)
-
-        tag = f'fit2pt_config_{ens}_Dst_000'
-        fit,p = utils.read_config_fit(tag,path=readfrom)
-        m0 = p['E'][0].mean
-        Z0 = (np.exp(p['Z_1S_Unpol'][0]) * np.sqrt(2. * m0)).mean
-
-        Zpar    = None,
-
-    else: #if rat=='xfstpar' or rat=='XV':
-        E0      = None,
-        m0      = None,
-        Zbot    = None,
-        Zpar    = None,
-        Z0      = None,
-        wrecoil = None,
-
-
-
-
-    io = RatioIO(ens, rat, mom, PathToDataDir=data_dir)
-    ratio = RatioFitter(
-        io, 
-        jkBin    = binsize, 
-        smearing = smslist,
-        E0       = E0,
-        m0       = m0,
-        Zpar     = Zpar,
-        Zbot     = Zbot,
-        Z0       = Z0,
-        wrecoil  = wrecoil
-    )
-
-    return ratio
-
-
-def exists(path,file):
-    file = os.path.join(path,file)
-    try:
-        assert os.path.isfile(file)
-        return True
-    except AssertionError:
-        raise AssertionError(f'{file} is not a valid file')
-
-
-def exists_2pts_analysis(readfrom,ens,mom,jkfit=False):
-    exists(readfrom,f'fit2pt_config_{ens}_Dst_000_fit.pickle')
-    exists(readfrom,f'fit2pt_config_{ens}_Dst_000_fit_p.pickle')
-    exists(readfrom,f'fit2pt_config_{ens}_Dst_{mom}_fit.pickle')
-    exists(readfrom,f'fit2pt_config_{ens}_Dst_{mom}_fit_p.pickle')
-
-    if jkfit:
-        exists(readfrom,f'fit2pt_config_{ens}_Dst_000_jk_fit.pickle')
-        exists(readfrom,f'fit2pt_config_{ens}_Dst_000_jk_fit_p.pickle')
-        exists(readfrom,f'fit2pt_config_{ens}_Dst_{mom}_jk_fit.pickle')
-        exists(readfrom,f'fit2pt_config_{ens}_Dst_{mom}_jk_fit_p.pickle')
-
-    return True
-
 
 
 
@@ -185,9 +106,10 @@ prs.add_argument('-c','--config'  , type=str,  default='./3pts_fit_config.toml')
 prs.add_argument('-e','--ensemble', type=str,  nargs='+',  default=None)
 prs.add_argument('-r','--ratio'   , type=str,  nargs='+',  default=None)
 prs.add_argument('-m','--mom'     , type=str,  nargs='+',  default=None)
+prs.add_argument('--meson'        , type=str,  default='Dst')
 prs.add_argument('--saveto'       , type=str,  default=None)
 prs.add_argument('--readfrom'     , type=str,  default=None)
-prs.add_argument('--jkfit'        , action='store_true')
+prs.add_argument('--jkfit'        , action='store_true', default=False)
 prs.add_argument('--override'     , action='store_true')
 prs.add_argument('--logto'        , type=str, default=None)
 prs.add_argument('--debug'        , action='store_true')
@@ -202,11 +124,6 @@ prs.add_argument('--plot_fit'     , action='store_true')
 prs.add_argument('--show'         , action='store_true')
 
 
-
-
-
-
-
 def main():
     args = prs.parse_args()
 
@@ -219,15 +136,17 @@ def main():
     ENSEMBLE_LIST = args.ensemble if args.ensemble is not None else config['ensemble']['list']
     RATIO_LIST    = args.ratio    if args.ratio    is not None else config['ratio']['list']
     MOM_LIST      = args.mom      if args.mom      is not None else []
+    
+    JKFIT  = True if args.jkfit else False
 
     for ens in ENSEMBLE_LIST:
         for ratio in RATIO_LIST:
             for mom in (MOM_LIST if MOM_LIST else config['fit'][ens][ratio]['mom'].keys()):
-                
-                print(f'---------- {ens} ------------ {ratio} ----------- {mom} -----------------')
 
-                if mom==0 and ratio!='RA1':
+                if mom=='000' and ratio!='RA1':
                     continue
+
+                print(f'----    ------ {ens} ------------ {ratio} ----------- {mom} -----------------')
 
 
                 tag = config['fit'][ens][ratio]['mom'][mom]['tag']
@@ -236,13 +155,8 @@ def main():
                 smlist   = config['fit'][ens][ratio]['smlist'] 
                 nstates  = config['fit'][ens][ratio]['mom'][mom]['nstates'] 
                 trange   = tuple(config['fit'][ens][ratio]['mom'][mom]['trange']) 
+                svd      = config['fit'][ens][ratio]['mom'][mom]['svd'] 
 
-                exists_2pts_analysis(
-                    readfrom = readfrom,
-                    ens      = ens,
-                    mom      = mom,
-                    jkfit    = args.jkfit
-                )
 
                 #  =======================================================================================
                 SAVETO = DEFAULT_ANALYSIS_ROOT if args.saveto=='default' else args.saveto
@@ -270,42 +184,55 @@ def main():
                     block  = args.block,
                     scale  = args.scale,
                     shrink = args.shrink,
-                    cutsvd = args.svd
+                    cutsvd = args.svd if args.svd is not None else svd
                 )                
+                
+                print(ens,ratio,mom,readfrom)
 
-                robj = elaborate_ratio(
-                    ens,ratio,mom,data_dir,binsize,smlist,
-                    readfrom=readfrom,
-                    jk=False # FIXME
+                ratio_requisites = ratio_prerequisites(
+                    ens      = ens,
+                    ratio    = ratio,
+                    mom      = mom,
+                    readfrom = readfrom,
+                    jk       = args.jkfit,
+                    meson    = args.meson
                 )
 
-                fitres = fit_ratio(
-                    robj,
-                    nstates,
-                    trange,
-                    saveto  = saveto, 
-                    jkfit   = args.jkfit,  
-                    wpriors = args.no_priors_chi,
-                    **cov_specs
+                io = RatioIO(ens,ratio,mom,PathToDataDir=data_dir)
+                robj = RatioFitter(
+                    io,
+                    jkBin = binsize,
+                    smearing = ['1S'],
+                    **ratio_requisites
                 )
 
+                print(robj.format())
 
+                # fitres = fit_ratio(
+                #     robj,
+                #     nstates,
+                #     trange,
+                #     saveto  = saveto, 
+                #     jkfit   = JKFIT,  
+                #     wpriors = args.no_priors_chi,
+                #     **cov_specs
+                # )
 
-                # Plot ==============================================================================
-                if args.plot_fit:
-                    plt.rcParams['text.usetex'] = True
-                    plt.rcParams['font.size'] = 12
+                # # Plot ==============================================================================
+                # if args.plot_fit:
+                #     plt.rcParams['text.usetex'] = True
+                #     plt.rcParams['font.size'] = 12
 
-                    fig, ax = plt.subplots(figsize=(7,3))
-                    robj.plot_fit(ax,nstates,trange)
+                #     fig, ax = plt.subplots(figsize=(7,3))
+                #     robj.plot_fit(ax,nstates,trange)
 
-                    plt.tight_layout()
+                #     plt.tight_layout()
 
-                if SAVETO is not None:
-                    plt.savefig(f'{SAVETO}/fit3pt_config_{tag}_fit.pdf')
-                    print(f'{ratio} plot saved to {SAVETO}/fit3pt_config_{tag}_fit.pdf')
-                if args.show:
-                    plt.show()
+                # if SAVETO is not None:
+                #     plt.savefig(f'{SAVETO}/fit3pt_config_{tag}_fit.pdf')
+                #     print(f'{ratio} plot saved to {SAVETO}/fit3pt_config_{tag}_fit.pdf')
+                # if args.show:
+                #     plt.show()
 
 
 

@@ -28,33 +28,35 @@ import tomllib
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 
+from b2heavy.ThreePointFunctions.utils import read_config_fit, dump_fit_object
 import fit_2pts_utils as utils
 
 from b2heavy import FnalHISQMetadata
 
 
 def extract_single_energy(tag,path=None,N=0,jk=False):
-    # tg = tag.split('_fit')[0]
-    ret = utils.read_config_fit(tag,jk=jk,path=path)
+    ret = read_config_fit(tag,jk=jk,path=path)
 
     if not jk:
         return ret[1]['E'][N]
     else:
-        return gv.mean(ret['E'][:,N])
+        return ret['E'][:,N]
 
 
 def extract_energies(ensemble,meson,momlist=None,jk=False,readfrom='.',tag='fit2pt_config'):
     if not os.path.exists(readfrom):
         raise NameError(f'{readfrom} is not an existing location')
 
-    filename = f'{tag}_{ensemble}_{meson}_' if not jk else f'{tag}_jk_{ensemble}_{meson}_'
+    filename = f'{tag}_{ensemble}_{meson}_'
 
     E = {}
     if momlist is None:
         for file in os.listdir(readfrom):
             f = os.path.join(readfrom,file)
-            if file.startswith(filename) and file.endswith('fit.pickle'):
-                name,_ = f.split('_fit.pickle')
+
+            file_end = 'fit.pickle' if not jk else '_jk_fit.pickle'
+            if file.startswith(filename) and file.endswith(file_end):
+                name,_ = f.split(file_end)
                 mom = name.split('_')[-1]
 
                 tag = name.split('/')[-1]
@@ -98,26 +100,6 @@ def dispersion_relation_lsqfit(pveclist,d):
         )
 
     return np.array(res)
-
-
-# def fit_dispersion_relation(momlist,E0,L=2*np.pi):
-#     # Define fit points
-#     xfit = [[float(px)*2*np.pi/L for px in mom] for mom in momlist]
-#     yfit = E0**2
-
-#     # Fit function
-#     popt,pcov = curve_fit(
-#         model,
-#         xfit, gv.mean(yfit),
-#         sigma = gv.evalcov(yfit),
-#     )
-#     pars = gv.gvar(popt,pcov)
-
-#     # Calculate chi2
-#     r = gv.mean(yfit) - model(xfit,*popt)
-#     chisq = r.T @ np.linalg.inv(gv.evalcov(yfit)) @ r
-
-#     return pars,chisq
 
 
 def plot_dispersion_relation(ax,mom,p2,E0,fitpar=None,chi2=None):
@@ -179,8 +161,7 @@ def main():
     alphas = mdata['alphaS'] 
 
 
-
-    readfrom = f'{DEFAULT_ANALYSIS_ROOT}/' if args.saveto=='default' else args.readfrom
+    readfrom = f'{DEFAULT_ANALYSIS_ROOT}/' if args.readfrom=='default' else args.readfrom
     if not os.path.exists(readfrom):
         raise NameError(f'{readfrom} is not an existing location')
 
@@ -207,7 +188,18 @@ def main():
 
     pv = [2*np.pi/Lvol*np.array([float(px) for px in mom]) for mom in psort]
     p2 = [sum(np.array([float(px)*2*np.pi/Lvol for px in mom])**2) for mom in psort]
-    E0 = np.asarray([E[kp] for kp in psort])    
+
+    if not JK:
+        E0 = np.asarray([E[kp] for kp in psort])    
+    else:
+        E0 = []
+        for mom in psort:
+            E0.append(E[mom])
+        E0 = np.array(E0).T
+        E0 = gv.gvar(
+            E0.mean(axis=0),
+            np.cov(E0,rowvar=False,bias=True) * (E0.shape[0]-1)
+        )
 
     print(p2,psort)
 

@@ -54,7 +54,7 @@ class RatioFitter(Ratio):
         single = (not isinstance(rsp['source'],list)) and rsp['source']==rsp['sink'] 
 
         pr = {
-            'ratio' : [gv.gvar(-0.9,0.1 if self.ratio=='RA1' else 0.05) if K is None else K],
+            'ratio' : [gv.gvar(-0.9,0.1 if self.info.ratio=='RA1' else 0.05) if K is None else K],
             'dE_src': [gv.gvar(-1.5,1.0) for _ in range(Nstates)] if dE_src is None else dE_src,
             # 'log(dE_src)': [gv.log(gv.gvar('0.22(22)')) for _ in range(Nstates)] if dE_src is None else dE_src,
         }
@@ -128,33 +128,35 @@ class RatioFitter(Ratio):
         return fitjk if jkfit else fit
 
 
-    def plot_fit(self,ax,Nstates,trange):
+    def plot_fit(self,ax,Nstates,trange,color='C0',label=None):
         fit = self.fits[Nstates,trange]
         x,y = self.format()
 
-        for sm in self.smr:
+        for i,sm in enumerate(self.smr):
             model = ModelRatio(self.Tb,self.specs,sm,Nstates)
 
             iin = np.array([min(trange)<=x<=max(trange) for x in x])
             
+
+            off = (-1)**i*0.1
             # Plot fit points 
             xin = x[iin]
             yin = y[sm][iin]
-            ax.errorbar(xin,gv.mean(yin),gv.sdev(yin),fmt='o', ecolor='C0', mfc='w', capsize=2.5, label=sm)
+            ax.errorbar(xin+off,gv.mean(yin),gv.sdev(yin),fmt='o', ecolor=color, mfc='w', color=color, capsize=2.5, label=label)
             
             # Plot other points
             xout = x[~iin]
             yout = y[sm][~iin]
-            ax.errorbar(xout,gv.mean(yout),gv.sdev(yout),fmt='o', ecolor='C0', mfc='w', color='C0', capsize=2.5, alpha=0.2)
+            ax.errorbar(xout+off,gv.mean(yout),gv.sdev(yout),fmt='o', ecolor=color, mfc='w', color=color, capsize=2.5, alpha=0.2)
             
-
-            xrange = np.arange(0,max(x)+1,0.01)
+            # fit bands
+            xrange = np.arange(-1.,max(x)+1,0.01)
             ye = model(xrange,fit.p)
-            ax.fill_between(xrange,gv.mean(ye)+gv.sdev(ye),gv.mean(ye)-gv.sdev(ye),alpha=0.3)
+            ax.fill_between(xrange,gv.mean(ye)+gv.sdev(ye),gv.mean(ye)-gv.sdev(ye),alpha=0.15,color=color)
 
-            ax.legend()  
+            # results
+            ax.errorbar(-0.25,fit.p['ratio'][0].mean,fit.p['ratio'][0].sdev,color=color,fmt='o', capsize=2.5)
 
-            ax.set_xlim(-0.1,max(x)+1)          
 
 
     def diff_model(self, xdata, Nstates):
@@ -274,22 +276,28 @@ class RatioFitter(Ratio):
 
 
 
+from b2heavy.ThreePointFunctions.types3pts import ratio_prerequisites
+
 def main():
-    ens = 'Fine-1'
-    rat = 'XV'
-    # rat = 'RA1'
+    ens = 'Coarse-1'
+    rat = 'RA1'
     mom = '100'
     frm = '/Users/pietro/code/data_analysis/BtoD/Alex'
+    readfrom = '/Users/pietro/code/data_analysis/data/QCDNf2p1stag/B2heavy/presentation'
+
+
+
+    requisites = ratio_prerequisites(
+        ens, rat, mom, readfrom=readfrom, jk=False
+    )
 
     io = RatioIO(ens,rat,mom,PathToDataDir=frm)
     ratio = RatioFitter(
         io,
         jkBin    = 11,
-        smearing = ['1S'],
-        # E0 = 0., m0 = 0., Zbot=1., Z0=1., wrecoil=100000.
+        smearing = ['1S','RW'],
+        **requisites
     )
-
-    print(ratio.Ta)
 
     COV_SPECS = dict(
         diag   = False,
@@ -299,29 +307,30 @@ def main():
         cutsvd = 0.01
     )
 
-    nstates = 2
-    trange  = (3,11)
+    nstates = 1
+    trange  = (3,ratio.Ta-3)
+
 
     x,y = ratio.format()
-    priors = ratio.priors(nstates,K=gv.gvar(y['1S'][len(y['1S'])//2].mean,0.1))
+    kmean = np.mean([y[sm][ratio.Ta//2].mean for sm in ratio.smr])
+    Kmean = gv.gvar(kmean,0.1)
+
+
+    priors = ratio.priors(nstates,K=Kmean)
+    print(priors)
+
 
     fit = ratio.fit(
         Nstates = nstates,
         trange  = trange,
-        verbose = True,
+        # verbose = True,
         priors  = priors,
         **COV_SPECS
     )
 
-    pr = fit.prior
-    popt = dict(fit.pmean)
-    fcov = gv.evalcov(fit.y)
-    c2,ce,p = ratio.chi2exp(nstates,trange,popt,fcov,priors=pr)
-    c2dof = c2/(len(fit.y)-1-(len(fit.prior.keys())-1)*nstates)
-    # res = dict(fit=fit, chi2red=c2, chiexp=ce, pvalue=p)
 
+    fig,ax = plt.subplots(1,1)
+    ratio.plot_fit(ax,nstates,trange)
+    plt.show()
 
-    print(f'{c2dof = }')
-    print(f'{c2/ce = }')
-    print(f'{p = }')
-
+    ratio.fit_result(nstates,trange,priors=priors)

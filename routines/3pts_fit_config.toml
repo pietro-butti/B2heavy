@@ -7,10 +7,10 @@ title = '3pts fits'
     list = ['Coarse-2','Coarse-Phys','Coarse-1','Fine-1']
 
 [ratio]
-    list = ['xfstpar', 'XV', 'RA1', 'R0', 'R1']#,'ZRA1']
+    list = ['xfstpar', 'XV', 'R0', 'R1', 'RA1']#,'ZRA1']
 
 [momenta]
-    list = ['000','100','200','300','400','110','211','222']
+    list = ['000','100','200','300','400']
 
 
 [data]
@@ -20,28 +20,28 @@ title = '3pts fits'
         name     = 'Coarse-1'
         data_dir = "/Users/pietro/code/data_analysis/BtoD/Alex"
         binsize  = 16
-        mom_list = ['000','100','200','300','110','211']
+        mom_list = ['000','100','200','300']
         Nt       = 64
 
     [data.Coarse-1]
         name     = 'Coarse-1'
         data_dir = "/Users/pietro/code/data_analysis/BtoD/Alex"
         binsize  = 11
-        mom_list = ['000','100','200','300','110','211']
+        mom_list = ['000','100','200','300']
         Nt       = 64
     
     [data.Coarse-Phys]
         name     = 'Coarse-Phys'
         data_dir = "/Users/pietro/code/data_analysis/BtoD/Alex"
         binsize  = 19
-        mom_list = ['000','100','200','300','110','211']
+        mom_list = ['000','100','200','300','400']
         Nt       = 64
     
     [data.Fine-1]
         name     = 'Fine-1'
         data_dir = "/Users/pietro/code/data_analysis/BtoD/Alex"
         binsize  = 16
-        mom_list = ['000','100','200','300','110','211']
+        mom_list = ['000','100','200','300','400']
         Nt       = 96
     
 
@@ -63,15 +63,18 @@ title = '3pts fits'
                 [fit.Coarse-2.xfstpar.mom.100]
                     nstates = 2
                     tag     = 'Coarse-2_xfstpar_100'
-                    trange  = [3,11]
+                    trange  = [3,10]
+                    svd     = 0.0067
                 [fit.Coarse-2.xfstpar.mom.200]
                     nstates = 2
                     tag     = 'Coarse-2_xfstpar_200'
-                    trange  = [3,11]            
+                    trange  = [3,10]
+                    svd     = 0.0065            
                 [fit.Coarse-2.xfstpar.mom.300]
                     nstates = 2
                     tag     = 'Coarse-2_xfstpar_300'
-                    trange  = [3,11]
+                    trange  = [3,10]
+                    svd     = 0.0061
 
         [fit.Coarse-2.RA1]
             smlist = ['1S']
@@ -79,19 +82,23 @@ title = '3pts fits'
                 [fit.Coarse-2.RA1.mom.000]
                     nstates = 2
                     tag     = 'Coarse-2_RA1_000'
-                    trange  = [3,11]
+                    trange  = [3,10]
+                    svd     = 2.626059e-4
                 [fit.Coarse-2.RA1.mom.100]
                     nstates = 2
                     tag     = 'Coarse-2_RA1_100'
-                    trange  = [3,11]
+                    trange  = [3,10]
+                    svd     = 6.618583e-6
                 [fit.Coarse-2.RA1.mom.200]
                     nstates = 2
                     tag     = 'Coarse-2_RA1_200'
-                    trange  = [3,11]            
+                    trange  = [3,10]
+                    svd     = 2.207537e-7           
                 [fit.Coarse-2.RA1.mom.300]
                     nstates = 2
                     tag     = 'Coarse-2_RA1_300'
-                    trange  = [3,11]
+                    trange  = [3,10]
+                    svd     = 2.494207e-7
 
         [fit.Coarse-2.ZRA1]
             smlist = ['1S']
@@ -99,7 +106,7 @@ title = '3pts fits'
                 [fit.Coarse-2.ZRA1.mom.000]
                     nstates = 2
                     tag     = 'Coarse-2_ZRA1_000'
-                    trange  = [3,11]
+                    trange  = [3,10]
 
         [fit.Coarse-2.R0]
             smlist = ['1S']
@@ -107,15 +114,18 @@ title = '3pts fits'
                 [fit.Coarse-2.R0.mom.100]
                     nstates = 2
                     tag     = 'Coarse-2_R0_100'
-                    trange  = [3,11]
+                    trange  = [3,10]
+                    svd     = 0.0060
                 [fit.Coarse-2.R0.mom.200]
                     nstates = 2
                     tag     = 'Coarse-2_R0_200'
-                    trange  = [3,11]            
+                    trange  = [3,10]
+                    svd     = 0.0063            
                 [fit.Coarse-2.R0.mom.300]
                     nstates = 2
                     tag     = 'Coarse-2_R0_300'
-                    trange  = [3,11]
+                    trange  = [3,10]
+                    svd     = 0.0060
 
         [fit.Coarse-2.R1]
             smlist = ['1S']
@@ -123,15 +133,18 @@ title = '3pts fits'
                 [fit.Coarse-2.R1.mom.100]
                     nstates = 2
                     tag     = 'Coarse-2_R1_100'
-                    trange  = [3,11]
+                    trange  = [3,10]
+                    svd     = 0.0007
                 [fit.Coarse-2.R1.mom.200]
                     nstates = 2
                     tag     = 'Coarse-2_R1_200'
-                    trange  = [3,11]            
+                    trange  = [3,10]
+                    svd     = 0.0010           
                 [fit.Coarse-2.R1.mom.300]
                     nstates = 2
                     tag     = 'Coarse-2_R1_300'
-                    trange  = [3,11]
+                    trange  = [3,10]
+                    svd     = 0.0013
 
         [fit.Coarse-2.XV]
             smlist = ['1S']
@@ -139,15 +152,18 @@ title = '3pts fits'
                 [fit.Coarse-2.XV.mom.100]
                     nstates = 2
                     tag     = 'Coarse-2_XV_100'
-                    trange  = [3,11]
+                    trange  = [3,10]
+                    svd     = 0.0051
                 [fit.Coarse-2.XV.mom.200]
                     nstates = 2
                     tag     = 'Coarse-2_XV_200'
-                    trange  = [3,11]            
+                    trange  = [3,10]
+                    svd     = 0.0062            
                 [fit.Coarse-2.XV.mom.300]
                     nstates = 2
                     tag     = 'Coarse-2_XV_300'
-                    trange  = [3,11]
+                    trange  = [3,10]
+                    svd     = 0.0107
 
     [fit.Coarse-1]
         [fit.Coarse-1.xfstpar]
@@ -156,15 +172,18 @@ title = '3pts fits'
                 [fit.Coarse-1.xfstpar.mom.100]
                     nstates = 2
                     tag     = 'Coarse-1_xfstpar_100'
-                    trange  = [3,11]
+                    trange  = [3,10]
+                    svd     = 0.0069
                 [fit.Coarse-1.xfstpar.mom.200]
                     nstates = 2
                     tag     = 'Coarse-1_xfstpar_200'
-                    trange  = [3,11]            
+                    trange  = [3,10]
+                    svd     = 0.0072            
                 [fit.Coarse-1.xfstpar.mom.300]
                     nstates = 2
                     tag     = 'Coarse-1_xfstpar_300'
-                    trange  = [3,11]
+                    trange  = [3,10]
+                    svd     = 0.0085
 
         [fit.Coarse-1.RA1]
             smlist = ['1S']
@@ -172,19 +191,23 @@ title = '3pts fits'
                 [fit.Coarse-1.RA1.mom.000]
                     nstates = 2
                     tag     = 'Coarse-1_RA1_000'
-                    trange  = [3,11]
+                    trange  = [3,10]
+                    svd     = 2.542399e-4
                 [fit.Coarse-1.RA1.mom.100]
                     nstates = 2
                     tag     = 'Coarse-1_RA1_100'
-                    trange  = [3,11]
+                    trange  = [3,10]
+                    svd     = 2.181334e-6
                 [fit.Coarse-1.RA1.mom.200]
                     nstates = 2
                     tag     = 'Coarse-1_RA1_200'
-                    trange  = [3,11]            
+                    trange  = [3,10]
+                    svd     = 8.574746e-7            
                 [fit.Coarse-1.RA1.mom.300]
                     nstates = 2
                     tag     = 'Coarse-1_RA1_300'
-                    trange  = [3,11]
+                    trange  = [3,10]
+                    svd     = 7.995491e-7
 
         [fit.Coarse-1.ZRA1]
             smlist = ['1S']
@@ -192,7 +215,8 @@ title = '3pts fits'
                 [fit.Coarse-1.ZRA1.mom.000]
                     nstates = 2
                     tag     = 'Coarse-1_ZRA1_000'
-                    trange  = [3,11]
+                    trange  = [3,10]
+                    svd     = 0.0010
 
         [fit.Coarse-1.R0]
             smlist = ['1S']
@@ -200,15 +224,18 @@ title = '3pts fits'
                 [fit.Coarse-1.R0.mom.100]
                     nstates = 2
                     tag     = 'Coarse-1_R0_100'
-                    trange  = [3,11]
+                    trange  = [3,10]
+                    svd     = 0.0079
                 [fit.Coarse-1.R0.mom.200]
                     nstates = 2
                     tag     = 'Coarse-1_R0_200'
-                    trange  = [3,11]            
+                    trange  = [3,10]
+                    svd     = 0.0071            
                 [fit.Coarse-1.R0.mom.300]
                     nstates = 2
                     tag     = 'Coarse-1_R0_300'
-                    trange  = [3,11]
+                    trange  = [3,10]
+                    svd     = 0.0067
 
         [fit.Coarse-1.R1]
             smlist = ['1S']
@@ -216,15 +243,18 @@ title = '3pts fits'
                 [fit.Coarse-1.R1.mom.100]
                     nstates = 2
                     tag     = 'Coarse-1_R1_100'
-                    trange  = [3,11]
+                    trange  = [3,10]
+                    svd     = 0.0007
                 [fit.Coarse-1.R1.mom.200]
                     nstates = 2
                     tag     = 'Coarse-1_R1_200'
-                    trange  = [3,11]            
+                    trange  = [3,10]
+                    svd     = 0.0008            
                 [fit.Coarse-1.R1.mom.300]
                     nstates = 2
                     tag     = 'Coarse-1_R1_300'
-                    trange  = [3,11]
+                    trange  = [3,10]
+                    svd     = 0.0010
 
         [fit.Coarse-1.XV]
             smlist = ['1S']
@@ -232,15 +262,18 @@ title = '3pts fits'
                 [fit.Coarse-1.XV.mom.100]
                     nstates = 2
                     tag     = 'Coarse-1_XV_100'
-                    trange  = [3,11]
+                    trange  = [3,10]
+                    svd     = 0.0077
                 [fit.Coarse-1.XV.mom.200]
                     nstates = 2
                     tag     = 'Coarse-1_XV_200'
-                    trange  = [3,11]            
+                    trange  = [3,10]
+                    svd     = 0.0101            
                 [fit.Coarse-1.XV.mom.300]
                     nstates = 2
                     tag     = 'Coarse-1_XV_300'
-                    trange  = [3,11]
+                    trange  = [3,10]
+                    svd     = 0.0116
 
     [fit.Coarse-Phys]
         [fit.Coarse-Phys.xfstpar]
@@ -249,15 +282,23 @@ title = '3pts fits'
                 [fit.Coarse-Phys.xfstpar.mom.100]
                     nstates = 2
                     tag     = 'Coarse-Phys_xfstpar_100'
-                    trange  = [3,11]
+                    trange  = [3,10]
+                    svd     = 0.0084
                 [fit.Coarse-Phys.xfstpar.mom.200]
                     nstates = 2
                     tag     = 'Coarse-Phys_xfstpar_200'
-                    trange  = [3,11]            
+                    trange  = [3,10]
+                    svd     = 0.0090            
                 [fit.Coarse-Phys.xfstpar.mom.300]
                     nstates = 2
                     tag     = 'Coarse-Phys_xfstpar_300'
-                    trange  = [3,11]
+                    trange  = [3,10]
+                    svd     = 0.0108
+                [fit.Coarse-Phys.xfstpar.mom.400]
+                    nstates = 2
+                    tag     = 'Coarse-Phys_xfstpar_400'
+                    trange  = [3,10]
+                    svd     = 0.0106
 
         [fit.Coarse-Phys.RA1]
             smlist = ['1S']
@@ -265,19 +306,28 @@ title = '3pts fits'
                 [fit.Coarse-Phys.RA1.mom.000]
                     nstates = 2
                     tag     = 'Coarse-Phys_RA1_000'
-                    trange  = [3,11]
+                    trange  = [3,10]
+                    svd     = 3.436215e-4
                 [fit.Coarse-Phys.RA1.mom.100]
                     nstates = 2
                     tag     = 'Coarse-Phys_RA1_100'
-                    trange  = [3,11]
+                    trange  = [3,10]
+                    svd     = 7.707141e-6
                 [fit.Coarse-Phys.RA1.mom.200]
                     nstates = 2
                     tag     = 'Coarse-Phys_RA1_200'
-                    trange  = [3,11]            
+                    trange  = [3,10]
+                    svd     =  3.459330e-6           
                 [fit.Coarse-Phys.RA1.mom.300]
                     nstates = 2
                     tag     = 'Coarse-Phys_RA1_300'
-                    trange  = [3,11]
+                    trange  = [3,10]
+                    svd     = 7.375751e-7           
+                [fit.Coarse-Phys.RA1.mom.400]
+                    nstates = 2
+                    tag     = 'Coarse-Phys_RA1_400'
+                    trange  = [3,10]
+                    svd     = 1.097774e-7
 
         [fit.Coarse-Phys.ZRA1]
             smlist = ['1S']
@@ -285,7 +335,7 @@ title = '3pts fits'
                 [fit.Coarse-Phys.ZRA1.mom.000]
                     nstates = 2
                     tag     = 'Coarse-Phys_ZRA1_000'
-                    trange  = [3,11]
+                    trange  = [3,10]
 
         [fit.Coarse-Phys.R0]
             smlist = ['1S']
@@ -293,15 +343,23 @@ title = '3pts fits'
                 [fit.Coarse-Phys.R0.mom.100]
                     nstates = 2
                     tag     = 'Coarse-Phys_R0_100'
-                    trange  = [3,11]
+                    trange  = [3,10]
+                    svd     = 0.0081
                 [fit.Coarse-Phys.R0.mom.200]
                     nstates = 2
                     tag     = 'Coarse-Phys_R0_200'
-                    trange  = [3,11]            
+                    trange  = [3,10]
+                    svd     = 0.0083            
                 [fit.Coarse-Phys.R0.mom.300]
                     nstates = 2
                     tag     = 'Coarse-Phys_R0_300'
-                    trange  = [3,11]
+                    trange  = [3,10]
+                    svd     = 0.0066
+                [fit.Coarse-Phys.R0.mom.400]
+                    nstates = 2
+                    tag     = 'Coarse-Phys_R0_400'
+                    trange  = [3,10]
+                    svd     = 0.0044
 
         [fit.Coarse-Phys.R1]
             smlist = ['1S']
@@ -309,15 +367,23 @@ title = '3pts fits'
                 [fit.Coarse-Phys.R1.mom.100]
                     nstates = 2
                     tag     = 'Coarse-Phys_R1_100'
-                    trange  = [3,11]
+                    trange  = [3,10]
+                    svd     = 0.0008
                 [fit.Coarse-Phys.R1.mom.200]
                     nstates = 2
                     tag     = 'Coarse-Phys_R1_200'
-                    trange  = [3,11]            
+                    trange  = [3,10]
+                    svd     = 0.0007            
                 [fit.Coarse-Phys.R1.mom.300]
                     nstates = 2
                     tag     = 'Coarse-Phys_R1_300'
-                    trange  = [3,11]
+                    trange  = [3,10]
+                    svd     = 0.0006
+                [fit.Coarse-Phys.R1.mom.400]
+                    nstates = 2
+                    tag     = 'Coarse-Phys_R1_400'
+                    trange  = [3,10]
+                    svd     = 0.0005
 
         [fit.Coarse-Phys.XV]
             smlist = ['1S']
@@ -325,15 +391,23 @@ title = '3pts fits'
                 [fit.Coarse-Phys.XV.mom.100]
                     nstates = 2
                     tag     = 'Coarse-Phys_XV_100'
-                    trange  = [3,11]
+                    trange  = [3,10]
+                    svd     = 0.0066
                 [fit.Coarse-Phys.XV.mom.200]
                     nstates = 2
                     tag     = 'Coarse-Phys_XV_200'
-                    trange  = [3,11]            
+                    trange  = [3,10]
+                    svd     = 0.0080            
                 [fit.Coarse-Phys.XV.mom.300]
                     nstates = 2
                     tag     = 'Coarse-Phys_XV_300'
-                    trange  = [3,11]
+                    trange  = [3,10]
+                    svd     = 0.0060
+                [fit.Coarse-Phys.XV.mom.400]
+                    nstates = 2
+                    tag     = 'Coarse-Phys_XV_400'
+                    trange  = [3,10]
+                    svd     = 0.0045
 
 
 
@@ -345,15 +419,23 @@ title = '3pts fits'
                 [fit.Fine-1.xfstpar.mom.100]
                     nstates = 2
                     tag     = 'Fine-1_xfstpar_100'
-                    trange  = [3,14]
+                    trange  = [4,14]
+                    svd     = 0.0019
                 [fit.Fine-1.xfstpar.mom.200]
                     nstates = 2
                     tag     = 'Fine-1_xfstpar_200'
-                    trange  = [3,14]            
+                    trange  = [4,14]
+                    svd     = 0.0023            
                 [fit.Fine-1.xfstpar.mom.300]
                     nstates = 2
                     tag     = 'Fine-1_xfstpar_300'
-                    trange  = [3,14]
+                    trange  = [4,14]
+                    svd     = 0.0029
+                [fit.Fine-1.xfstpar.mom.400]
+                    nstates = 2
+                    tag     = 'Fine-1_xfstpar_400'
+                    trange  = [4,14]
+                    svd     = 0.0034
 
         [fit.Fine-1.RA1]
             smlist = ['1S']
@@ -361,19 +443,28 @@ title = '3pts fits'
                 [fit.Fine-1.RA1.mom.000]
                     nstates = 2
                     tag     = 'Fine-1_RA1_000'
-                    trange  = [3,14]
+                    trange  = [4,14]
+                    svd     = 3.736130e-5
                 [fit.Fine-1.RA1.mom.100]
                     nstates = 2
                     tag     = 'Fine-1_RA1_100'
-                    trange  = [3,14]
+                    trange  = [4,14]
+                    svd     = 6.905696e-7
                 [fit.Fine-1.RA1.mom.200]
                     nstates = 2
                     tag     = 'Fine-1_RA1_200'
-                    trange  = [3,14]            
+                    trange  = [4,14]
+                    svd     = 7.584726e-7          
                 [fit.Fine-1.RA1.mom.300]
                     nstates = 2
                     tag     = 'Fine-1_RA1_300'
-                    trange  = [3,14]
+                    trange  = [4,14]
+                    svd     = 6.330946e-7          
+                [fit.Fine-1.RA1.mom.400]
+                    nstates = 2
+                    tag     = 'Fine-1_RA1_400'
+                    trange  = [4,14]
+                    svd     = 8.191559e-8
 
         [fit.Fine-1.ZRA1]
             smlist = ['1S']
@@ -381,7 +472,7 @@ title = '3pts fits'
                 [fit.Fine-1.ZRA1.mom.000]
                     nstates = 2
                     tag     = 'Fine-1_ZRA1_000'
-                    trange  = [3,14]
+                    trange  = [4,14]
 
         [fit.Fine-1.R0]
             smlist = ['1S']
@@ -389,15 +480,23 @@ title = '3pts fits'
                 [fit.Fine-1.R0.mom.100]
                     nstates = 2
                     tag     = 'Fine-1_R0_100'
-                    trange  = [3,14]
+                    trange  = [4,14]
+                    svd     = 0.0012
                 [fit.Fine-1.R0.mom.200]
                     nstates = 2
                     tag     = 'Fine-1_R0_200'
-                    trange  = [3,14]            
+                    trange  = [4,14]
+                    svd     = 0.0009            
                 [fit.Fine-1.R0.mom.300]
                     nstates = 2
                     tag     = 'Fine-1_R0_300'
-                    trange  = [3,14]
+                    trange  = [4,14]
+                    svd     = 0.0008
+                [fit.Fine-1.R0.mom.400]
+                    nstates = 2
+                    tag     = 'Fine-1_R0_400'
+                    trange  = [4,14]
+                    svd     = 0.0009
 
         [fit.Fine-1.R1]
             smlist = ['1S']
@@ -405,15 +504,23 @@ title = '3pts fits'
                 [fit.Fine-1.R1.mom.100]
                     nstates = 2
                     tag     = 'Fine-1_R1_100'
-                    trange  = [3,14]
+                    trange  = [4,14]
+                    svd     = 0.0002
                 [fit.Fine-1.R1.mom.200]
                     nstates = 2
                     tag     = 'Fine-1_R1_200'
-                    trange  = [3,14]            
+                    trange  = [4,14]
+                    svd     = 0.0002            
                 [fit.Fine-1.R1.mom.300]
                     nstates = 2
                     tag     = 'Fine-1_R1_300'
-                    trange  = [3,14]
+                    trange  = [4,14]
+                    svd     = 0.0003           
+                [fit.Fine-1.R1.mom.400]
+                    nstates = 2
+                    tag     = 'Fine-1_R1_400'
+                    trange  = [4,14]
+                    svd     = 0.0004
 
         [fit.Fine-1.XV]
             smlist = ['1S']
@@ -421,13 +528,21 @@ title = '3pts fits'
                 [fit.Fine-1.XV.mom.100]
                     nstates = 2
                     tag     = 'Fine-1_XV_100'
-                    trange  = [3,14]
+                    trange  = [4,14]
+                    svd     = 0.0033
                 [fit.Fine-1.XV.mom.200]
                     nstates = 2
                     tag     = 'Fine-1_XV_200'
-                    trange  = [3,14]            
+                    trange  = [4,14]
+                    svd     = 0.0046            
                 [fit.Fine-1.XV.mom.300]
                     nstates = 2
                     tag     = 'Fine-1_XV_300'
-                    trange  = [3,14]
+                    trange  = [4,14]
+                    svd     = 0.0028            
+                [fit.Fine-1.XV.mom.400]
+                    nstates = 2
+                    tag     = 'Fine-1_XV_400'
+                    trange  = [4,14]
+                    svd     = 0.0020
 
