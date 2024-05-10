@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import lsqfit
 from   tqdm import tqdm
 
-from .utils     import MPHYS, load_toml, NplusN2ptModel, correlation_diagnostics
+from .utils     import MPHYS, load_toml, NplusN2ptModel, correlation_diagnostics, p_value
 from .types2pts import CorrelatorInfo, CorrelatorIO, Correlator, plot_effective_coeffs
 
 
@@ -175,6 +175,22 @@ def set_priors_phys(corr, Nstates, Meff=None, Aeff=None, prior_policy=None):
                 priors[f'Z_{sm1}_{pol}'][0] = gv.gvar(v.mean,v.sdev*100)
 
     return priors  
+
+
+def standard_p(io, fit:lsqfit.nonlinear_fit):
+    chi2red = fit.chi2
+    for k,pr in fit.prior.items():
+        for i,p in enumerate(pr):
+            chi2red -= ((fit.pmean[k][i]-p.mean)/p.sdev)**2
+    
+    ndof  = len(fit.y) - sum([len(pr) for k,pr in fit.prior.items()]) 
+
+    aux = Correlator(io=io,jkBin=0)
+    nconf = list(aux.data.values())[0].shape[0]
+
+    return p_value(chi2red,nconf,ndof)
+
+
 
 
 
@@ -402,20 +418,25 @@ class StagFitter(Correlator):
         popt   = dict(fit.pmean)
 
         chi2, chiexp, p = self.chi2exp(Nexc, trange, popt, fitcov, pvalue=True, priors=priors)
+
+        # p_st = standard_p(self.io,fit)
+
         if verbose:
             print(f'# ---------- {Nexc}+{Nexc} fit in {trange} for mes: {self.info.meson} of ens: {self.info.ensemble} for mom: {self.info.momentum} --------------')
             print(fit)
 
-            print(f'# red chi2     = {chi2:.2f}')
-            print(f'# chi2_exp     = {chiexp:.2f}')
-            print(f'# chi2/chi_exp = {chi2/chiexp:.2f}')
-            print(f'# p-value      = {p:.2f}')
+            print(f'# red chi2       = {chi2:.2f}')
+            print(f'# chi2_exp       = {chiexp:.2f}')
+            print(f'# chi2/chi_exp   = {chi2/chiexp:.2f}')
+            print(f'# p-value        = {p:.2f}')
+            # print(f'# p-value (std.) = {p_st:.2f}')
 
         res = dict(
-            fit    = fit,
-            chi2   = chi2,
-            chiexp = chiexp,
-            pvalue = p,
+            fit        = fit,
+            chi2       = chi2,
+            chiexp     = chiexp,
+            pvalue     = p,
+            # p_standard = p_st
         )
 
         if error:

@@ -8,7 +8,7 @@ python 2pts_disp_rel.py --config   [file location of the toml config file]
                         --jkfit    [use jackknifed fit]
                         --readfrom [*where* are the `config` analysis results?]
                         --plot     [do you want to plot?]
-                        --showfig  [do you want to display plot?]
+                        --show     [do you want to display plot?]
                         --saveto   [*where* do you want to save files?]
 
 Examples
@@ -34,16 +34,17 @@ import fit_2pts_utils as utils
 from b2heavy import FnalHISQMetadata
 
 
-def extract_single_energy(tag,path=None,N=0,jk=False):
+def extract_single_energy(tag,path=None,N=0,jk=False,key='E'):
+    # breakpoint()
     ret = read_config_fit(tag,jk=jk,path=path)
 
     if not jk:
-        return ret[1]['E'][N]
+        return ret[1][key][N]
     else:
-        return ret['E'][:,N]
+        return ret[key][:,N]
 
 
-def extract_energies(ensemble,meson,momlist=None,jk=False,readfrom='.',tag='fit2pt_config'):
+def extract_energies(ensemble,meson,momlist=None,jk=False,readfrom='.',tag='fit2pt_config',key='E'):
     if not os.path.exists(readfrom):
         raise NameError(f'{readfrom} is not an existing location')
 
@@ -54,18 +55,22 @@ def extract_energies(ensemble,meson,momlist=None,jk=False,readfrom='.',tag='fit2
         for file in os.listdir(readfrom):
             f = os.path.join(readfrom,file)
 
-            file_end = 'fit.pickle' if not jk else '_jk_fit.pickle'
+            file_end = '_jk_fit.pickle' if jk else '_fit.pickle'
             if file.startswith(filename) and file.endswith(file_end):
+                if not jk and 'jk' in file:
+                    continue
+
                 name,_ = f.split(file_end)
                 mom = name.split('_')[-1]
 
                 tag = name.split('/')[-1]
                 path = name.split(tag)[0]
-                E[mom] = extract_single_energy(tag,path=path,N=0,jk=jk)
+
+                E[mom] = extract_single_energy(tag,path=path,N=0,jk=jk,key=key)
     else:
         for mom in momlist:
             f = os.path.join(readfrom,f'{filename}{mom}')
-            E[mom] = extract_single_energy(f,N=0,jk=jk)
+            E[mom] = extract_single_energy(f,N=0,jk=jk,key=key)
 
     return E
 
@@ -102,7 +107,7 @@ def dispersion_relation_lsqfit(pveclist,d):
     return np.array(res)
 
 
-def plot_dispersion_relation(ax,mom,p2,E0,fitpar=None,chi2=None):
+def plot_dispersion_relation(ax,p2,E0,fitpar=None,chi2=None):
     xfit = p2
     yfit = E0**2
 
@@ -141,7 +146,7 @@ prs.add_argument('--readfrom', type=str, default='./')
 prs.add_argument('--saveto',   type=str, default='./')
 prs.add_argument('--override', action='store_true')
 prs.add_argument('--plot', action='store_true')
-prs.add_argument('--showfig', action='store_true')
+prs.add_argument('--show', action='store_true')
 
 
 
@@ -170,7 +175,7 @@ def main():
         raise NameError(f'{saveto} is not an existing location')
     saveplot = f'{DEFAULT_ANALYSIS_ROOT}' if args.saveto=='default' else args.saveto
 
-    JK = True if args.jkfit else False
+    JK = args.jkfit
 
     E = extract_energies(
         ensemble = ens,
@@ -179,7 +184,6 @@ def main():
         jk       = JK,
         readfrom = readfrom  
     )
-    
 
     # Create vector with fitting points ---------------------------------------
     psort = list(E.keys())
@@ -201,9 +205,6 @@ def main():
             np.cov(E0,rowvar=False,bias=True) * (E0.shape[0]-1)
         )
 
-    print(p2,psort)
-
-
     # Perform fit --------------------------------------------------------------
     priors = dict(
         M1 = gv.gvar(0.5,1.5),
@@ -221,36 +222,125 @@ def main():
     gv.dump(fit.p,f'{saveto}/fit2pts_dispersion_relation_{tag}.pickle')
 
 
+
+
     # Plot discretization errors ------------------------------------------------
-    plt.rcParams['text.usetex'] = True
-    plt.rcParams['font.size'] = 12
-    
-    m1 = fit.p['M1']
-    denominator = np.array(p2) + m1**2
-    yplot = E0**2/denominator
-
-    plt.figure(figsize=(6, 2))
-    ax = plt.subplot(1,1,1)
-
-    ax.errorbar(p2,gv.mean(yplot),gv.sdev(yplot),fmt='o', ecolor='C0', mfc='w', capsize=2.5)
-    ax.axhline(1.,color='gray',alpha=0.5,linestyle=':')
-
-    endp = max(p2)+p2[1]
-    xcone = np.arange(0,endp,0.01)
-    ax.fill_between(xcone, alphas*xcone+1,-alphas*xcone+1,alpha=0.1)
-
-    ax.set_xlim(xmin=-0.01,xmax=endp-0.01)
-
-    ax.set_ylabel(r'$\frac{E^2(\mathbf{p})}{\mathbf{p}^2 + M_1^2}$')
-    ax.set_xlabel(r'$a^2\mathbf{p}^2$')
-
-    plt.tight_layout()
-    plt.title(tag)
-    plt.savefig(f'{saveto}/fit2pts_dispersion_relation_{tag}.pdf')
-
-    plt.show()
+    if args.plot:
+        plt.rcParams['text.usetex'] = True
+        plt.rcParams['font.size'] = 12
+        
+        m1 = fit.p['M1']
+        denominator = np.array(p2) + m1**2
+        yplot = E0**2/denominator
 
 
+        fig,ax = plt.subplots(2,1,figsize=(3, 6),sharex=True)
+
+        # Discr. errors on energies
+        ax[0].errorbar(p2,gv.mean(yplot),gv.sdev(yplot),fmt='o', ecolor='C0', mfc='w', capsize=2.5)
+        ax[0].axhline(1.,color='gray',alpha=0.5,linestyle=':')
+
+        endp = max(p2)+p2[1]
+        xcone = np.arange(0,endp,0.01)
+        ax[0].fill_between(xcone, alphas*xcone+1,-alphas*xcone+1,alpha=0.1)
+
+        ax[0].set_xlim(xmin=-0.01,xmax=endp-0.01)
+
+        ax[0].set_ylabel(r'$\frac{E^2(\mathbf{p})}{\mathbf{p}^2 + M_1^2}$')
+        # ax[0].set_xlabel(r'$a^2\mathbf{p}^2$')
+
+
+        # Discr. errors on coefficients
+        Z1S = np.asarray([])
+        Zd  = np.asarray([])
+        for p in psort:
+            fname = f'fit2pt_config_{ens}_{mes}_'
+            f = os.path.join(readfrom,f'{fname}{p}')
+            collinear = p.endswith('00') and not p.startswith('0')
+
+            k1s_1  = 'Z_1S_Par' if collinear else 'Z_1S_Unpol'      
+            z1s_1 = extract_single_energy(f,N=0,jk=JK,key=k1s_1)
+            z1s_1 = np.exp(z1s_1)*np.sqrt(2*E[p])
+
+            k1s_2  = 'Z_1S_Bot' if collinear else 'Z_1S_Unpol'      
+            z1s_2 = extract_single_energy(f,N=0,jk=JK,key=k1s_2)
+            z1s_2 = np.exp(z1s_2)*np.sqrt(2*E[p])
+
+            Z1S = np.append(Z1S, np.mean([z1s_1,z1s_2]))
+
+
+            kd_1  = 'Z_d_Par' if collinear else 'Z_d_Unpol'      
+            zd_1 = extract_single_energy(f,N=0,jk=JK,key=kd_1)
+            zd_1 = np.exp(zd_1)*np.sqrt(2*E[p])
+
+            kd_2  = 'Z_d_Bot' if collinear else 'Z_d_Unpol'      
+            zd_2 = extract_single_energy(f,N=0,jk=JK,key=kd_2)
+            zd_2 = np.exp(zd_2)*np.sqrt(2*E[p])
+
+            Zd = np.append( Zd, np.mean([zd_1,zd_2])) 
+        Z1S = Z1S/Z1S[0]; Z1S[0] = gv.gvar(1.,0)
+        Zd  = Zd/Zd[0];   Zd [0] = gv.gvar(1.,0)
+
+        ax[1].errorbar(p2,gv.mean(Z1S),gv.sdev(Z1S),fmt='o', ecolor='C0', mfc='w', capsize=2.5)
+        ax[1].errorbar(p2,gv.mean(Zd ),gv.sdev(Zd ),fmt='o', ecolor='C1', mfc='w', capsize=2.5)
+        ax[1].axhline(1.,color='gray',alpha=0.5,linestyle=':')
+
+        endp = max(p2)+p2[1]
+        xcone = np.arange(0,endp,0.01)
+        ax[1].fill_between(xcone, alphas*xcone+1,-alphas*xcone+1,alpha=0.1)
+
+        ax[1].set_xlim(xmin=-0.01,xmax=endp-0.01)
+
+        ax[1].set_ylabel(r'$\frac{Z(\mathbf{p})}{Z(0)}$')
+        ax[1].set_xlabel(r'$a^2\mathbf{p}^2$')
+
+
+
+
+        plt.tight_layout()
+        plt.title(tag)
+        plt.savefig(f'{saveto}/fit2pts_discretization_errors_{tag}.pdf')
+
+
+
+
+
+
+        if args.show:
+            plt.show()
+
+    # Plot fit ------------------------------------------------
+    if args.plot:
+        plt.rcParams['text.usetex'] = True
+        plt.rcParams['font.size'] = 12
+
+        plt.figure(figsize=(4, 6))
+        ax = plt.subplot(1,1,1)
+
+        yplot = E0**2
+        ax.errorbar(p2,gv.mean(yplot),gv.sdev(yplot),fmt='o', ecolor='C0', mfc='w', capsize=2.5)
+
+
+        plist = [np.sqrt([x/3,x/3,x/3]) for x in np.arange(0,max(p2)+0.1,0.01)]
+        xplot = [sum(p**2) for p in plist]
+        fitpar = [fit.p[k] for k in ['M1','M2','M4','w4']]
+        yplot = [dispersion_relation(p,*fitpar) for p in plist]
+
+        ax.fill_between(xplot,gv.mean(yplot)-gv.sdev(yplot),gv.mean(yplot)+gv.sdev(yplot),alpha=0.2)
+
+        ax.set_xlim(xmin=-0.01,xmax=max(p2)+0.05)
+
+        ax.set_ylabel(r'$(aE(\mathbf{p}))^2$')
+        ax.set_xlabel(r'$a^2\mathbf{p}^2$')
+
+        ax.grid(alpha=0.2)
+
+        plt.title(tag)
+        plt.tight_layout()
+        plt.savefig(f'{saveto}/fit2pts_dispersion_relation_{tag}.pdf')
+
+        if args.show:
+            plt.show()
 
 
     return

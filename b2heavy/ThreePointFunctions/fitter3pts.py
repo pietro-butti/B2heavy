@@ -8,9 +8,11 @@ import gvar              as gv
 import matplotlib.pyplot as plt
 import lsqfit
 
-from tqdm     import tqdm
-from .types3pts import Ratio, RatioIO
+from tqdm       import tqdm
 
+from .types3pts                import Ratio, RatioIO
+from .utils                    import read_config_fit
+from ..TwoPointFunctions.utils import p_value
 
 def ModelRatio_jax(T,rsp,sm,Nexc):
     simple = (not isinstance(rsp['source'],list)) and rsp['source']==rsp['sink'] 
@@ -41,6 +43,50 @@ def ModelRatio(T,rsp,sm,Nexc):
     return _model
 
 
+def phys_energy_priors(ens, mes, mom, nstates, readfrom=None):
+    fit,p = read_config_fit(
+        tag  = f'fit2pt_config_{ens}_{mes}_{mom}',
+        path = readfrom
+    )
+
+    # Check length
+    dE = []
+    for n in range(nstates):
+        try:
+            pr = gv.gvar(
+                p['E'][2*n+2].mean,
+                # p['E'][2*n+2].sdev*3
+                1.0
+            )
+        except IndexError:
+            pr = gv.gvar('-1.5(1.0)')
+
+        dE.append(pr)
+
+    return dE
+
+
+def standard_p(io, fit:lsqfit.nonlinear_fit):
+    chi2red = fit.chi2
+    for k,pr in fit.prior.items():
+        for i,p in enumerate(pr):
+            chi2red -= ((fit.pmean[k][i]-p.mean)/p.sdev)**2
+    
+    ndof  = len(fit.y) - sum([len(pr) for k,pr in fit.prior.items()]) 
+
+    req = {
+        'E0'     : 1.,
+        'm0'     : 1.,
+        'Z0'     : {'1S': 1., 'RW': 1.},
+        'Zpar'   : {'1S': 1., 'RW': 1.},
+        'Zbot'   : {'1S': 1., 'RW': 1.},
+        'wrecoil': 1.
+    }
+    aux = Ratio(io=io,jkBin=0,**req)
+    nconf = list(aux.data.values())[0].shape[0]
+
+    return p_value(chi2red,nconf,ndof)
+
 
 class RatioFitter(Ratio):
     def __init__(self, io:RatioIO, **kwargs):
@@ -56,11 +102,9 @@ class RatioFitter(Ratio):
         pr = {
             'ratio' : [gv.gvar(-0.9,0.1 if self.info.ratio=='RA1' else 0.05) if K is None else K],
             'dE_src': [gv.gvar(-1.5,1.0) for _ in range(Nstates)] if dE_src is None else dE_src,
-            # 'log(dE_src)': [gv.log(gv.gvar('0.22(22)')) for _ in range(Nstates)] if dE_src is None else dE_src,
         }
         if not single:
             pr['dE_snk'] = [gv.gvar(-1.5,1.0) for _ in range(Nstates)] if dE_snk is None else dE_snk
-            # pr['log(dE_snk)'] = [gv.log(gv.gvar('0.22(22)')) for _ in range(Nstates)] if dE_snk is None else dE_snk
 
         for sm in self.smr:
             pr[f'A_{sm}'] = [gv.gvar('0(1)') for _ in range(Nstates)]
@@ -128,35 +172,37 @@ class RatioFitter(Ratio):
         return fitjk if jkfit else fit
 
 
-    def plot_fit(self,ax,Nstates,trange,color='C0',label=None):
+    def plot_fit(self,ax,Nstates,trange,color='C0',color_res='crimson',alpha=1.):
         fit = self.fits[Nstates,trange]
         x,y = self.format()
+
+        mrk = ['o','^']
 
         for i,sm in enumerate(self.smr):
             model = ModelRatio(self.Tb,self.specs,sm,Nstates)
 
             iin = np.array([min(trange)<=x<=max(trange) for x in x])
-            
 
-            off = (-1)**i*0.1
+            # label = None if label is None else f'{label} [{sm}]'
+            
+            off = (-1)**i*0.05
             # Plot fit points 
             xin = x[iin]
             yin = y[sm][iin]
-            ax.errorbar(xin+off,gv.mean(yin),gv.sdev(yin),fmt='o', ecolor=color, mfc='w', color=color, capsize=2.5, label=label)
+            ax.errorbar(xin+off,gv.mean(yin),gv.sdev(yin),fmt=mrk[i%2], ecolor=color, mfc='w', color=color, capsize=2.5,alpha=alpha)
             
             # Plot other points
             xout = x[~iin]
             yout = y[sm][~iin]
-            ax.errorbar(xout+off,gv.mean(yout),gv.sdev(yout),fmt='o', ecolor=color, mfc='w', color=color, capsize=2.5, alpha=0.2)
+            ax.errorbar(xout+off,gv.mean(yout),gv.sdev(yout),fmt=mrk[i%2], ecolor=color, mfc='w', color=color, capsize=2.5, alpha=alpha/5)
             
             # fit bands
             xrange = np.arange(-1.,max(x)+1,0.01)
             ye = model(xrange,fit.p)
-            ax.fill_between(xrange,gv.mean(ye)+gv.sdev(ye),gv.mean(ye)-gv.sdev(ye),alpha=0.15,color=color)
+            ax.fill_between(xrange,gv.mean(ye)+gv.sdev(ye),gv.mean(ye)-gv.sdev(ye),color=color,alpha=alpha/6)
 
             # results
-            ax.errorbar(-0.25,fit.p['ratio'][0].mean,fit.p['ratio'][0].sdev,color=color,fmt='o', capsize=2.5)
-
+            ax.errorbar(-0.25,fit.p['ratio'][0].mean,fit.p['ratio'][0].sdev,color=color_res,fmt='D', capsize=2.5)
 
 
     def diff_model(self, xdata, Nstates):
@@ -256,20 +302,26 @@ class RatioFitter(Ratio):
         popt   = dict(fit.pmean)
 
         chi2, chiexp, p = self.chi2exp(Nexc, trange, popt, fitcov, pvalue=True, priors=priors)
+
+        # p_st = standard_p(self.io, fit)
+
+
         if verbose:
             print(f'# ---------- {Nexc}+{Nexc} fit in {trange} for ratio: {self.info.ratio} of ens: {self.info.ensemble} for mom: {self.info.momentum} --------------')
             print(fit)
 
-            print(f'# red chi2     = {chi2:.2f}')
-            print(f'# chi2_exp     = {chiexp:.2f}')
-            print(f'# chi2/chi_exp = {chi2/chiexp:.2f}')
-            print(f'# p-value      = {p:.2f}')
+            print(f'# red chi2      = {chi2:.2f}')
+            print(f'# chi2_exp      = {chiexp:.2f}')
+            print(f'# chi2/chi_exp  = {chi2/chiexp:.2f}')
+            print(f'# p-value       = {p:.2f}')
+            # print(f'# p-value (std) = {p_st:.2f}')
 
         res = dict(
-            fit    = fit,
-            chi2   = chi2,
-            chiexp = chiexp,
-            pvalue = p,
+            fit        = fit,
+            chi2       = chi2,
+            chiexp     = chiexp,
+            pvalue     = p,
+            # p_standard = p_st
         )
 
         return res

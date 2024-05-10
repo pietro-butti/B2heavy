@@ -118,26 +118,35 @@ def correlation_diagnostics(ysamples, jk=True, verbose=True, plot=False):
 
     return svd.svdcut
 
+
+
 def compute_covariance(ysamples, jk=True, ysamples_full=None, **cov_spec):
     ylist, treestruct = jax.tree_flatten(ysamples)
-    tmp = jnp.hstack(ylist)
+    tmp = np.hstack(ylist)
 
     factor = tmp.shape[0]-1 if jk else 1./tmp.shape[0]
-    fullcov = jnp.cov(tmp,rowvar=False,bias=True) * factor
+    fullcov = np.cov(tmp,rowvar=False,bias=True) * factor
+    yout = gv.gvar(tmp.mean(axis=0),fullcov)
+
+    cov = None
+    if cov_spec.get('cutsvd') is not None: # svd cut
+        # yout = gv.svd(yout, svdcut=cov_spec.get('cutsvd'))
+        yout = gv.regulate(yout, eps=cov_spec.get('cutsvd'))
+        fullcov = gv.evalcov(yout)
 
     if cov_spec.get('diag'): # uncorrelated data
-        cov = jnp.sqrt(jnp.diag(fullcov))
+        cov = np.sqrt(np.diag(fullcov))
 
     elif cov_spec.get('block'): # blocked covariance
-        cov = jnp.asarray(scipy.linalg.block_diag(
-            *[jnp.cov(ysamples[k],rowvar=False,bias=True) * factor for k in ysamples]
+        cov = np.asarray(scipy.linalg.block_diag(
+            *[np.cov(ysamples[k],rowvar=False,bias=True) * factor for k in ysamples]
         ))
     
     elif cov_spec.get('scale') and ysamples_full is not None: # scaled with full covariance matrix
-        tmp_full = jnp.hstack([ysamples_full[k] for k in ysamples_full])
-        cov_full = jnp.cov(tmp_full,rowvar=False,bias=True) * (tmp_full.shape[0]-1)
-        scale = jnp.sqrt(jnp.diag(fullcov)/np.diag(cov_full))
-        cov = cov_full * jnp.outer(scale,scale)  # TODO: to be checked
+        tmp_full = np.hstack([ysamples_full[k] for k in ysamples_full])
+        cov_full = np.cov(tmp_full,rowvar=False,bias=True) * (tmp_full.shape[0]-1)
+        scale = np.sqrt(np.diag(fullcov)/np.diag(cov_full))
+        cov = cov_full * np.outer(scale,scale)  # TODO: to be checked
 
         if cov_spec.get('shrink'): # scale + shrinking
             cov = covariance_shrinking(tmp_full.mean(axis=0),cov,tmp_full.shape[0]-1)
@@ -148,13 +157,17 @@ def compute_covariance(ysamples, jk=True, ysamples_full=None, **cov_spec):
     else: # full covariance
         cov = fullcov
 
-    yout = gv.gvar(tmp.mean(axis=0),cov)
-    if cov_spec.get('cutsvd') is not None: # svd cut
-        yout = gv.svd(yout, svdcut=cov_spec.get('cutsvd'))
+
+    yout = gv.gvar(tmp.mean(axis=0),fullcov if cov is None else cov)
+
 
     # Rebuild dictionary
     yout = yout.reshape((len(ylist),len(yout)//len(ylist)))
     return jax.tree_util.build_tree(treestruct,yout)
+
+
+
+
 
 def ConstantModel(x,p):
     return np.array([p['const']]*len(x))

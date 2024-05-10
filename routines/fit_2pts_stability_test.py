@@ -221,7 +221,7 @@ def stability_test_plot_AIC(a1,Nt,fits, sum_ws, IC='tic'):
 
     a1.scatter([],[],color='gray',label='TIC')
     a1.plot([],[],alpha=0.2,color='gray',label=r'$p$')
-    a1.set_ylim(ymin=0,ymax=1)
+    a1.set_ylim(ymin=0,ymax=1.1)
     a1.legend()
 
     a2.set_ylabel(r'$p$-value')
@@ -376,7 +376,7 @@ def main():
         if not args.plot_AIC:
             f, ax = plt.subplots(1, 1)
         else:
-            f, (ax, a1) = plt.subplots(2, 1, gridspec_kw={'height_ratios': [3, 1]})
+            f, (ax, a1) = plt.subplots(2, 1, gridspec_kw={'height_ratios': [3, 1]}, figsize=(6,6), sharex=True)
 
         states = np.unique([n for n,(mi,ma) in fits])
         stability_test_plot(ax,fits,states,[e0,syst])
@@ -387,6 +387,7 @@ def main():
         if args.plot_AIC:
             stability_test_plot_AIC(a1,config['data'][ens]['Nt'],fits,sum_ws)
 
+        plt.tight_layout()
         saveplot = f'{SAVETO}/fit2pt_stability_test_{tag}.pdf' if args.saveto=='default' else f'{args.saveto}/fit2pt_stability_test_{tag}.pdf'
         plt.savefig(saveplot)
 

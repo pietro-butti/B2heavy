@@ -45,6 +45,7 @@ def effective_mass(corrd,variant='cosh'):
             tmp[k] = np.log( np.roll(y,2)/np.roll(y,-2) ) / 4
     return tmp
 
+
 def effective_amplitude(corrd,e0,time,variant='cosh',Nt=None):
     tmp = {}
     for k,y in corrd.items():
@@ -54,6 +55,7 @@ def effective_amplitude(corrd,e0,time,variant='cosh',Nt=None):
             tmp[k] = y / np.exp(-e0*time)
     return tmp
 
+
 def smeared_correlator(corrd,time,e0):
     yeff = {}
     for k,y in corrd.items():
@@ -61,6 +63,8 @@ def smeared_correlator(corrd,time,e0):
         tmp = y / expt
         yeff[k] = 0.25*expt * (tmp + 2*np.roll(tmp,-1) + np.roll(tmp,-2))
     return yeff
+
+
 
 
 
@@ -414,7 +418,7 @@ class Correlator:
             return Meff,Aeff
 
 
-    def chiexp_meff(self, trange, variant, pvalue=False, Nmc=5000, **cov_kwargs):
+    def chiexp_meff(self, trange, variant, pvalue=False, Nmc=50000, **cov_kwargs):
         args = self.meff(trange=trange,plottable=True,variant=variant, **cov_kwargs)
 
         # Slice effective mass in trange and flatten
@@ -574,6 +578,31 @@ def plot_effective_coeffs(trange,X,AEFF,aeff,Apr,MEFF,meff,mpr,Aknob=10.):
     ax.grid(alpha=0.2)
     ax.set_xlabel(r'$t/a$')
     ax.set_ylabel(r'$M_{eff}(t)$')
+
+
+def find_eps_cut(corr:Correlator,trange,tol=1e+05,default=1E-12,**cov_specs):
+    x,y, data = corr.format(trange=trange,flatten=True,alljk=True,**cov_specs)    
+
+    cov = np.cov(data.T) * (data.shape[0]-1)
+    cdiag = np.diag(1./np.sqrt(np.diag(cov)))
+    cor = cdiag @ cov @ cdiag
+
+    eval,evec = np.linalg.eigh(cor)
+    y = sorted(abs(eval))/max(eval)
+
+    I=None
+    for i,r in enumerate((y/np.roll(y,1))[1:]):
+        if r>tol:
+            I=i+1
+            break
+
+    return default if I is None else sorted(abs(eval))[I]
+
+
+
+
+
+
 
 def main():
     ens = 'Coarse-1'

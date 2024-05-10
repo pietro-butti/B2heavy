@@ -1,14 +1,14 @@
 # THIS ROUTINE DEALS WITH THE FIRST ANALYSIS OF 2PTS FUNCTIONS
 # -------------------------------- usage --------------------------------
 usage = '''
-python 2pts_disp_rel.py --config   [file location of the toml config file]
-                        --ensemble [ensemble analyzed]
-                        --momlist  [list of moments that have to be fitted to disp. relation]
-                        --jkfit    [use jackknifed fit]
-                        --readfrom [*where* are the `config` analysis results?]
-                        --plot     [do you want to plot?]
-                        --showfig  [do you want to display plot?]
-                        --saveto   [*where* do you want to save files?]
+python fit_3pts_recoil.py --config   [file location of the toml config file]
+                          --ensemble [ensemble analyzed]
+                          --momlist  [list of moments that have to be fitted to disp. relation]
+                          --jkfit    [use jackknifed fit]
+                          --readfrom [*where* are the `config` analysis results?]
+                          --plot     [do you want to plot?]
+                          --showfig  [do you want to display plot?]
+                          --saveto   [*where* do you want to save files?]
 
 Examples
 '''
@@ -32,13 +32,13 @@ from scipy.optimize import curve_fit
 import fit_2pts_utils as utils
 
 from b2heavy import FnalHISQMetadata
+from b2heavy.ThreePointFunctions.utils import read_config_fit
 from fit_2pts_dispersion_relation import mom_to_p2
-
 
 
 prs = argparse.ArgumentParser(usage=usage)
 prs.add_argument('-c','--config'  , type=str,  default='./3pts_fit_config.toml')
-prs.add_argument('-e','--ensemble', type=str)
+prs.add_argument('-e','--ensemble', type=str, nargs='+', default=None)
 prs.add_argument('-mm','--momlist', type=str, nargs='+', default=[])
 prs.add_argument('--jkfit', action='store_true')
 prs.add_argument('--readfrom', type=str, default='./')
@@ -71,64 +71,88 @@ def main():
     wrecoil = []
     for ens in ENSEMBLE_LIST:
         lvol = FnalHISQMetadata.params(ens)['L']
+        
+        # Extract values of M1 and M2 from dispersion relation
+        try:
+            file = os.path.join(readfrom,f'fit2pts_dispersion_relation_{ens}_Dst.pickle')
+            with open(file,'rb') as f:
+                aux = gv.load(f)
+            m1,m2 = aux['M1'], aux['M2']
+        except FileNotFoundError:
+            print(f'Dispersion relation analysis for {ens} not found...')
+            print(f'Searching in [{file}]')
+            continue
 
-        file = os.path.join(readfrom,f'fit2pts_dispersion_relation_{ens}_Dst.pickle')
-        with open(file,'rb') as f:
-            aux = gv.load(f)
-        m1,m2 = aux['M1'], aux['M2']
 
         for mom in (MOM_LIST if MOM_LIST else config['fit'][ens]['xfstpar']['mom'].keys()):
-            # Compute recoil parameter -----------------------------------
-            fit,p = utils.read_config_fit(f'fit3pt_config_{ens}_xfstpar_{mom}',path=readfrom)
-            xf = p['ratio'][0]
-            wr = (1+xf**2)/(1-xf**2)
-
             # Compute recoil parameter from dispersion relation
             w1 = np.sqrt(1+mom_to_p2(mom,L=lvol)/m1**2)
             w2 = np.sqrt(1+mom_to_p2(mom,L=lvol)/m2**2)
 
 
-            # wrecoil['ensemble','mom','wr','w1','w2'] = [ens,mom,wr,w1,w2]
-            wrecoil.append(
-                dict(
-                    ensemble = ens,
-                    p        = mom,
-                    from_xf  = wr,
-                    from_m1  = w1,
-                    from_m2  = w2
-                )
-            )
+            # Compute recoil parameter from ratio
+            try:
+                fit,p = read_config_fit(f'fit3pt_config_{ens}_xfstpar_{mom}',path=readfrom)
+            except FileNotFoundError:
+                print(f'XFSTPAR not calculated for ({ens},{mom})...')
+                continue   
+            
+            xf = p['ratio'][0]
+            wr = (1+xf**2)/(1-xf**2)
+
+            wrecoil.append({
+                'ensemble' : ens,
+                'p'        : mom,
+                'from_xf'  : wr,
+                'from_m1'  : w1,
+                'from_m2'  : w2
+            })
+
 
     df = pd.DataFrame(wrecoil).set_index(['ensemble','p'])
+    print(df)
 
 
     plt.rcParams['text.usetex'] = True
     plt.rcParams['font.size'] = 12
 
-    f, ax = plt.subplots(len(ENSEMBLE_LIST),1,figsize=(6,7),sharex=True)
+    f, ax = plt.subplots(1,len(ENSEMBLE_LIST),figsize=(8,3),sharey=True)
     for i,ens in enumerate(ENSEMBLE_LIST):
-        for j,mom in enumerate(['100','200','300']):
-            wrecoils = df.loc[ens,mom].values
+        axi = ax[i] if len(ENSEMBLE_LIST)>1 else ax
 
-            p2 = mom_to_p2(mom,L=lvol)
+        ps = []
+        for j,mom in enumerate(['100','200','300','400']):
+            if (ens,mom) in df.index:
+                wrecoils = df.loc[ens,mom].values
 
-            ax[i].errorbar(p2-0.005,wrecoils[0].mean,wrecoils[0].sdev, fmt='o', color='C0', capsize=2.5)            
-            ax[i].errorbar(p2      ,wrecoils[1].mean,wrecoils[1].sdev, fmt='o', color='C1', capsize=2.5)            
-            ax[i].errorbar(p2+0.005,wrecoils[2].mean,wrecoils[2].sdev, fmt='o', color='C2', capsize=2.5)            
+                p2 = mom_to_p2(mom,L=lvol)
+
+                axi.errorbar(p2-0.005,wrecoils[0].mean,wrecoils[0].sdev, fmt='o', color='C0', capsize=2.5)            
+                axi.errorbar(p2      ,wrecoils[1].mean,wrecoils[1].sdev, fmt='o', color='C1', capsize=2.5)            
+                axi.errorbar(p2+0.005,wrecoils[2].mean,wrecoils[2].sdev, fmt='o', color='C2', capsize=2.5)            
+
+                ps.append(mom)
+
+        # axi.set_ylabel(r'$w$')
+        axi.set_xticks([mom_to_p2(mom,L=lvol) for mom in ps])
+        axi.set_xticklabels(ps)
+        axi.set_title(ens)
+        axi.grid(alpha=0.2)
+        axi.set_xlabel(r'$\mathbf{p}$')
+
+    axm1 = ax[0] if len(ENSEMBLE_LIST)>1 else ax
+    axm1.set_ylabel(r'$w$')
 
 
-        ax[i].set_ylabel(r'$w$')
-        ax[i].set_xticks([mom_to_p2(mom,L=lvol) for mom in ['100','200','300']])
-        ax[i].set_xticklabels(['100','200','300'])
-        ax[i].set_title(ens)
-
-    ax[-1].set_xlabel(r'$\mathbf{p}$')
-
+    axm1.errorbar([],[],[], fmt='o', color='C0', capsize=2.5, label=r'from $x_f$')            
+    axm1.errorbar([],[],[], fmt='o', color='C1', capsize=2.5, label=r'from $aM_1$')            
+    axm1.errorbar([],[],[], fmt='o', color='C2', capsize=2.5, label=r'from $aM_2$')            
+    axm1.legend()
 
     plt.tight_layout()
-    plt.show()
+    plt.savefig(f'{saveto}recoil_parameter.pdf')
 
-
+    # plt.show()
 
 
 

@@ -12,10 +12,11 @@ from b2heavy.FnalHISQMetadata            import params as mData
 from b2heavy.TwoPointFunctions.utils     import correlation_diagnostics
 
 from b2heavy.ThreePointFunctions.fitter3pts import RatioFitter, RatioIO
+from b2heavy.ThreePointFunctions.utils     import read_config_fit, dump_fit_object
+from b2heavy.ThreePointFunctions.types3pts import ratio_prerequisites, find_eps_cut
 
-from routines.fit_2pts_utils             import load_toml, read_config_fit
-from routines.fit_3pts_config            import elaborate_ratio, exists_2pts_analysis
-
+# from routines.fit_2pts_utils             import load_toml, read_config_fit
+# from routines.fit_3pts_config            import elaborate_ratio, exists_2pts_analysis
 
 
 
@@ -96,10 +97,8 @@ def ra1():
 
 
 
-
 def main():
     tmin = 0.4
-
 
     binsize  = {
         'MediumCoarse':13,
@@ -110,7 +109,7 @@ def main():
         'Fine-Phys':   16,
         'SuperFine':   22
     }
-    readfrom = '/Users/pietro/code/data_analysis/data/QCDNf2p1stag/B2heavy/presentation' 
+    readfrom = '/Users/pietro/code/data_analysis/data/QCDNf2p1stag/B2heavy/report' 
     data_dir = '/Users/pietro/code/data_analysis/BtoD/Alex/'
     smslist  = ['1S']
 
@@ -122,26 +121,45 @@ def main():
     itr = itertools.product(enss,rats,moms)
     aux = []
     for ens,ratio,mom in tqdm(itr):
-        try:
-            if exists_2pts_analysis(readfrom,ens,mom,jkfit=True):
-                robj = elaborate_ratio(ens,ratio,mom, data_dir, binsize[ens], smslist, readfrom=readfrom, jk=True)        
-        except:
-            # print(ens,ratio,mom)
+        if mom=='000' and 'RA1' not in ratio:
+            continue
+        elif mom!='000' and ratio=='ZRA1':
             continue
 
+        if mom=='400' and ens not in ['Coarse-Phys','Fine-1']:
+            continue
+
+
+        try:
+            ratio_prq = ratio_prerequisites(
+                ens      = ens,
+                ratio    = ratio,
+                mom      = mom,
+                readfrom = readfrom,
+                meson    = 'Dst'
+            )
+        except FileNotFoundError:
+            continue
+
+        io = RatioIO(ens,ratio,mom,PathToDataDir=data_dir)
+        robj = RatioFitter(
+            io,
+            jkBin = binsize[ens],
+            smearing = ['1S','RW'],
+            **ratio_prq
+        )
+
         Tmin = int(tmin/mData(ens)['aSpc'].mean)
+        trange = (Tmin,robj.Ta-Tmin-1)
 
-        trange = (Tmin,robj.Tb-Tmin)
-
-        xdata,ydata,yjk = robj.format(trange,flatten=True,alljk=True)
-        svd = round(correlation_diagnostics(yjk,verbose=False),ndigits=4)
+        eps = find_eps_cut(robj,trange)
 
         aux.append({
             'ensemble': ens,
             'ratio'   : ratio,
             'momentum': mom,
             'tmin'    : Tmin,
-            'svd'     : svd,
+            'svd'     : eps,
         })
     
     df = pd.DataFrame(aux).set_index(['ensemble','ratio','momentum'])
@@ -153,4 +171,4 @@ def main():
 
 
 if __name__=='__main__':
-    ra1()
+    main()

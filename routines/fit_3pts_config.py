@@ -32,15 +32,15 @@ import matplotlib.pyplot as plt
 import gvar              as gv
 import numpy             as np
 import jax.numpy         as jnp
+import pandas            as pd
 jax.config.update("jax_enable_x64", True)
 
 from b2heavy import FnalHISQMetadata
 
-from b2heavy.ThreePointFunctions.types3pts  import Ratio, RatioIO
-from b2heavy.ThreePointFunctions.fitter3pts import RatioFitter
+from b2heavy.ThreePointFunctions.utils      import read_config_fit, dump_fit_object
+from b2heavy.ThreePointFunctions.types3pts  import Ratio, RatioIO, ratio_prerequisites
+from b2heavy.ThreePointFunctions.fitter3pts import RatioFitter, phys_energy_priors
 
-from b2heavy.ThreePointFunctions.utils     import read_config_fit, dump_fit_object
-from b2heavy.ThreePointFunctions.types3pts import ratio_prerequisites
 import fit_2pts_utils as utils
 
 from DEFAULT_ANALYSIS_ROOT import DEFAULT_ANALYSIS_ROOT
@@ -48,29 +48,34 @@ from DEFAULT_ANALYSIS_ROOT import DEFAULT_ANALYSIS_ROOT
 
 
 def fit_ratio(
-    ratio,
+    ratio:RatioFitter,
     nstates,
     trange,
+    priors  = None,
     saveto  = None,
     jkfit   = False,
     wpriors = False,
     **cov_specs
 ):
-
-    x,y = ratio.format()
-    k = gv.gvar(y['1S'][len(y['1S'])//2].mean,0.05)
-
     # Perform fit
     fit = ratio.fit(
         Nstates = nstates,
         trange  = trange,
+        priors  = priors,
         verbose = False,
-        priors  = ratio.priors(nstates,K=k),
         **cov_specs
     )
 
-    # Calculate chi2 expected and store results
-    res = ratio.fit_result(
+    if jkfit:
+        fitjk = ratio.fit(
+            Nstates = nstates,
+            trange  = trange,
+            priors  = fit.prior,
+            jkfit   = True,
+            **cov_specs
+        )
+
+    fitres = ratio.fit_result(
         nstates,
         trange,
         verbose = True,
@@ -78,23 +83,14 @@ def fit_ratio(
     )
 
     if saveto is not None:
-        dump_fit_object(saveto,fit,**res)
-    
-    if jkfit:
-        fitjk = ratio.fit(
-            Nstates = nstates,
-            trange  = trange,
-            priors  = ratio.priors(nstates),
-            jkfit   = True,
-            **cov_specs
-        )
+        dump_fit_object(saveto,fit,**fitres)
 
-        if saveto is not None:
+        if jkfit:
             name = f'{saveto}_fit.pickle'
             with open(name, 'wb') as handle:
                 pickle.dump(fitjk, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-    return res
+    return fitres
 
 
 
@@ -139,14 +135,15 @@ def main():
     
     JKFIT  = True if args.jkfit else False
 
+    aux = []
     for ens in ENSEMBLE_LIST:
         for ratio in RATIO_LIST:
             for mom in (MOM_LIST if MOM_LIST else config['fit'][ens][ratio]['mom'].keys()):
 
-                if mom=='000' and ratio!='RA1':
+                if mom=='000' and ratio!='ZRA1':
                     continue
 
-                print(f'----    ------ {ens} ------------ {ratio} ----------- {mom} -----------------')
+                print(f'--------------- {ens} ------------ {ratio} ----------- {mom} -----------------')
 
 
                 tag = config['fit'][ens][ratio]['mom'][mom]['tag']
@@ -155,7 +152,7 @@ def main():
                 smlist   = config['fit'][ens][ratio]['smlist'] 
                 nstates  = config['fit'][ens][ratio]['mom'][mom]['nstates'] 
                 trange   = tuple(config['fit'][ens][ratio]['mom'][mom]['trange']) 
-                svd      = config['fit'][ens][ratio]['mom'][mom]['svd'] 
+                svd      = config['fit'][ens][ratio]['mom'][mom]['svd']
 
 
                 #  =======================================================================================
@@ -176,6 +173,7 @@ def main():
                                 print(f'Already existing analysis for {tag}, but overriding...')
                             else:
                                 print(f'Analysis for {tag} already up to date')
+                                # continue
 
 
                 # Perform analysis ===================================================================
@@ -186,10 +184,10 @@ def main():
                     shrink = args.shrink,
                     cutsvd = args.svd if args.svd is not None else svd
                 )                
-                
-                print(ens,ratio,mom,readfrom)
 
-                ratio_requisites = ratio_prerequisites(
+
+                # Create ratio object
+                ratio_req = ratio_prerequisites(
                     ens      = ens,
                     ratio    = ratio,
                     mom      = mom,
@@ -202,39 +200,67 @@ def main():
                 robj = RatioFitter(
                     io,
                     jkBin = binsize,
-                    smearing = ['1S'],
-                    **ratio_requisites
+                    smearing = smlist,
+                    **ratio_req
                 )
 
-                print(robj.format())
+                # Compute priors
+                dE_src = phys_energy_priors(ens,'Dst',mom,nstates,readfrom=readfrom)
+                dE_snk = phys_energy_priors(ens,'B'  ,mom,nstates,readfrom=readfrom)
 
-                # fitres = fit_ratio(
-                #     robj,
-                #     nstates,
-                #     trange,
-                #     saveto  = saveto, 
-                #     jkfit   = JKFIT,  
-                #     wpriors = args.no_priors_chi,
-                #     **cov_specs
-                # )
+                x,ydata = robj.format(trange,flatten=True)
+                f_0    = gv.gvar(np.mean(ydata).mean,0.1)
+                pr = robj.priors(nstates, K=f_0, dE_src=dE_src, dE_snk=dE_snk)
 
-                # # Plot ==============================================================================
-                # if args.plot_fit:
-                #     plt.rcParams['text.usetex'] = True
-                #     plt.rcParams['font.size'] = 12
+                # Perform fit
+                fitres = fit_ratio(
+                    robj,
+                    nstates,
+                    trange,
+                    saveto  = saveto, 
+                    priors  = pr,
+                    jkfit   = JKFIT,  
+                    wpriors = args.no_priors_chi,
+                    **cov_specs
+                )
 
-                #     fig, ax = plt.subplots(figsize=(7,3))
-                #     robj.plot_fit(ax,nstates,trange)
+                aux.append({
+                    'ensemble' : ens,
+                    'ratio'    : ratio,
+                    'momentum' : mom,
+                    'tmin'     : trange[0],
+                    'tmax'     : trange[1],
+                    'svd'      : args.svd if args.svd is not None else svd,
+                    'F0'       : robj.fits[nstates,trange].p['ratio'][0],
+                    'pval'     : fitres['pvalue']
+                })
 
-                #     plt.tight_layout()
+                # Plot ==============================================================================
+                if args.plot_fit:
+                    plt.rcParams['text.usetex'] = True
+                    plt.rcParams['font.size'] = 12
 
-                # if SAVETO is not None:
-                #     plt.savefig(f'{SAVETO}/fit3pt_config_{tag}_fit.pdf')
-                #     print(f'{ratio} plot saved to {SAVETO}/fit3pt_config_{tag}_fit.pdf')
-                # if args.show:
-                #     plt.show()
+                    f, ax = plt.subplots(1,1,figsize=(4,8))
+
+                    robj.plot_fit(ax,nstates,trange)
+
+                    f0 = pr['ratio'][0]
+                    ax.axhspan(ymin=f0.mean-f0.sdev,ymax=f0.mean+f0.sdev,alpha=0.1,color='gray')
+
+                    ax.set_xlim(xmin=-0.5)
+                    ax.grid(alpha=0.2)
+                    ax.legend()
+                    ax.set_title(tag)
+
+                    if SAVETO is not None:
+                        plt.savefig(f'{SAVETO}/fit3pt_config_{tag}_fit.pdf')
+                        print(f'{ratio} plot saved to {SAVETO}/fit3pt_config_{tag}_fit.pdf')
+                    if args.show:
+                        plt.show()
 
 
+    df = pd.DataFrame(aux).set_index(['ensemble','ratio','momentum'])
+    print(df)
 
 if __name__=='__main__':
     main()

@@ -69,7 +69,7 @@ def ratio_prerequisites(
 
     elif ratio=='RA1':
         if exists_analysis(readfrom,ens,meson,mom,type='2',jkfit=jk) \
-            and exists_analysis(readfrom,ens,meson,mom,type='2',jkfit=jk):
+            and exists_analysis(readfrom,ens,meson,'000',type='2',jkfit=jk):
                 tag = f'fit2pt_config_{ens}_{meson}_{mom}'
                 p = read_config_fit(tag, path=readfrom, jk=jk)
                 req['E0'] = p['E'][:,0] if jk else p[-1]['E'][0].mean
@@ -83,17 +83,20 @@ def ratio_prerequisites(
             req['Z0']   = {sm: None for sm in smearing}
 
             for sm in smearing:
-                req['Zbot'][sm] = np.exp(p [f'Z_{sm}_Bot'  ][:,0] if jk else p [-1][f'Z_{sm}_Bot'  ][0].mean)
-                req['Z0']  [sm] = np.exp(p0[f'Z_{sm}_Unpol'][:,0] if jk else p0[-1][f'Z_{sm}_Unpol'][0].mean)
+                if not jk:
+                    req['Zbot'][sm] = np.exp(p [-1][f'Z_{sm}_Bot'  ][0].mean) * np.sqrt(2*p[-1]['E'][0]).mean
+                    req['Z0']  [sm] = np.exp(p0[-1][f'Z_{sm}_Unpol'][0].mean) * np.sqrt(2*p[-1]['E'][0]).mean
+                else:
+                    req['Zbot'][sm] = np.exp(p [f'Z_{sm}_Bot'  ][:,0]) * np.sqrt(2*p['E'][:,0])
+                    req['Z0']  [sm] = np.exp(p0[f'Z_{sm}_Unpol'][:,0]) * np.sqrt(2*p['E'][:,0])
 
             if exists_analysis(readfrom,ens,'xfstpar',mom,type='3',jkfit=jk):
                 tag = f'fit3pt_config_{ens}_xfstpar_{mom}'
                 p = read_config_fit(tag, path=readfrom, jk=jk)
-                xf = p['ratio'][:,0] if jk else p[-1]['ratio'][0].mean
+                xf = p['ratio'].reshape(p['ratio'].shape[-1]) if jk else p[-1]['ratio'][0].mean
                 req['wrecoil'] = (1+xf**2)/(1-xf**2)
 
     return req
-
 
 
 class RatioInfo:
@@ -146,7 +149,7 @@ class RatioIO:
                 hStr   = bStr
                 lStr   = cStr
                 qStr   = mStr
-                nNames = [['P5_A2_V2_'], ['P5_A2_V2_']] # 'R'
+                nNames = [['P5_A2_V2_'], ['P5_A3_V3_']] # 'R'
                 nFacs  = [[1., 1.], [ 1., 1.]]
                 dNames = [['V1_V4_V1_'],['P5_V4_P5_']] # 'V1_V4_V2_', 'V1_V4_V3_']         
                 
@@ -507,13 +510,13 @@ class RatioIO:
                     expT  = np.exp((E0 - m0)*T)
                     expTp = np.exp((E0 - m0)*(T+1))
                     if perjk:
-                        expT  = np.vstack([expT for _ in range(T+1)]).T
-                        expTp = np.vstack([expTp for _ in range(T+1)]).T
+                        expT  = np.tile(expT,(T+1,1)).T
+                        expTp = np.tile(expTp,(T+1,1)).T
 
                     PROCESSED[hss] = \
-                        0.5*AUX[0][:,0:T+1] * expT + \
-                        0.25*AUX[1][:,0:T+1] * expTp + \
-                        0.25*np.roll(AUX[1], -1, axis=1)[:,0:T+1] * expTp 
+                        0.5*AUX[0][:,:T+1] * expT + \
+                        0.25*AUX[1][:,:T+1] * expTp + \
+                        0.25*np.roll(AUX[1], -1, axis=1)[:,:T+1] * expTp 
 
                 else:
                     PROCESSED[hss] = \
@@ -537,15 +540,14 @@ class Ratio:
         self.m0           = m0
 
         self.data = io.ReadRatio(
-            jkBin= jkBin,
-            E0   = E0,
-            m0   = m0,
+            jkBin     = jkBin,
+            E0        = E0,
+            m0        = m0,
             datafiles = datafiles,
-            verbose = verbose,
-            sms  = ['1S','RW'] if smearing is None else smearing,
+            verbose   = verbose,
+            sms       = ['1S','RW'] if smearing is None else smearing,
         )
         self.specs = io.specs
-
 
         factor = {}
         if self.info.ratio in ['R0','R1','RA1'] and self.info.momentum!='000':
@@ -573,16 +575,16 @@ class Ratio:
                     T = self.io.mData['hSinks'][0]
                     for sm in smearing:
                         smi = 'd' if sm=='RW' else sm
-                        factor[sm] = Zbot[smi]/Z0[smi] / wrecoil**2 * np.exp((E0-m0)*T)
-
-
-            if isinstance(factor, np.ndarray):
-                for sm in smearing:
-                    factor[sm] = np.asarray([factor for _ in range(self.data[sm].shape[-1])]).T
+                        factor[sm] = 1./wrecoil**2 * \
+                            Zbot[smi]/np.sqrt( Z0[smi] * Z0['1S'] ) * \
+                            np.exp(-(E0-m0)*T)    
 
             for sm in smearing:
+                if isinstance(factor[sm], np.ndarray):
+                    factor[sm] = np.tile(factor[sm],(self.data[sm].shape[-1],1)).T
+
                 self.data[sm] = self.data[sm] * factor[sm]
-            
+
 
 
         self.smr = sorted(list(self.data.keys()))
@@ -594,6 +596,7 @@ class Ratio:
         self.timeslice = np.arange(shapes[0])
 
         return
+
 
     def format(self, trange=None, smearing=None, flatten=False, alljk=False, **cov_kwargs):
         # Select smearings
@@ -632,6 +635,25 @@ class Ratio:
 
 
 
+def find_eps_cut(ratio:Ratio,trange,tol=1e+05,default=1E-12,**cov_specs):
+    x,y, data = ratio.format(trange=trange,flatten=True,alljk=True,**cov_specs)    
+
+    cov = np.cov(data.T) * (data.shape[0]-1)
+    cdiag = np.diag(1./np.sqrt(np.diag(cov)))
+    cor = cdiag @ cov @ cdiag
+
+    eval,evec = np.linalg.eigh(cor)
+    y = sorted(abs(eval))/max(eval)
+
+    I=None
+    for i,r in enumerate((y/np.roll(y,1))[1:]):
+        if r>tol:
+            I=i+1
+            break
+
+    return default if I is None else sorted(abs(eval))[I]
+
+
 
 
 
@@ -639,20 +661,35 @@ class Ratio:
 
 def main():
     ens = 'Coarse-1'
-    rat = 'ZRA1'
-    mom = '000'
+    rat = 'RA1'
+    mom = '100'
     frm = '/Users/pietro/code/data_analysis/BtoD/Alex'
-    readfrom = '/Users/pietro/code/data_analysis/data/QCDNf2p1stag/B2heavy/presentation'
+    readfrom = '/Users/pietro/code/data_analysis/data/QCDNf2p1stag/B2heavy/report'
+
+    reqs = ratio_prerequisites(
+        ens      = ens,
+        ratio    = rat,
+        mom      = mom,
+        readfrom = readfrom,
+        jk       = False
+    )
+
+    reqs['Z0']   = {'1S': 1., 'd': 1.}
+    reqs['Zbot'] = {'1S': 1., 'd': 1.}
 
     io = RatioIO(ens,rat,mom,PathToDataDir=frm)
     ratio = Ratio(
         io,
         jkBin=11,
-        smearing=['1S','RW']
+        smearing=['1S','RW'],
+        **reqs
     )
 
-    print(ratio.format())
+    x,ydata = ratio.format()
+    plt.errorbar(x,gv.mean(ydata['1S']),gv.sdev(ydata['1S']),fmt='.')
+    plt.errorbar(x,gv.mean(ydata['RW']),gv.sdev(ydata['RW']),fmt='.')
 
+    plt.show()
 
 
 

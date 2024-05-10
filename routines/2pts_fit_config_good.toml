@@ -1,0 +1,548 @@
+# Configs
+author = 'pietro.butti'
+title = '2pts fits'
+
+# Meson list
+[ensemble]
+    list = ['Coarse-2','Coarse-1','Coarse-Phys','Fine-1','Fine-Phys']
+
+[meson]
+    list = ['Dst','B']
+
+[momenta]
+    list = ['000','100','200','300','400','110','211','222']
+
+
+[data]
+    mdata = '/Users/pietro/code/software/B2heavy/b2heavy/FnalHISQMetadata.py'
+
+    [data.MediumCoarse]
+        name     = 'MediumCoarse'
+        data_dir = "/Users/pietro/code/data_analysis/BtoD/Alex"
+        binsize  = 13
+        mom_list = ['000','100','200','300','400','110','211','222']
+        Nt       = 48
+
+    [data.Coarse-1]
+        name     = 'Coarse-1'
+        data_dir = "/Users/pietro/code/data_analysis/BtoD/Alex"
+        binsize  = 11
+        mom_list = ['000','100','200','300','110','211']
+        Nt       = 64
+
+    [data.Coarse-2]
+        name     = 'Coarse-2'
+        data_dir = "/Users/pietro/code/data_analysis/BtoD/Alex"
+        binsize  = 16
+        mom_list = ['000','100','200','300','110','211']
+        Nt       = 64
+    
+    [data.Coarse-Phys]
+        name     = 'Coarse-Phys'
+        data_dir = "/Users/pietro/code/data_analysis/BtoD/Alex"
+        binsize  = 19
+        mom_list = ['000','100','200','300','400','110','211','222']
+        Nt       = 64
+    
+    [data.Fine-1]
+        name     = 'Fine-1'
+        data_dir = "/Users/pietro/code/data_analysis/BtoD/Alex"
+        binsize  = 16
+        mom_list = ['000','100','200','300','400','110','211','222']
+        Nt       = 96
+    
+    [data.Fine-Phys]
+        name     = 'Fine-Phys'
+        data_dir = "/Users/pietro/code/data_analysis/BtoD/Alex"
+        binsize  = 16
+        mom_list = ['000','100','200','300','400','110','211','222']
+        Nt       = 96
+    
+
+# binSizes  = {'MediumCoarse':13,
+#              'Coarse-2':    16,
+#              'Coarse-1':    11,
+#              'Coarse-Phys': 19,
+#              'Fine-1':      16,
+#              'Fine-Phys':   16,
+#              'SuperFine':   22}#22}
+
+
+    
+[fit]
+    [fit.MediumCoarse]    
+        [fit.MediumCoarse.Dst]
+            smlist = ['d-d','1S-1S','d-1S']
+            [fit.MediumCoarse.Dst.mom]
+                [fit.MediumCoarse.Dst.mom.000]
+                    nstates    = 3
+                    tag        = 'MediumCoarse_Dst_000'
+                    trange_eff = [13,19]
+                    trange     = [4,20]
+                    svd        = 0.007
+                [fit.MediumCoarse.Dst.mom.100] 
+                    nstates    = 3
+                    tag        = 'MediumCoarse_Dst_100'
+                    trange_eff = [13,19]
+                    trange     = [4,19]
+                    svd        = 0.012
+                [fit.MediumCoarse.Dst.mom.200] 
+                    nstates    = 3
+                    tag        = 'MediumCoarse_Dst_200'
+                    trange_eff = [13,19]
+                    trange     = [4,18]
+                    svd        = 0.017
+                [fit.MediumCoarse.Dst.mom.300] 
+                    nstates    = 3
+                    tag        = 'MediumCoarse_Dst_300'
+                    trange_eff = [13,19]
+                    trange     = [4,17]
+                    svd        = 0.024
+                [fit.MediumCoarse.Dst.mom.400] 
+                    nstates    = 3
+                    tag        = 'MediumCoarse_Dst_400'
+                    trange_eff = [13,19]
+                    trange     = [4,13]
+                    svd        = 0.023
+                [fit.MediumCoarse.Dst.mom.110] 
+                    nstates    = 3
+                    tag        = 'MediumCoarse_Dst_110'
+                    trange_eff = [12,19]
+                    trange     = [4,19]
+                    svd        = 0.006
+                [fit.MediumCoarse.Dst.mom.211] 
+                    nstates    = 3
+                    tag        = 'MediumCoarse_Dst_211'
+                    trange_eff = [10,17]
+                    trange     = [4,18]
+                    svd        = 0.012
+                [fit.MediumCoarse.Dst.mom.222] 
+                    nstates    = 3
+                    tag        = 'MediumCoarse_Dst_222'
+                    trange_eff = [13,19]
+                    trange     = [4,15]
+                    svd        = 0.016
+
+        [fit.MediumCoarse.B]
+            smlist = ['d-d','1S-1S','d-1S']
+            [fit.MediumCoarse.B.mom]
+                [fit.MediumCoarse.B.mom.000]
+                    nstates    = 3
+                    tag        = 'MediumCoarse_B_000'
+                    trange_eff = [13,19]
+                    trange     = [4,17]
+                    svd        = 0.020
+                [fit.MediumCoarse.B.mom.100] 
+                    nstates    = 3
+                    tag        = 'MediumCoarse_B_100'
+                    trange_eff = [13,19]
+                    trange     = [4,17]
+                    svd        = 0.017
+                [fit.MediumCoarse.B.mom.200] 
+                    nstates    = 3
+                    tag        = 'MediumCoarse_B_200'
+                    trange_eff = [13,19]
+                    trange     = [4,16]
+                    svd        = 0.030
+                [fit.MediumCoarse.B.mom.300] 
+                    nstates    = 3
+                    tag        = 'MediumCoarse_B_300'
+                    trange_eff = [13,17]
+                    trange     = [4,16]
+                    svd        = 0.027
+                [fit.MediumCoarse.B.mom.400] 
+                    nstates    = 3
+                    tag        = 'MediumCoarse_B_400'
+                    trange_eff = [13,19]
+                    trange     = [4,14]
+                    svd        = 0.035
+                [fit.MediumCoarse.B.mom.110] 
+                    nstates    = 3
+                    tag        = 'MediumCoarse_B_110'
+                    trange_eff = [12,19]
+                    trange     = [4,17]
+                    svd        = 0.017
+                [fit.MediumCoarse.B.mom.211] 
+                    nstates    = 3
+                    tag        = 'MediumCoarse_B_211'
+                    trange_eff = [10,17]
+                    trange     = [4,18]
+                    svd        = 0.031
+                [fit.MediumCoarse.B.mom.222] 
+                    nstates    = 3
+                    tag        = 'MediumCoarse_B_222'
+                    trange_eff = [13,19]
+                    trange     = [4,15]
+                    svd        = 0.030
+
+    [fit.Coarse-2]
+        [fit.Coarse-2.Dst]
+            smlist  = ['d-d','1S-1S','d-1S']
+            [fit.Coarse-2.Dst.mom.000]
+                tag        = 'Coarse-2_Dst_000'
+                nstates    = 3
+                trange_eff = [11,25] 
+                trange     = [5,25] 
+                svd        = 0.021
+            [fit.Coarse-2.Dst.mom.100]
+                tag    = 'Coarse-2_Dst_100'
+                nstates    = 3
+                trange_eff = [11,23]
+                trange     = [5,23]
+                svd        = 0.043
+            [fit.Coarse-2.Dst.mom.200]
+                tag        = 'Coarse-2_Dst_200'
+                nstates    = 3
+                trange_eff = [11,18]
+                trange     = [5,18]
+                svd        = 0.067
+            [fit.Coarse-2.Dst.mom.300]
+                tag        = 'Coarse-2_Dst_300'
+                nstates    = 3
+                trange_eff = [8,15] 
+                trange     = [5,15]
+                svd        = 0.072
+            [fit.Coarse-2.Dst.mom.110]
+                tag        = 'Coarse-2_Dst_110'
+                nstates    = 3
+                trange_eff = [13,25] 
+                trange     = [5,25]
+                svd        = 0.039
+            [fit.Coarse-2.Dst.mom.211]
+                tag        = 'Coarse-2_Dst_211'
+                nstates    = 3
+                trange_eff = [9,17]
+                trange     = [5,17]
+                svd        = 0.025
+
+        [fit.Coarse-2.B]
+            smlist  = ['d-d','1S-1S','d-1S']
+            [fit.Coarse-2.B.mom.000]
+                tag        = 'Coarse-2_B_000'
+                nstates    = 3
+                trange_eff = [12,22] 
+                trange     = [13,22] 
+                svd        = 0.043
+            [fit.Coarse-2.B.mom.100]
+                tag    = 'Coarse-2_B_100'
+                nstates    = 3
+                trange_eff = [13,21]
+                trange     = [13,21]
+                svd        = 0.041
+            [fit.Coarse-2.B.mom.200]
+                tag        = 'Coarse-2_B_200'
+                nstates    = 3
+                trange_eff = [13,19]
+                trange     = [5,19]
+                svd        = 0.062
+            [fit.Coarse-2.B.mom.300]
+                tag        = 'Coarse-2_B_300'
+                nstates    = 3
+                trange_eff = [13,16] 
+                trange     = [5,16]
+                svd        = 0.071
+            [fit.Coarse-2.B.mom.110]
+                tag        = 'Coarse-2_B_110'
+                nstates    = 3
+                trange_eff = [13,21] 
+                trange     = [5,21]
+                svd        = 0.059
+            [fit.Coarse-2.B.mom.211]
+                tag        = 'Coarse-2_B_211'
+                nstates    = 3
+                trange_eff = [13,17]
+                trange     = [5,17]
+                svd        = 0.069
+
+
+
+    [fit.Coarse-1]
+        [fit.Coarse-1.Dst]
+            smlist  = ['d-d','1S-1S','d-1S']
+            [fit.Coarse-1.Dst.mom.000]
+                tag        = 'Coarse-1_Dst_000'
+                nstates    = 3
+                trange_eff = [13,20] # 0.008    0.20 0.12
+                trange     = [5,26]  # [12,17] tmax=26
+                svd        = 0.014
+            [fit.Coarse-1.Dst.mom.100]
+                tag    = 'Coarse-1_Dst_100'
+                nstates    = 3
+                trange_eff = [11,23] # 0.025    0.2 0.8
+                trange     = [5,23] # [12,15] tmax=23
+                svd        = 0.051
+            [fit.Coarse-1.Dst.mom.200]
+                tag        = 'Coarse-1_Dst_200'
+                nstates    = 3
+                trange_eff = [13,20] # 0.047      0.34 0.56
+                trange     = [5,21] # [8,20]
+                svd        = 0.052
+            [fit.Coarse-1.Dst.mom.300]
+                tag        = 'Coarse-1_Dst_300'
+                nstates    = 3
+                trange_eff = [11,17] # 0.04         0.37 0.09
+                trange     = [5,17] # [10,13]
+                svd        = 0.044
+            [fit.Coarse-1.Dst.mom.110]
+                tag        = 'Coarse-1_Dst_110'
+                nstates    = 3
+                trange_eff = [11,23] # 0.01         0.19 0.65
+                trange     = [5,23] #[10,17]
+                svd        = 0.022
+            [fit.Coarse-1.Dst.mom.211]
+                tag        = 'Coarse-1_Dst_211'
+                nstates    = 3
+                trange_eff = [11,19] # 0.01         0.32  0.3
+                trange     = [5,19]
+                svd        = 0.022
+
+        [fit.Coarse-1.B]
+            smlist  = ['d-d','1S-1S','d-1S']
+            [fit.Coarse-1.B.mom.000]
+                tag        = 'Coarse-1_B_000'
+                nstates    = 3
+                trange_eff = [13,20] # 0.008    0.20 0.12
+                trange     = [5,20]  # [12,17] tmax=26
+                svd        = 0.032
+            [fit.Coarse-1.B.mom.100]
+                tag    = 'Coarse-1_B_100'
+                nstates    = 3
+                trange_eff = [13,20] # 0.025    0.2 0.8
+                trange     = [5,20] # [12,15] tmax=23
+                svd        = 0.028
+            [fit.Coarse-1.B.mom.200]
+                tag        = 'Coarse-1_B_200'
+                nstates    = 3
+                trange_eff = [13,23] # 0.047      0.34 0.56
+                trange     = [5,23] # [8,20]
+                svd        = 0.039
+            [fit.Coarse-1.B.mom.300]
+                tag        = 'Coarse-1_B_300'
+                nstates    = 3
+                trange_eff = [13,23] # 0.04         0.37 0.09
+                trange     = [5,19] # [10,13]
+                svd        = 0.045
+            [fit.Coarse-1.B.mom.110]
+                tag        = 'Coarse-1_B_110'
+                nstates    = 3
+                trange_eff = [13,21] # 0.01         0.19 0.65
+                trange     = [5,21] #[10,17]
+                svd        = 0.039
+            [fit.Coarse-1.B.mom.211]
+                tag        = 'Coarse-1_B_211'
+                nstates    = 3
+                trange_eff = [11,19] # 0.01         0.32  0.3
+                trange     = [13,19]
+                svd        = 0.046
+
+
+    [fit.Coarse-Phys]
+        [fit.Coarse-Phys.Dst]
+            smlist  = ['d-d','1S-1S','d-1S']
+            [fit.Coarse-Phys.Dst.mom.000]
+                tag        = 'Coarse-Phys_Dst_000'
+                nstates    = 3
+                trange_eff = [15,25] 
+                trange     = [5,25]
+                svd        = 0.05
+            [fit.Coarse-Phys.Dst.mom.100]
+                tag        = 'Coarse-Phys_Dst_100'
+                nstates    = 3
+                trange_eff = [14,22]
+                trange     = [9,22]
+                svd        = 0.059
+            [fit.Coarse-Phys.Dst.mom.200]
+                tag        = 'Coarse-Phys_Dst_200'
+                nstates    = 3
+                trange_eff = [14,21]
+                trange     = [5,21]
+                svd        = 0.074
+            [fit.Coarse-Phys.Dst.mom.300]
+                tag        = 'Coarse-Phys_Dst_300'
+                nstates    = 3
+                trange_eff = [13,19] 
+                trange     = [5,19]
+                svd        = 0.119
+            [fit.Coarse-Phys.Dst.mom.400]
+                tag        = 'Coarse-Phys_Dst_400'
+                nstates    = 3
+                trange_eff = [14,18] 
+                trange     = [5,18]
+                svd        = 0.102
+            [fit.Coarse-Phys.Dst.mom.110]
+                tag        = 'Coarse-Phys_Dst_110'
+                nstates    = 3
+                trange_eff = [14,23] 
+                trange     = [5,23]
+                svd        = 0.046
+            [fit.Coarse-Phys.Dst.mom.211]
+                tag        = 'Coarse-Phys_Dst_211'
+                nstates    = 3
+                trange_eff = [14,20] 
+                trange     = [5,20]
+                svd        = 0.057
+            [fit.Coarse-Phys.Dst.mom.222]
+                tag        = 'Coarse-Phys_Dst_222'
+                nstates    = 3
+                trange_eff = [14,19] 
+                trange     = [5,19]
+                svd        = 0.051
+
+        [fit.Coarse-Phys.B]
+            smlist  = ['d-d','1S-1S','d-1S']
+            [fit.Coarse-Phys.B.mom.000]
+                tag        = 'Coarse-Phys_B_000'
+                nstates    = 3
+                trange_eff = [14,21] 
+                trange     = [5,21]
+                svd        = 0.055
+            [fit.Coarse-Phys.B.mom.100]
+                tag        = 'Coarse-Phys_B_100'
+                nstates    = 3
+                trange_eff = [14,21]
+                trange     = [9,21]
+                svd        = 0.061 
+            [fit.Coarse-Phys.B.mom.200]
+                tag        = 'Coarse-Phys_B_200'
+                nstates    = 3
+                trange_eff = [14,19]
+                trange     = [5,19]
+                svd        = 0.040
+            [fit.Coarse-Phys.B.mom.300]
+                tag        = 'Coarse-Phys_B_300'
+                nstates    = 3
+                trange_eff = [14,19] 
+                trange     = [5,19]
+                svd        = 0.083
+            [fit.Coarse-Phys.B.mom.400]
+                tag        = 'Coarse-Phys_B_400'
+                nstates    = 3
+                trange_eff = [14,20] 
+                trange     = [5,20]
+                svd        = 0.086
+            [fit.Coarse-Phys.B.mom.110]
+                tag        = 'Coarse-Phys_B_110'
+                nstates    = 3
+                trange_eff = [14,19] 
+                trange     = [5,19]
+                svd        = 0.065
+            [fit.Coarse-Phys.B.mom.211]
+                tag        = 'Coarse-Phys_B_211'
+                nstates    = 3
+                trange_eff = [14,19] 
+                trange     = [5,19]
+                svd        = 0.056
+            [fit.Coarse-Phys.B.mom.222]
+                tag        = 'Coarse-Phys_B_222'
+                nstates    = 3
+                trange_eff = [14,18] 
+                trange     = [5,18]
+                svd        = 0.091
+
+
+    [fit.Fine-1]
+        [fit.Fine-1.Dst]
+            smlist  = ['d-d','1S-1S','d-1S']
+            [fit.Fine-1.Dst.mom.000]
+                tag        = 'Fine-1_Dst_000'
+                nstates    = 3
+                trange_eff = [15,25]
+                trange     = [7,25]
+                svd        = 0.023
+            [fit.Fine-1.Dst.mom.100]
+                tag        = 'Fine-1_Dst_100'
+                nstates    = 3
+                trange_eff = [15,35]
+                trange     = [7,35]
+                svd        = 0.034
+            [fit.Fine-1.Dst.mom.200]
+                tag        = 'Fine-1_Dst_200'
+                nstates    = 3
+                trange_eff = [15,31]
+                trange     = [7,31]
+                svd        = 0.037
+            [fit.Fine-1.Dst.mom.300]
+                tag        = 'Fine-1_Dst_300'
+                nstates    = 3
+                trange_eff = [15,25]
+                trange     = [7,25]
+                svd        = 0.052
+            [fit.Fine-1.Dst.mom.400]
+                tag        = 'Fine-1_Dst_400'
+                nstates    = 3
+                trange_eff = [15,21]
+                trange     = [7,21]
+                svd        = 0.079
+            [fit.Fine-1.Dst.mom.110]
+                tag        = 'Fine-1_Dst_110'
+                nstates    = 3
+                trange_eff = [15,35]
+                trange     = [7,35]
+                svd        = 0.026
+                 
+            [fit.Fine-1.Dst.mom.211]
+                tag        = 'Fine-1_Dst_211'
+                nstates    = 3
+                trange_eff = [15,29]
+                trange     = [7,29]
+                svd        = 0.024
+            [fit.Fine-1.Dst.mom.222]
+                tag        = 'Fine-1_Dst_211'
+                nstates    = 3
+                trange_eff = [15,23]
+                trange     = [7,23]
+                svd        = 0.044
+
+        [fit.Fine-1.B]
+            smlist  = ['d-d','1S-1S','d-1S']
+            [fit.Fine-1.B.mom.000]
+                tag        = 'Fine-1_B_000'
+                nstates    = 3
+                trange_eff = [19,33]
+                trange     = [7,33]
+                svd        = 0.051
+            [fit.Fine-1.B.mom.100]
+                tag        = 'Fine-1_B_100'
+                nstates    = 3
+                trange_eff = [19,32]
+                trange     = [7,32]
+                svd        = 0.044
+            [fit.Fine-1.B.mom.200]
+                tag        = 'Fine-1_B_200'
+                nstates    = 3
+                trange_eff = [19,30]
+                trange     = [7,30]
+                svd        = 0.045
+            [fit.Fine-1.B.mom.300]
+                tag        = 'Fine-1_B_300'
+                nstates    = 3
+                trange_eff = [19,27]
+                trange     = [7,27]
+                svd        = 0.040
+            [fit.Fine-1.B.mom.400]
+                tag        = 'Fine-1_B_400'
+                nstates    = 3
+                trange_eff = [19,25]
+                trange     = [7,25]
+                svd        = 0.049
+            [fit.Fine-1.B.mom.110]
+                tag        = 'Fine-1_B_110'
+                nstates    = 3
+                trange_eff = [19,31]
+                trange     = [7,31]
+                svd        = 0.058
+                 
+            [fit.Fine-1.B.mom.211]
+                tag        = 'Fine-1_B_211'
+                nstates    = 3
+                trange_eff = [19,27]
+                trange     = [7,27]
+                svd        = 0.039
+            [fit.Fine-1.B.mom.222]
+                tag        = 'Fine-1_B_211'
+                nstates    = 3
+                trange_eff = [19,27]
+                trange     = [7,27]
+                svd        = 0.067
+
+    [fit.Fine-Phys]

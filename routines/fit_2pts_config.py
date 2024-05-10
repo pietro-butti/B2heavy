@@ -30,6 +30,7 @@ import datetime
 import jax 
 import jax.numpy         as jnp
 jax.config.update("jax_enable_x64", True)
+import pandas            as pd
 import matplotlib.pyplot as plt
 
 
@@ -57,8 +58,6 @@ def fit_2pts_single_corr(
     wpriors    = False,
     **cov_specs
 ):
-
-
     # Initialize objets and fits
     io   = CorrelatorIO(ens,meson,mom,PathToDataDir=data_dir)
     stag = StagFitter(
@@ -178,6 +177,7 @@ def main():
 
     JKFIT  = True if args.jkfit else False
 
+    aux = []
     for ens in ENSEMBLE_LIST:
         for meson in MESON_LIST:
             for mom in (MOM_LIST if MOM_LIST else config['fit'][ens][meson]['mom'].keys()):
@@ -236,6 +236,20 @@ def main():
                     **cov_specs
                 )
 
+                aux.append({
+                    'ensemble'   : ens,
+                    'meson'      : meson,
+                    'momentum'   : mom,
+                    'tmin(3+3)'  : trange[0],
+                    'tmax'       : trange[1],
+                    'svd'        : cutsvd,
+                    'trange_eff' : trange_eff,
+                    'E0'         : stag.fits[nstates,trange].p['E'][0],
+                    'pval'       : fitres['pvalue']
+                })
+
+
+
                 # LOG analysis and PLOTS =======================================================================
                 if SAVETO is not None:
                     logfile = f'{saveto}.log' if args.logto==None else args.logto
@@ -277,6 +291,8 @@ def main():
                     if args.show:
                         plt.show()              
 
+    df = pd.DataFrame(aux).set_index(['ensemble','meson','momentum'])
+    print(df)
 
 
 if __name__ == "__main__":
