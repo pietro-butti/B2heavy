@@ -120,18 +120,22 @@ def correlation_diagnostics(ysamples, jk=True, verbose=True, plot=False):
 
 
 
-def compute_covariance(ysamples, jk=True, ysamples_full=None, **cov_spec):
+def compute_covariance(ysamples, jk=True, ysamples_full=None, bias=False, **cov_spec):
     ylist, treestruct = jax.tree_flatten(ysamples)
     tmp = np.hstack(ylist)
 
+    bias = False
+
     factor = tmp.shape[0]-1 if jk else 1./tmp.shape[0]
-    fullcov = np.cov(tmp,rowvar=False,bias=True) * factor
+    fullcov = np.cov(tmp,rowvar=False,bias=bias) * factor
     yout = gv.gvar(tmp.mean(axis=0),fullcov)
 
     cov = None
+    avg = tmp.mean(axis=0)
+
     if cov_spec.get('cutsvd') is not None: # svd cut
-        # yout = gv.svd(yout, svdcut=cov_spec.get('cutsvd'))
-        yout = gv.regulate(yout, eps=cov_spec.get('cutsvd'))
+        yout = gv.svd(yout, svdcut=cov_spec.get('cutsvd'))
+        # yout = gv.regulate(yout, eps=cov_spec.get('cutsvd'))
         fullcov = gv.evalcov(yout)
 
     if cov_spec.get('diag'): # uncorrelated data
@@ -139,26 +143,28 @@ def compute_covariance(ysamples, jk=True, ysamples_full=None, **cov_spec):
 
     elif cov_spec.get('block'): # blocked covariance
         cov = np.asarray(scipy.linalg.block_diag(
-            *[np.cov(ysamples[k],rowvar=False,bias=True) * factor for k in ysamples]
+            *[np.cov(ysamples[k],rowvar=False,bias=bias) * factor for k in ysamples]
         ))
     
     elif cov_spec.get('scale') and ysamples_full is not None: # scaled with full covariance matrix
         tmp_full = np.hstack([ysamples_full[k] for k in ysamples_full])
-        cov_full = np.cov(tmp_full,rowvar=False,bias=True) * (tmp_full.shape[0]-1)
+        cov_full = np.cov(tmp_full,rowvar=False,bias=bias) * (tmp_full.shape[0])
         scale = np.sqrt(np.diag(fullcov)/np.diag(cov_full))
-        cov = cov_full * np.outer(scale,scale)  # TODO: to be checked
+        cov = cov_full * np.outer(scale,scale)
+
+        avg = tmp_full.mean(axis=0)
 
         if cov_spec.get('shrink'): # scale + shrinking
-            cov = covariance_shrinking(tmp_full.mean(axis=0),cov,tmp_full.shape[0]-1)
+            cov = covariance_shrinking(tmp_full.mean(axis=0),cov,tmp_full.shape[0])
 
-    elif cov_spec.get('shrink'): # shrinking
-        cov = covariance_shrinking(tmp.mean(axis=0),fullcov,tmp.shape[0]-1)
+    elif cov_spec.get('shrink') and not cov_spec.get('scale'): # only shrinking
+        cov = covariance_shrinking(tmp.mean(axis=0),fullcov,tmp.shape[0])
 
     else: # full covariance
         cov = fullcov
 
 
-    yout = gv.gvar(tmp.mean(axis=0),fullcov if cov is None else cov)
+    yout = gv.gvar(avg,fullcov if cov is None else cov)
 
 
     # Rebuild dictionary
@@ -204,8 +210,6 @@ def NplusN2ptModel(Nstates,Nt,sm,pol):
     mix = sm1!=sm2
 
     def aux(t,p):
-        # ans = [0.] * len(t)
-
         E0, E1 = p['E'][0], p['E'][0]+np.exp(p['E'][1])
         Z0 = np.exp(p[f'Z_{sm1}_{pol}'][0]) * np.exp(p[f'Z_{sm2}_{pol}'][0])
         Z1 = np.exp(p[f'Z_{sm1}_{pol}'][1]) * np.exp(p[f'Z_{sm2}_{pol}'][1])

@@ -202,10 +202,13 @@ class CorrelatorIO:
                 # ------------------ Fold correlator ------------------
                 corrs = []
                 for corr_name in CorrNameDict[sm]:
-                    corrs.append(
-                        0.5 * ( RAW[corr_name][:,:T] + 
-                            np.flip(np.roll(RAW[corr_name], -1, axis=1), axis=1)[:,:T] )
+                    tmp = 0.5 * ( 
+                        RAW[corr_name][:,:T] + 
+                        np.flip(np.roll(RAW[corr_name], -1, axis=1), axis=1)[:,:T] 
                     )
+                    tmp = jkCorr(tmp,bsize=(0 if jkBin is None else jkBin))
+                    corrs.append(tmp)
+
                 corrs = np.array(corrs)
 
                 # ------------------ Store correlator ------------------
@@ -225,32 +228,36 @@ class CorrelatorIO:
         POL = ['Par','Bot'] if collinear and vector else ['Unpol']
 
         if not CrossSmearing:
-            # Average cross smearing --------------------------------------------------
-            for sm in SMR:
-                if sm in cross:
-                    s1,s2 = sm.split('-')
-                    for pol in POL:
-                        PROCESSED[sm,pol] = 0.5*(
-                            PROCESSED[sm,pol] + PROCESSED[f'{s2}-{s1}',pol]
-                        )
+            for pol in POL:
+                tmp = []
+                for sm in sorted(SMR):
+                    sm1,sm2 = sm.split('-')
+                    s2 = f'{sm2}-{sm1}'
+                    if sm1!=sm2 and (s2,pol) in PROCESSED:
+                        if sm not in tmp:
+                            tmp.append(s2)
+                            PROCESSED[sm,pol] = 0.5*(
+                                PROCESSED[sm,pol] + PROCESSED[s2,pol]
+                            )                            
+                            del PROCESSED[s2,pol]
 
-            # Delete unnnecessary other
-            # it is done like this because alex mantains d-1S and not 1S-d
-            a = set()
-            for sm in cross:
-                s1,s2 = sorted(sm.split('-'))
-                a.add(f'{s1}-{s2}')
-            
-            for crs in a:
-                SMR.remove(crs)
-                for pol in POL:
-                    del PROCESSED[(crs,pol)]
+            for rm_smr in tmp:
+                SMR.remove(rm_smr)
 
-        self.nConf = np.unique([a.shape[0] for k,a in PROCESSED.items()])[0]
-
-
+            # change name 1S-d ---> d-1S
+            for pol in POL:
+                try:
+                    PROCESSED['d-1S',pol] = PROCESSED['1S-d',pol]
+                    del PROCESSED['1S-d',pol]
+                    if '1S-d' in SMR:
+                        SMR.remove('1S-d')
+                        SMR.append('d-1S')
+                except KeyError:
+                    pass
+        
         # Stack data --------------------------------------------------------------
-        DATA = np.array([[jkCorr(PROCESSED[smr,pol],bsize=(jkBin if jkBin is not None else 0)) for pol in POL] for smr in SMR])    
+        # DATA = np.array([[jkCorr(PROCESSED[smr,pol],bsize=(jkBin if jkBin is not None else 0)) for pol in POL] for smr in SMR])    
+        DATA = np.array([[PROCESSED[smr,pol] for pol in POL] for smr in SMR])    
         (Nsmr,Npol,Nconf,Nt) = DATA.shape
 
         xd = xr.DataArray(
@@ -266,12 +273,10 @@ class CorrelatorIO:
             name   = self.info.name
         )
         
-
         if verbose:
             print(f'Correlators for ensemble {self.info.ensemble} for meson {self.info.meson} at fixed mom {self.info.momentum} read from')
             for sm,l in CorrNameDict.items():
                 print(sm,'--->',l)
-
 
         return xd
 
@@ -325,7 +330,6 @@ class Correlator:
 
         # Compute un-jk data
         if cov_kwargs.get('scale'):
-            # ydata_full = self.io.ReadCorrelator(jkBin=1).loc[smr,pol,:,it]
             ydata_full = self.io.ReadCorrelator(jkBin=1)
             ally = {(s,p): jnp.asarray(ydata_full.loc[s,p,:,it].to_numpy()) for s,p in self.keys}
         else:
@@ -605,13 +609,11 @@ def find_eps_cut(corr:Correlator,trange,tol=1e+05,default=1E-12,**cov_specs):
 
 
 def main():
-    ens = 'Coarse-1'
+    ens = 'Coarse-Phys'
     mes = 'Dst'
     mom = '000'
 
     path = '/Users/pietro/code/data_analysis/BtoD/Alex/Ensembles/FnalHISQ/a0.12/'
 
-    io  = CorrelatorIO(ens,mes,mom,PathToFile=f"{path}l3264f211b600m00507m0507m628-HISQscript.hdf5")
-    stag = Correlator(io)
-
-    stag.format(smearing=['d-d'])
+    io  = CorrelatorIO(ens,mes,mom,PathToDataDir='/Users/pietro/code/data_analysis/BtoD/Alex/')
+    stag = Correlator(io,jkBin=19,smearing=['d-1S'])

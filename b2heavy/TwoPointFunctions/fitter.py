@@ -337,9 +337,9 @@ class StagFitter(Correlator):
 
         return pars, chi2
 
-    def chi2exp(self, Nexc, trange, popt, fitcov, priors=None, pvalue=True, Nmc=10000):
+    def chi2exp(self, Nexc, trange, popt, fitcov, priors=None, pvalue=True, Nmc=10000, method='eigval', verbose=False):
         # Format data and estimate covariance matrix
-        xdata,ydata = self.format(trange=trange,flatten=False)
+        xdata,ydata = self.format(trange=trange) # we want original data
         yvec = np.concatenate([ydata[k] for k in self.keys])
         cov = gv.evalcov(yvec)
 
@@ -347,13 +347,14 @@ class StagFitter(Correlator):
 
         # Estimate jacobian
         fun,jac,_ = self.diff_model(xdata,Nexc)
-        _jc = jac(popt)
+        _jc  = jac(popt)
         Jac = np.hstack([_jc[k] for k in pkeys])
 
         # Check chi2 from fit
-        w2 = jnp.linalg.inv(fitcov)
+        w2 = np.linalg.inv(fitcov)
         res = gv.mean(yvec) - fun(popt)
-        chi2 = res.T @ w2 @ res
+        chi2 = float(res.T @ w2 @ res) # FIXME: when using rescaling of covariance matrix, the data are averaged from the jkbin=1 data and therefore central value can change a bit. This results in a O(.5) difference in calculated chi2. 
+
 
         # Add prior part if needed
         if priors is not None:
@@ -366,8 +367,7 @@ class StagFitter(Correlator):
             r      = gv.mean(prio_v) - popt_v
 
             dpr   = np.diag(1/gv.sdev(prio_v))**2
-            chi2 += r.T @ dpr @ r
-
+            chi2 += float(r.T @ dpr @ r)
 
             # Augment covariance matrices            
             O = np.zeros((fitcov.shape[0],dpr.shape[1]))
@@ -383,33 +383,72 @@ class StagFitter(Correlator):
         wg = w @ Jac
         proj = w - wg @ Hinv @ wg.T
 
-        chiexp = np.trace(proj @ cov)
+        chiexp  = np.trace(proj @ cov)
+        da = Hinv @ wg.T
 
-        if not pvalue:
-            return chi2, chiexp
-        
+        # Calculate nu matrix
+        l,evec = np.linalg.eig(cov)
+        if np.any(np.real(l)<0):
+            mask = np.real(l)>1e-12
+            Csqroot = evec[:,mask] @ np.diag(np.sqrt(l[mask])) @ evec[:,mask].T
         else:
-            l,evec = np.linalg.eig(cov)
+            Csqroot= evec @ np.diag(np.sqrt(l)) @ evec.T
+        numat = Csqroot @ proj @ Csqroot
+        dchiexp = np.sqrt(2.*np.trace(numat @ numat))
 
-            if np.any(np.real(l)<0):
-                mask = np.real(l)>1e-12
-                Csqroot = evec[:,mask] @ np.diag(np.sqrt(l[mask])) @ evec[:,mask].T
-            else:
-                Csqroot= evec @ np.diag(np.sqrt(l)) @ evec.T
+        pvalue = {}
+        # Compute it with eigenvalue spectrum
+        l,_ = np.linalg.eig(numat)
+        ls = l[l.real>=1e-14].real
+        p = 0
+        for _ in range(Nmc):
+            ri = np.random.normal(0.,1.,len(ls))
+            p += 1. if (ls.T @ (ri**2) - chi2)>=0 else 0.
+        p /= Nmc
+        pvalue['eigval'] = p
+
+        # Compute it with MC sampling
+        _n = cov.shape[0]
+        z = np.random.normal(0.,1.,Nmc*_n).reshape(Nmc,_n)
+        cexp = np.einsum('ia,ab,bi->i',z,numat,z.T)
+        pvalue['MC'] = 1. - np.mean(cexp<chi2)
+
+        if verbose:
+            print(f'# ---------- U+03C7 ^2_exp analysis -------------')
+            print(f'# U+03C7 ^2_exp = {chiexp} +/- {dchiexp} ')
+            print(f'# p-value [eval] = {pvalue["eigval"]}')
+            print(f'# p-value [MC]   = {pvalue["MC"]}')
 
 
-            numat = Csqroot @ proj @ Csqroot
-            l,_ = np.linalg.eig(numat)
-            ls = l[l.real>=1e-14].real
+        if pvalue:
+            return chi2, chiexp, pvalue[method]
+        else:
+            return chi2, chiexp
 
-            p = 0
-            for _ in range(Nmc):
-                ri = np.random.normal(0.,1.,len(ls))
-                p += 1. if (ls.T @ (ri**2) - chi2)>=0 else 0.
-            p /= Nmc
-            
-            return chi2, chiexp, p
-        
+    def chi2(self, Nexc, trange):
+        fit = self.fits[Nexc,trange]
+
+        # normal chi2
+        res = fit.fcn(fit.x,fit.pmean)-gv.mean(fit.y)
+        chi2 = res.T @ np.linalg.inv(gv.evalcov(fit.y)) @ res
+
+        # chi2 priors
+        chi_pr = 0.
+        for k, pr in fit.prior.items():
+            dr = ((gv.mean(pr) - fit.pmean[k])/gv.sdev(pr))**2
+            chi_pr += dr.sum()
+
+        # chi2 augmented
+        chi2_aug = chi2+chi_pr
+
+        # standard p-value
+        ndof  = len(fit.y) - sum([len(pr) for k,pr in fit.prior.items()]) 
+        aux = Correlator(io=self.io,jkBin=0)
+        nconf = len(aux.data.jkbin)
+        pvalue = p_value(chi2,nconf,ndof)
+
+        return dict(chi2=chi2, chi2_pr=chi_pr, chi2_aug=chi2_aug, pvalue=pvalue)
+
     def fit_result(self, Nexc, trange, verbose=True, error=False, priors=None):
         fit = self.fits[Nexc,trange]
         xdata  = fit.x
@@ -417,31 +456,40 @@ class StagFitter(Correlator):
         fitcov = gv.evalcov(fit.y)
         popt   = dict(fit.pmean)
 
-        chi2, chiexp, p = self.chi2exp(Nexc, trange, popt, fitcov, pvalue=True, priors=priors)
+        chi2, chiexp, p = self.chi2exp(
+            Nexc, 
+            trange, 
+            popt, 
+            fitcov, 
+            pvalue = True, 
+            priors = priors
+        )
 
-        # p_st = standard_p(self.io,fit)
+        chi2 = self.chi2(Nexc,trange)
 
         if verbose:
             print(f'# ---------- {Nexc}+{Nexc} fit in {trange} for mes: {self.info.meson} of ens: {self.info.ensemble} for mom: {self.info.momentum} --------------')
             print(fit)
 
-            print(f'# red chi2       = {chi2:.2f}')
+            print(f'# red chi2       = {chi2["chi2"]:.2f}')
+            print(f'# aug chi2       = {chi2["chi2_aug"]:.2f}')
             print(f'# chi2_exp       = {chiexp:.2f}')
-            print(f'# chi2/chi_exp   = {chi2/chiexp:.2f}')
+            print(f'# chi2/chi_exp   = {chi2["chi2"]/chiexp:.2f}')
             print(f'# p-value        = {p:.2f}')
-            # print(f'# p-value (std.) = {p_st:.2f}')
+            print(f'# p-value (std.) = {chi2["pvalue"]:.2f}')
 
         res = dict(
             fit        = fit,
-            chi2       = chi2,
+            chi2       = chi2['chi2'],
+            chi2aug    = chi2['chi2_aug'],
             chiexp     = chiexp,
             pvalue     = p,
-            # p_standard = p_st
+            p_standard = chi2['pvalue'],
         )
 
         if error:
             pars, chi2cost  = self.fit_error(Nexc,xdata,yvec,fitcov, popt)
-            assert np.isclose(chi2cost,chi2,atol=1e-14)
+            # assert np.isclose(chi2cost,chi2,atol=1e-14)
             res['pars']   = pars
 
 
@@ -482,10 +530,10 @@ assert x.dtype == jnp.float64
 
 
 def main(FLAG):
-    ens      = 'Fine-1'
+    ens      = 'Coarse-Phys'
     mes      = 'Dst'
-    mom      = '200'
-    binsize  = 16
+    mom      = '100'
+    binsize  = 19
     data_dir = '/Users/pietro/code/data_analysis/BtoD/Alex/'
     smlist   = ['1S-1S','d-d','d-1S'] 
 
@@ -499,13 +547,13 @@ def main(FLAG):
     cov_specs = dict(
         diag   = False,
         block  = False,
-        scale  = True,
-        shrink = True,
-        cutsvd = 0.053
+        scale  = False,
+        shrink = False,
+        cutsvd = 0.1
     )
 
     TRANGE_EFF = (15,25) 
-    TRANGE     = (7,31)
+    TRANGE     = (5,25)
 
     effm,effa = stag.meff(TRANGE_EFF,verbose=True,**cov_specs)
     priors = stag.priors(3,Meff=effm,Aeff=effa)
@@ -518,11 +566,26 @@ def main(FLAG):
         **cov_specs
     )
 
-    popt   = dict(fit.pmean)
-    fitcov = gv.evalcov(fit.y)
-
-    print(stag.chi2exp(3,TRANGE,popt,fitcov))
 
 
+    xdata,_ = stag.format(trange=TRANGE)
+    mod,jac,hes = stag.diff_model(xdata,3)
+
+    xdata,ydata = stag.format(trange=TRANGE)
+    yvec = np.concatenate([ydata[k] for k in stag.keys])
+
+    # stag.chi2exp(
+    #     Nexc = 3,
+    #     trange = TRANGE,
+    #     popt   = dict(fit.pmean),
+    #     fitcov = gv.evalcov(fit.y),
+    #     priors = fit.prior,
+    # )
+
+    res = stag.fit_result(3,TRANGE,error=True)
+
+
+
+    breakpoint()
 
 

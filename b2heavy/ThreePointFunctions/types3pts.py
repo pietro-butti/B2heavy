@@ -121,7 +121,7 @@ class RatioIO:
         self.mData  = FnalHISQMetadata.params(_ens)
 
         if PathToFile is not None:
-            self.RatioFile = PathToFile
+            self.RatioFile2 = PathToFile
         elif PathToDataDir is not None:
             # path = os.path.join(PathToDataDir,self.mData['folder'],self.mData['hdf5File'])
             # if os.path.exists(path):

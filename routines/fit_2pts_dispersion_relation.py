@@ -223,112 +223,33 @@ def main():
 
 
 
-
-    # Plot discretization errors ------------------------------------------------
-    if args.plot:
-        plt.rcParams['text.usetex'] = True
-        plt.rcParams['font.size'] = 12
-        
-        m1 = fit.p['M1']
-        denominator = np.array(p2) + m1**2
-        yplot = E0**2/denominator
-
-
-        fig,ax = plt.subplots(2,1,figsize=(3, 6),sharex=True)
-
-        # Discr. errors on energies
-        ax[0].errorbar(p2,gv.mean(yplot),gv.sdev(yplot),fmt='o', ecolor='C0', mfc='w', capsize=2.5)
-        ax[0].axhline(1.,color='gray',alpha=0.5,linestyle=':')
-
-        endp = max(p2)+p2[1]
-        xcone = np.arange(0,endp,0.01)
-        ax[0].fill_between(xcone, alphas*xcone+1,-alphas*xcone+1,alpha=0.1)
-
-        ax[0].set_xlim(xmin=-0.01,xmax=endp-0.01)
-
-        ax[0].set_ylabel(r'$\frac{E^2(\mathbf{p})}{\mathbf{p}^2 + M_1^2}$')
-        # ax[0].set_xlabel(r'$a^2\mathbf{p}^2$')
-
-
-        # Discr. errors on coefficients
-        Z1S = np.asarray([])
-        Zd  = np.asarray([])
-        for p in psort:
-            fname = f'fit2pt_config_{ens}_{mes}_'
-            f = os.path.join(readfrom,f'{fname}{p}')
-            collinear = p.endswith('00') and not p.startswith('0')
-
-            k1s_1  = 'Z_1S_Par' if collinear else 'Z_1S_Unpol'      
-            z1s_1 = extract_single_energy(f,N=0,jk=JK,key=k1s_1)
-            z1s_1 = np.exp(z1s_1)*np.sqrt(2*E[p])
-
-            k1s_2  = 'Z_1S_Bot' if collinear else 'Z_1S_Unpol'      
-            z1s_2 = extract_single_energy(f,N=0,jk=JK,key=k1s_2)
-            z1s_2 = np.exp(z1s_2)*np.sqrt(2*E[p])
-
-            Z1S = np.append(Z1S, np.mean([z1s_1,z1s_2]))
-
-
-            kd_1  = 'Z_d_Par' if collinear else 'Z_d_Unpol'      
-            zd_1 = extract_single_energy(f,N=0,jk=JK,key=kd_1)
-            zd_1 = np.exp(zd_1)*np.sqrt(2*E[p])
-
-            kd_2  = 'Z_d_Bot' if collinear else 'Z_d_Unpol'      
-            zd_2 = extract_single_energy(f,N=0,jk=JK,key=kd_2)
-            zd_2 = np.exp(zd_2)*np.sqrt(2*E[p])
-
-            Zd = np.append( Zd, np.mean([zd_1,zd_2])) 
-        Z1S = Z1S/Z1S[0]; Z1S[0] = gv.gvar(1.,0)
-        Zd  = Zd/Zd[0];   Zd [0] = gv.gvar(1.,0)
-
-        ax[1].errorbar(p2,gv.mean(Z1S),gv.sdev(Z1S),fmt='o', ecolor='C0', mfc='w', capsize=2.5)
-        ax[1].errorbar(p2,gv.mean(Zd ),gv.sdev(Zd ),fmt='o', ecolor='C1', mfc='w', capsize=2.5)
-        ax[1].axhline(1.,color='gray',alpha=0.5,linestyle=':')
-
-        endp = max(p2)+p2[1]
-        xcone = np.arange(0,endp,0.01)
-        ax[1].fill_between(xcone, alphas*xcone+1,-alphas*xcone+1,alpha=0.1)
-
-        ax[1].set_xlim(xmin=-0.01,xmax=endp-0.01)
-
-        ax[1].set_ylabel(r'$\frac{Z(\mathbf{p})}{Z(0)}$')
-        ax[1].set_xlabel(r'$a^2\mathbf{p}^2$')
-
-
-
-
-        plt.tight_layout()
-        plt.title(tag)
-        plt.savefig(f'{saveto}/fit2pts_discretization_errors_{tag}.pdf')
-
-
-
-
-
-
-        if args.show:
-            plt.show()
-
     # Plot fit ------------------------------------------------
     if args.plot:
         plt.rcParams['text.usetex'] = True
         plt.rcParams['font.size'] = 12
 
-        plt.figure(figsize=(4, 6))
+        plt.figure(figsize=(5, 4))
         ax = plt.subplot(1,1,1)
 
         yplot = E0**2
         ax.errorbar(p2,gv.mean(yplot),gv.sdev(yplot),fmt='o', ecolor='C0', mfc='w', capsize=2.5)
 
 
+
+
         plist = [np.sqrt([x/3,x/3,x/3]) for x in np.arange(0,max(p2)+0.1,0.01)]
         xplot = [sum(p**2) for p in plist]
         fitpar = [fit.p[k] for k in ['M1','M2','M4','w4']]
-        yplot = [dispersion_relation(p,*fitpar) for p in plist]
+        fplot = [dispersion_relation(p,*fitpar) for p in plist]
 
-        ax.fill_between(xplot,gv.mean(yplot)-gv.sdev(yplot),gv.mean(yplot)+gv.sdev(yplot),alpha=0.2)
 
-        ax.set_xlim(xmin=-0.01,xmax=max(p2)+0.05)
+        ax.fill_between(xplot,gv.mean(fplot)-gv.sdev(fplot),gv.mean(fplot)+gv.sdev(fplot),alpha=0.2)
+
+        delta = (xplot[-1]-xplot[-2])/2
+        ax.set_xlim(xmin=-0.005,xmax=max(p2)+delta)
+
+        ymax = max(gv.mean(yplot))+0.05
+        ax.set_ylim(ymax=ymax)
 
         ax.set_ylabel(r'$(aE(\mathbf{p}))^2$')
         ax.set_xlabel(r'$a^2\mathbf{p}^2$')
@@ -341,6 +262,100 @@ def main():
 
         if args.show:
             plt.show()
+
+
+
+
+    # Plot discretization errors ------------------------------------------------
+    if args.plot:
+        plt.rcParams['text.usetex'] = True
+        plt.rcParams['font.size'] = 12
+        
+        m1 = fit.p['M1']
+        denominator = np.array(p2) + m1**2
+        yplot = E0**2/denominator
+
+
+        # fig,ax = plt.subplots(2,1,figsize=(3, 6),sharex=True)
+        fig,ax = plt.subplots(1,1,figsize=(6, 3))
+
+        # Discr. errors on energies
+        ax = [ax]
+
+        ax[0].errorbar(p2,gv.mean(yplot),gv.sdev(yplot),fmt='o', ecolor='C0', mfc='w', capsize=2.5)
+        ax[0].axhline(1.,color='gray',alpha=0.5,linestyle=':')
+
+        endp = max(p2)+p2[1]
+        xcone = np.arange(0,endp,0.01)
+        ax[0].fill_between(xcone, alphas*xcone+1,-alphas*xcone+1,alpha=0.1)
+
+        ax[0].set_xlim(xmin=-0.01,xmax=endp-0.01)
+
+        ax[0].set_ylabel(r'$\frac{E^2(\mathbf{p})}{\mathbf{p}^2 + M_1^2}$')
+        ax[0].set_xlabel(r'$a^2\mathbf{p}^2$')
+
+        ax[0].grid(alpha=0.2)
+
+
+        # # Discr. errors on coefficients
+        # Z1S = np.asarray([])
+        # Zd  = np.asarray([])
+        # for p in psort:
+        #     fname = f'fit2pt_config_{ens}_{mes}_'
+        #     f = os.path.join(readfrom,f'{fname}{p}')
+        #     collinear = p.endswith('00') and not p.startswith('0')
+
+        #     k1s_1  = 'Z_1S_Par' if (collinear and mes=='Dst') else 'Z_1S_Unpol'      
+        #     z1s_1 = extract_single_energy(f,N=0,jk=JK,key=k1s_1)
+        #     z1s_1 = np.exp(z1s_1)*np.sqrt(2*E[p])
+
+        #     k1s_2  = 'Z_1S_Bot' if (collinear and mes=='Dst') else 'Z_1S_Unpol'      
+        #     z1s_2 = extract_single_energy(f,N=0,jk=JK,key=k1s_2)
+        #     z1s_2 = np.exp(z1s_2)*np.sqrt(2*E[p])
+
+        #     Z1S = np.append(Z1S, np.mean([z1s_1,z1s_2]))
+
+
+        #     kd_1  = 'Z_d_Par' if (collinear and mes=='Dst') else 'Z_d_Unpol'      
+        #     zd_1 = extract_single_energy(f,N=0,jk=JK,key=kd_1)
+        #     zd_1 = np.exp(zd_1)*np.sqrt(2*E[p])
+
+        #     kd_2  = 'Z_d_Bot' if (collinear and mes=='Dst') else 'Z_d_Unpol'      
+        #     zd_2 = extract_single_energy(f,N=0,jk=JK,key=kd_2)
+        #     zd_2 = np.exp(zd_2)*np.sqrt(2*E[p])
+
+        #     Zd = np.append( Zd, np.mean([zd_1,zd_2])) 
+        # Z1S = Z1S/Z1S[0]; Z1S[0] = gv.gvar(1.,0)
+        # Zd  = Zd/Zd[0];   Zd [0] = gv.gvar(1.,0)
+
+        # ax[1].errorbar(p2,gv.mean(Z1S),gv.sdev(Z1S),fmt='o', ecolor='C0', mfc='w', capsize=2.5)
+        # ax[1].errorbar(p2,gv.mean(Zd ),gv.sdev(Zd ),fmt='o', ecolor='C1', mfc='w', capsize=2.5)
+        # ax[1].axhline(1.,color='gray',alpha=0.5,linestyle=':')
+
+        # endp = max(p2)+p2[1]
+        # xcone = np.arange(0,endp,0.01)
+        # ax[1].fill_between(xcone, alphas*xcone+1,-alphas*xcone+1,alpha=0.1)
+
+        # ax[1].set_xlim(xmin=-0.01,xmax=endp-0.01)
+
+        # ax[1].set_ylabel(r'$\frac{Z(\mathbf{p})}{Z(0)}$')
+        # ax[1].set_xlabel(r'$a^2\mathbf{p}^2$')
+
+
+
+
+        ax[0].set_title(tag)
+        plt.tight_layout()
+        plt.savefig(f'{saveto}/fit2pts_discretization_errors_{tag}.pdf')
+
+
+
+
+
+
+        if args.show:
+            plt.show()
+
 
 
     return

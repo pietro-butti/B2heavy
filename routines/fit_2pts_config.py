@@ -180,7 +180,8 @@ def main():
     aux = []
     for ens in ENSEMBLE_LIST:
         for meson in MESON_LIST:
-            for mom in (MOM_LIST if MOM_LIST else config['fit'][ens][meson]['mom'].keys()):
+            for mom in (MOM_LIST if MOM_LIST else config['data'][ens]['mom_list']):
+            # for mom in (MOM_LIST if MOM_LIST else config['fit'][ens][meson]['mom'].keys()):
 
                 tag = config['fit'][ens][meson]['mom'][mom]['tag']
                 data_dir   = config['data'][ens]['data_dir']
@@ -245,7 +246,8 @@ def main():
                     'svd'        : cutsvd,
                     'trange_eff' : trange_eff,
                     'E0'         : stag.fits[nstates,trange].p['E'][0],
-                    'pval'       : fitres['pvalue']
+                    'pexp'       : fitres['pvalue'],
+                    'p'          : fitres['p_standard']
                 })
 
 

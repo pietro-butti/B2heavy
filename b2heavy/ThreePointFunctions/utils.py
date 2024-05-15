@@ -28,10 +28,12 @@ def dump_fit_object(base,f,**res):
         y       = gv.mean(f.y),
         cov     = gv.evalcov(f.y),
         prior   = f.prior,
-        chi2    = f.chi2,
+        # chi2    = f.chi2,
         chi2red = res.get('chi2'), 
+        chi2aug = res.get('chi2_aug'),
         chi2exp = res.get('chiexp'),
         pvalue  = res.get('pvalue'),
+        pstd    = res.get('p_standard')
     )
 
     if 'pars' in res:

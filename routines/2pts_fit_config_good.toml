@@ -13,6 +13,17 @@ title = '2pts fits'
     list = ['000','100','200','300','400','110','211','222']
 
 
+# binSizes  = {'MediumCoarse':13,
+#              'Coarse-2':    16,
+#              'Coarse-1':    11,
+#              'Coarse-Phys': 19,
+#              'Fine-1':      16,
+#              'Fine-Phys':   16,
+#              'SuperFine':   22}#22}
+
+
+
+
 [data]
     mdata = '/Users/pietro/code/software/B2heavy/b2heavy/FnalHISQMetadata.py'
 
@@ -59,13 +70,6 @@ title = '2pts fits'
         Nt       = 96
     
 
-# binSizes  = {'MediumCoarse':13,
-#              'Coarse-2':    16,
-#              'Coarse-1':    11,
-#              'Coarse-Phys': 19,
-#              'Fine-1':      16,
-#              'Fine-Phys':   16,
-#              'SuperFine':   22}#22}
 
 
     

@@ -11,7 +11,7 @@ from tqdm        import tqdm
 
 from b2heavy.FnalHISQMetadata            import params as mData
 from b2heavy.TwoPointFunctions.utils     import correlation_diagnostics
-from b2heavy.TwoPointFunctions.types2pts import CorrelatorIO, Correlator, plot_effective_coeffs
+from b2heavy.TwoPointFunctions.types2pts import CorrelatorIO, Correlator, plot_effective_coeffs, find_eps_cut
 from b2heavy.TwoPointFunctions.fitter    import StagFitter
 from routines.fit_2pts_utils             import load_toml
 
@@ -26,24 +26,24 @@ binSizes  = {
     'SuperFine'   : 22
 }
 
-def find_eps(stag,trange,**cov_specs):
-    # cov_specs = dict(shrink=True, scale=True)
-    x,y, data = stag.format(trange=trange,flatten=True,alljk=True,**cov_specs)    
+# def find_eps(stag,trange,**cov_specs):
+#     # cov_specs = dict(shrink=True, scale=True)
+#     x,y, data = stag.format(trange=trange,flatten=True,alljk=True,**cov_specs)    
 
-    cov = np.cov(data.T) * (data.shape[0]-1)
-    cdiag = np.diag(1./np.sqrt(np.diag(cov)))
-    cor = cdiag @ cov @ cdiag
+#     cov = np.cov(data.T) * (data.shape[0]-1)
+#     cdiag = np.diag(1./np.sqrt(np.diag(cov)))
+#     cor = cdiag @ cov @ cdiag
 
-    eval,evec = np.linalg.eigh(cor)
-    y = sorted(abs(eval))/max(eval)
+#     eval,evec = np.linalg.eigh(cor)
+#     y = sorted(abs(eval))/max(eval)
 
-    I=None
-    for i,r in enumerate((y/np.roll(y,1))[1:]):
-        if r>1e+05:
-            I=i+1
-            break
+#     I=None
+#     for i,r in enumerate((y/np.roll(y,1))[1:]):
+#         if r>1e+05:
+#             I=i+1
+#             break
 
-    return 10E-12 if I is None else sorted(abs(eval))[I]
+#     return 10E-12 if I is None else sorted(abs(eval))[I]
 
 
 def metapars():
@@ -59,12 +59,13 @@ def metapars():
     smlist   = ['1S-1S','d-d','d-1S'] 
 
     ens_list = [
-        # 'MediumCoarse',
-        # 'Coarse-2',
-        # 'Coarse-1',
-        # 'Coarse-Phys',
-        # 'Fine-1'
-        'Fine-Phys'
+        'SuperFine',
+        'MediumCoarse',
+        'Coarse-2',
+        'Coarse-1',
+        'Coarse-Phys',
+        'Fine-1',
+        'Fine-Phys',
     ]
     mom_list = [
         '000',
@@ -79,59 +80,64 @@ def metapars():
     mes_list = ['Dst','B']
 
 
-    config = {
-        'fit': {
-            'Fine-Phys': {
-                'Dst': {'mom':{}},
-                'B'  : {'mom':{}}
-            }
-        }
-    }
+    config = {'fit': {}}
 
     aux = []
-    for ens,mes,mom in itertools.product(ens_list,mes_list,mom_list):
-        print(f'-------- {ens,mom} --------')
-        a_fm = mData(ens)['aSpc'].mean
+    for ens in ens_list:
+        config['fit'][ens] = {}
+        for mes in mes_list:
+            config['fit'][ens][mes] = {'mom': {}}
+            for mom in mom_list:
+                config['fit'][ens][mes]['mom'][mom] = {}
 
-        try:
-            io   = CorrelatorIO(ens,mes,mom,PathToDataDir=data_dir)
-            stag = StagFitter(
-                io       = io,
-                jkBin    = binSizes[ens],
-                smearing = smlist
-            )
-        except:
-            continue
+                print(f'-------- {ens,mom} --------')
+                a_fm = mData(ens)['aSpc'].mean
 
-        # choose tmax
-        tmax = stag.tmax(threshold=0.3)
-        
-        # choose tmin
-        Tmin1  = int(tmin1/a_fm)
-        tmin  = int(tmin3/a_fm)
-        Tmin2 = int(tmin2/a_fm)
+                try:
+                    io   = CorrelatorIO(ens,mes,mom,PathToDataDir=data_dir)
+                    stag = StagFitter(
+                        io       = io,
+                        jkBin    = binSizes[ens],
+                        smearing = smlist
+                    )
+                except:
+                    continue
 
-        #  diagnose correlation
-        eps = find_eps(stag,(tmin,tmax),scale=True,shrink=True)
+                # choose tmax
+                tmax = stag.tmax(threshold=0.3)
+                
+                # choose tmin
+                Tmin1  = int(tmin1/a_fm)
+                tmin  = int(tmin3/a_fm)
+                Tmin2 = int(tmin2/a_fm)
 
-        config['fit'][ens][mes]['mom'][mom] = {}
+                #  diagnose correlation
+                # cov_specs = dict(scale=True,shrink=True)
+                # eps = find_eps_cut(stag,(tmin,tmax),**cov_specs)
 
-        config['fit'][ens][mes]['mom'][mom]['nstates']    = 3
-        config['fit'][ens][mes]['mom'][mom]['trange_eff'] = [Tmin1,tmax] 
-        config['fit'][ens][mes]['mom'][mom]['trange']     = [tmin,tmax]
-        config['fit'][ens][mes]['mom'][mom]['svd']        = float(eps)
+                scemo1,scemo2,ysamples = stag.format(trange=(tmin,tmax),flatten=True,alljk=True)
+                eps = correlation_diagnostics(ysamples,verbose=False)
 
-        d = {
-            'ensemble'   : ens,
-            'meson'      : mes,
-            'momentum'   : mom,
-            'tmin(3+3)'  : tmin,
-            'tmin(2+2)'  : Tmin2,
-            'tmax'       : tmax,
-            'svd'        : eps,
-        }
 
-        aux.append(d)
+                config['fit'][ens][mes]['mom'][mom] = {}
+
+                config['fit'][ens][mes]['mom'][mom]['tag']        = f'{ens}_{mes}_{mom}' # 'Coarse-Phys_B_211'
+                config['fit'][ens][mes]['mom'][mom]['nstates']    = 3
+                config['fit'][ens][mes]['mom'][mom]['trange_eff'] = [Tmin1,tmax] 
+                config['fit'][ens][mes]['mom'][mom]['trange']     = [tmin,tmax]
+                config['fit'][ens][mes]['mom'][mom]['svd']        = float(eps)
+
+                d = {
+                    'ensemble'   : ens,
+                    'meson'      : mes,
+                    'momentum'   : mom,
+                    'tmin(3+3)'  : tmin,
+                    'tmin(2+2)'  : Tmin2,
+                    'tmax'       : tmax,
+                    'svd'        : eps,
+                }
+
+                aux.append(d)
     
     df = pd.DataFrame(aux).set_index(['meson','ensemble','momentum'])
     print(df)
@@ -402,7 +408,7 @@ if __name__=='__main__':
     # prs.add_argument('--eff', action='store_true')
     # args = prs.parse_args()
 
-    test()
-    # metapars()
+    # test()
+    metapars()
 
 

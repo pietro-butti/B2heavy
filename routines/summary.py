@@ -22,11 +22,18 @@ import pandas as pd
 from prettytable import PrettyTable
 import gvar as gv
 import numpy as np
+from tqdm import tqdm
+import itertools
+import matplotlib.pyplot as plt
+
 
 from DEFAULT_ANALYSIS_ROOT import DEFAULT_ANALYSIS_ROOT
 
 import fit_2pts_utils as utils
 
+from b2heavy.TwoPointFunctions.fitter    import standard_p
+from b2heavy.TwoPointFunctions.types2pts import CorrelatorIO, Correlator
+from b2heavy.TwoPointFunctions.utils     import p_value
 from b2heavy.ThreePointFunctions.utils import read_config_fit
 
 
@@ -36,6 +43,7 @@ prs.add_argument('-c3','--config3'   , type=str,  default='./3pts_fit_config.tom
 prs.add_argument('--readfrom'        , type=str)
 prs.add_argument('--saveto'          , type=str, default=None)
 prs.add_argument('--only2'           , action='store_true')
+prs.add_argument('--plot_p'          , action='store_true')
 prs.add_argument('-z','--amplitudes' , action='store_true')
 
 
@@ -60,6 +68,7 @@ def main():
                 jk = False
             )
             e0 = p2['E'][0]
+            trange = (min(fit2pts['x']),max(fit2pts['x']))
 
             collinear = mom.endswith('00') and not mom.startswith('0')
 
@@ -68,13 +77,9 @@ def main():
                 z_1S_Bot = np.exp(p2['Z_1S_Bot'][0])  * np.sqrt(2*e0)  
                 z_d_Par = np.exp(p2['Z_d_Par'][0])  * np.sqrt(2*e0)
                 z_d_Bot = np.exp(p2['Z_d_Bot'][0])  * np.sqrt(2*e0)
-
-                
             else:
                 z_d_Unpol = np.exp(p2['Z_d_Unpol'][0])  * np.sqrt(2*e0)  
                 z_1S_Unpol = np.exp(p2['Z_1S_Unpol'][0])  * np.sqrt(2*e0)  
-
-
 
             try:
                 fit = read_config_fit(
@@ -89,12 +94,15 @@ def main():
                 )
             except FileNotFoundError:
                 pass
+
+
             print(ens,mom,collinear)
 
             d = {
                 'ens'        : ens,
                 'mom'        : mom,
                 'E_0 (D*)'   : e0,
+                'trange'     : trange,
                 'chi2/chiexp': f'{fit2pts["chi2red"]/fit2pts["chi2exp"]:.2f}',
                 'p-value'    : f'{fit2pts["pvalue"]:.3f}',
                 'Z_1S'       : [z_1S_Par, z_1S_Bot] if collinear else z_1S_Unpol ,
@@ -132,7 +140,113 @@ def main():
     print(df)
 
 
+def standard_p(io, fitres, popt):
+    chi2red = fitres['chi2']
+    for k,pr in fitres['prior'].items():
+        for i,p in enumerate(pr):
+            chi2red -= ((gv.mean(popt)[k][i]-p.mean)/p.sdev)**2
+    
+    ndof  = len(fitres['y']) - sum([len(pr) for k,pr in fitres['prior'].items()]) 
 
+    aux = Correlator(io=io,jkBin=0)
+    nconf = aux.data.values.shape[-2]
+
+    return p_value(chi2red,nconf,ndof)
+
+
+
+
+def main2():
+    args = prs.parse_args()
+
+    fit2 = utils.load_toml(args.config2)
+    fit3 = utils.load_toml(args.config3)
+
+    READFROM = DEFAULT_ANALYSIS_ROOT if args.readfrom == 'default' else args.readfrom
+
+    df = []
+
+    ens_list = fit2['fit']
+    for ens in ens_list:
+        print(f'--------------- {ens} --------------')
+        for mom in tqdm(fit2['data'][ens]['mom_list']):
+
+            specs = fit2['fit'][ens]['Dst']['mom'][mom]
+
+            fit2pts,p2 = read_config_fit(
+                tag  = f'fit2pt_config_{specs["tag"]}',
+                path = READFROM,
+                jk = False
+            )
+            e0 = p2['E'][0]
+            trange = (min(fit2pts['x']),max(fit2pts['x']))
+
+            io = CorrelatorIO(ens,'Dst',mom,PathToDataDir=fit2['data'][ens]['data_dir'])
+            pstd = standard_p(io,fit2pts,p2)
+
+            collinear = mom.endswith('00') and not mom.startswith('0')
+
+            if collinear:
+                z_1S_Par = np.exp(p2['Z_1S_Par'][0])  * np.sqrt(2*e0)  
+                z_1S_Bot = np.exp(p2['Z_1S_Bot'][0])  * np.sqrt(2*e0)  
+                z_d_Par = np.exp(p2['Z_d_Par'][0])  * np.sqrt(2*e0)
+                z_d_Bot = np.exp(p2['Z_d_Bot'][0])  * np.sqrt(2*e0)
+            else:
+                z_d_Unpol = np.exp(p2['Z_d_Unpol'][0])  * np.sqrt(2*e0)  
+                z_1S_Unpol = np.exp(p2['Z_1S_Unpol'][0])  * np.sqrt(2*e0)  
+
+            try:
+                fit = read_config_fit(
+                    tag  = f'fit2pt_config_{specs["tag"]}',
+                    path = READFROM,
+                    jk = True
+                )
+                e0 = fit['E'][:,0]
+                e0 = gv.gvar(
+                    e0.mean(),
+                    e0.std() * np.sqrt(len(e0)-1)
+                )
+            except FileNotFoundError:
+                pass
+
+
+
+            d = {
+                'ens'        : ens,
+                'mom'        : mom,
+                'trange'     : trange,
+                'eps cut'    : f'{specs["svd"]:.1e}',
+                'chi2/chiexp': f'{fit2pts["chi2red"]/fit2pts["chi2exp"]:.2f}',
+                # 'p-value'    : f'{fit2pts["pvalue"]:.3f}',
+                # 'p-value (*)': f'{pstd:.3f}',
+                'p-value'    : fit2pts["pvalue"],
+                'p-value (*)': pstd,
+                'E_0 (D*)'   : e0,
+                'Z_1S'       : [z_1S_Par, z_1S_Bot] if collinear else z_1S_Unpol ,
+                'Z_d'        : [z_d_Par, z_d_Bot]   if collinear else z_d_Unpol ,
+
+            }
+
+            df.append(d)
+
+    df = pd.DataFrame(df).set_index(['ens','mom'])
+
+    print(df)
+
+    if args.plot_p:
+        p1 = df['p-value'].to_numpy()
+        p2 = df['p-value (*)'].to_numpy()
+
+        np.save('scemo1',p1,allow_pickle=True)
+        np.save('scemo2',p2,allow_pickle=True)
+
+        # ax[0].hist(df['p-value'].to_numpy(), bins=10)
+        # ax[1].hist(df['p-value (*)'].to_numpy(), bins=10)
+
+        # ax[0].set_xticklabels(rotation=45)
+        # ax[1].set_xticklabels(rotation=45)
+
+        # plt.show()
 
 if __name__=='__main__':
-    main()
+    main2()

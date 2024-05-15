@@ -8,6 +8,11 @@ python 2pts_fit_stability_test.py --config       [file location of the toml conf
                                   --Nstates      [list of N for (N+N) fit (listed without comas)]
                                   --tmins        [list of tmins (listed without commas)]
                                   --tmaxs        [list of tmaxs (listed without commas)]
+                                  --diag         [True/False] default is False
+                                  --block        [True/False] default is False
+                                  --shrink       [True/False] default is False
+                                  --scale        [True/False] default is False
+                                  --svd          [True/None/float]  default is None
                                   --nochipr      [compute chi2exp with priors?]
                                   --saveto       [where do you want to save the analysis?]
                                   --readfrom    [name of the .pickle file of previous analysis]
@@ -38,7 +43,7 @@ import pandas            as pd
 import matplotlib.pyplot as plt
 
 from b2heavy.TwoPointFunctions.utils     import correlation_diagnostics
-from b2heavy.TwoPointFunctions.types2pts import CorrelatorIO, plot_effective_coeffs
+from b2heavy.TwoPointFunctions.types2pts import CorrelatorIO, plot_effective_coeffs, find_eps_cut
 from b2heavy.TwoPointFunctions.fitter    import StagFitter
 
 from b2heavy.ThreePointFunctions.utils import read_config_fit, dump_fit_object
@@ -52,6 +57,14 @@ def stability_test_fit(ens,meson,mom,data_dir,binsize,smslist,nexcrange,tminrang
         smearing = smslist
     )
 
+    svd = cov_specs.get('cutsvd')
+    if isinstance(svd,float) or svd is None:
+        find_epsilon = False
+    else:
+        find_epsilon = True
+
+
+
     effm,effa = stag.meff(prior_trange,**cov_specs)
 
     aux = {}
@@ -59,6 +72,13 @@ def stability_test_fit(ens,meson,mom,data_dir,binsize,smslist,nexcrange,tminrang
         for tmin in tminrange:
             for tmax in tmaxrange:
                 trange = (tmin,tmax)
+
+                if find_epsilon:
+                    covs = {k: cov_specs[k] for k in cov_specs}
+                    covs['cutsvd'] = None
+                    eps = find_eps_cut(stag,trange,**covs)
+                    cov_specs['cutsvd'] = eps
+
             
                 pr = stag.priors(nstates,Meff=effm,Aeff=effa)
                 stag.fit(
@@ -75,9 +95,10 @@ def stability_test_fit(ens,meson,mom,data_dir,binsize,smslist,nexcrange,tminrang
                     x       = fit.x,
                     y       = fit.y,
                     p       = fit.p,
-                    pvalue  = d['pvalue'],
-                    chi2    = fit.chi2,
-                    chi2red = d['chi2'],
+                    pstd    = d['p_standard'],
+                    pexp    = d['pvalue'],
+                    chi2    = d['chi2'],
+                    chi2aug = d['chi2aug'],
                     chiexp  = d['chiexp']
                 )
 
@@ -88,8 +109,9 @@ def stability_test_fit(ens,meson,mom,data_dir,binsize,smslist,nexcrange,tminrang
     print(f'{stag.tmax(threshold=0.3) = }')
 
     return aux
-            
-def read_results_stability_test(dumped, ic='TIC', show=True):
+
+
+def read_results_stability_test(dumped, show=True):
     if type(dumped) is str: 
         with open(dumped,'rb') as f:
             d = pickle.load(f)
@@ -97,8 +119,7 @@ def read_results_stability_test(dumped, ic='TIC', show=True):
         d = dumped
 
     # Calculate weight normalization
-    sumw = sum([np.exp(-(d[k]['chi2red']-2*d[k]['chiexp'])/2) for k in d])
-
+    sumw = sum([np.exp(-(d[k]['chi2aug']-2*d[k]['chiexp'])/2) for k in d])
 
     # How many polarization are there?
     ls = [[k.split('_')[-1] for k in d[fk]['p'] if k.startswith('Z')] for fk in d]
@@ -106,34 +127,51 @@ def read_results_stability_test(dumped, ic='TIC', show=True):
     unpol = True if len(ls)==1 else False
     Zs = ['Z_1S_Unpol','Z_d_Unpol'] if unpol else ['Z_1S_Par','Z_1S_Bot','Z_d_Par','Z_d_Bot']
 
-    # Format to dataframe
-    ks = ['Nexc','tmin','tmax','chi2/chiexp','pvalue','weight','E_0']
-    ks = np.concatenate([ks,Zs])
-
-
-    df = {k: [] for k in ks}
+    df = []
     for k in d:
         nexc,(tmin,tmax) = k
-        df['Nexc'].append(nexc)
-        df['tmin'].append(tmin)
-        df['tmax'].append(tmax)
-        df['chi2/chiexp'].append(f'[{d[k]["chi2red"]:.2f}/{d[k]["chiexp"]:.2f}] = {d[k]["chi2red"]/d[k]["chiexp"]:.2f}')
-        df['pvalue'].append(f'{d[k]["pvalue"]:.3f}')
-        df['weight'].append(f'{np.exp(-(d[k]["chi2red"]-2*d[k]["chiexp"])/2)/sumw:.1e}')
-        df['E_0'].append(d[k]['p']['E'][0])
+
+        e0 = d[k]['p']['E'][0]
+
+        chiexp  = d[k]['chiexp']
+        chi2aug = d[k]['chi2aug']
+
+        tic = chi2aug - 2*chiexp
+
+        ncut  = 30 - (tmax-tmin) # FIXME
+        npars = len(np.concatenate([v for k,v in d[k]['p'].items()]))
+        aic = chi2aug + 2*ncut + 2*npars
+
+        tmp = {
+                'Nexc': nexc,
+                'trange': (tmin,tmax),
+                'E0': e0,
+                'chiexp': chiexp,
+                'chi2aug': chi2aug,
+                'aug/exp': chi2aug/chiexp,
+                'TIC': np.exp(-tic/2)/sumw,
+                'AIC': np.exp(-aic/2),
+                'p-exp': d[k]['pexp'],
+                'p-standard': d[k]['pstd'],
+            }
 
         for zk in Zs:
-            # df[zk].append(np.exp(d[k]['p'][zk][0])) 
-            df[zk].append(np.exp(d[k]['p'][zk][0])) 
-        
+            z = np.exp(d[k]['p'][zk][0]) * np.sqrt(2*e0)
+            tmp[zk] = z
+
+        df.append(tmp)
 
     df = pd.DataFrame(df)
-    df.set_index(['Nexc','tmin','tmax'],inplace=True)
+    df.set_index(['Nexc','trange'],inplace=True)
+    df['AIC'] /= df['AIC'].sum()
+
 
     if show:
         print(df)
 
     return df
+
+
 
 def stability_test_model_average(fits,Nt,not_average,IC='tic'):
     Ws = []
@@ -144,9 +182,9 @@ def stability_test_model_average(fits,Nt,not_average,IC='tic'):
             Npars = 2*Nstates + 2*Nstates*2 + (2*Nstates-2)
 
             if IC=='aic':
-                ic = fit['chi2red'] + 2*Npars + 2*Ncut
+                ic = fit['chi2aug'] + 2*Npars + 2*Ncut
             elif IC=='tic':
-                ic = fit['chi2red'] - 2*fit['chiexp']
+                ic = fit['chi2aug'] - 2*fit['chiexp']
 
             Ws.append(np.exp(-ic/2))
             E0.append(fit['p']['E'][0])
@@ -160,15 +198,15 @@ def stability_test_model_average(fits,Nt,not_average,IC='tic'):
 
     return stat,syst,sumw
 
-def stability_test_plot(ax,fits,Nstates,modav,tmax=False):
-    pnorm = sum([fit['pvalue'] for fit in fits.values()])/500
-    # pnorm = sum([fit['chi2red']/fit['chiexp'] for fit in fits.values()])/500
+
+def stability_test_plot(ax,fits,Nstates,modav,tmax=False,pkey='pstd'):
+    pnorm = sum([fit[pkey] for fit in fits.values()])/500
 
     # Energy plot for different tmin and Nexc
     for nexc in Nstates:
         E0 = [f['p']['E'][0] for k,f in fits.items() if k[0]==nexc]
         # pvaln = np.array([f['chi2red']/f['chiexp'] for k,f in fits.items() if k[0]==nexc])/pnorm
-        pvaln = np.array([f['pvalue'] for k,f in fits.items() if k[0]==nexc])/pnorm
+        pvaln = np.array([f[pkey] for k,f in fits.items() if k[0]==nexc])/pnorm
         xplot = np.array([k[1][1 if tmax else 0] for k,f in fits.items() if k[0]==nexc])
         yplot = gv.mean(E0)
         yerr  = gv.sdev(E0)
@@ -191,7 +229,8 @@ def stability_test_plot(ax,fits,Nstates,modav,tmax=False):
     ax.legend()
     return
 
-def stability_test_plot_AIC(a1,Nt,fits, sum_ws, IC='tic'):
+
+def stability_test_plot_AIC(a1,Nt,fits, sum_ws, IC='tic', pkey='pstd'):
     a1.grid(alpha=0.2)
     a2 = a1.twinx()
 
@@ -200,9 +239,9 @@ def stability_test_plot_AIC(a1,Nt,fits, sum_ws, IC='tic'):
         if IC=='aic':
             Ncut  = Nt/2 - (max(trange)+1-min(trange))
             Npars = 2*Nstates + 2*Nstates*2 + (2*Nstates-2)
-            ic = fit['chi2'] + 2*Npars + 2*Ncut
+            ic = fit['chi2aug'] + 2*Npars + 2*Ncut
         elif IC=='tic':
-            ic = fit['chi2red'] - 2*fit['chiexp']
+            ic = fit['chi2aug'] - 2*fit['chiexp']
 
         icall[Nstates,trange] = np.exp(-ic/2) 
     
@@ -213,18 +252,17 @@ def stability_test_plot_AIC(a1,Nt,fits, sum_ws, IC='tic'):
         a1.scatter(x,w,color=f'C{i}')
         # a1.plot(x,w,alpha=0.2,color=f'C{i}')
 
-
-        p = [f['pvalue'] for (n,t),f in fits.items() if n==nexc]
+        p = [f[pkey] for (n,t),f in fits.items() if n==nexc]
         a1.plot(x,p,alpha=0.2,color=f'C{i}')
 
     a1.set_ylabel(r'$w$')
 
-    a1.scatter([],[],color='gray',label='TIC')
+    a1.scatter([],[],color='gray',label=IC)
     a1.plot([],[],alpha=0.2,color='gray',label=r'$p$')
     a1.set_ylim(ymin=0,ymax=1.1)
     a1.legend()
 
-    a2.set_ylabel(r'$p$-value')
+    a2.set_ylabel(f'p-value {pkey}')
 
 
 
@@ -332,15 +370,13 @@ def main():
     else:
         saveto = None
 
-
-
     if fits is None:
         cov_specs = dict(
             shrink = args.shrink ,
             scale  = args.scale  ,
             diag   = args.diag   ,
             block  = args.block  ,
-            cutsvd = args.svd   
+            cutsvd = args.svd
         )
 
         fits = stability_test_fit(
@@ -361,12 +397,10 @@ def main():
 
     df = read_results_stability_test(fits, show=True)
 
-
-
-
     e0,syst,sum_ws = stability_test_model_average(
         fits, config['data'][ens]['Nt'], args.not_average
     )
+
 
 
     if args.plot:
@@ -376,7 +410,7 @@ def main():
         if not args.plot_AIC:
             f, ax = plt.subplots(1, 1)
         else:
-            f, (ax, a1) = plt.subplots(2, 1, gridspec_kw={'height_ratios': [3, 1]}, figsize=(6,6), sharex=True)
+            f, (ax, a1, a2) = plt.subplots(3, 1, gridspec_kw={'height_ratios': [3, 1, 1]}, figsize=(6,6), sharex=True)
 
         states = np.unique([n for n,(mi,ma) in fits])
         stability_test_plot(ax,fits,states,[e0,syst])
@@ -385,7 +419,8 @@ def main():
 
 
         if args.plot_AIC:
-            stability_test_plot_AIC(a1,config['data'][ens]['Nt'],fits,sum_ws)
+            stability_test_plot_AIC(a1,config['data'][ens]['Nt'],fits,sum_ws,IC='tic',pkey='pstd')
+            stability_test_plot_AIC(a2,config['data'][ens]['Nt'],fits,sum_ws,IC='aic',pkey='pexp')
 
         plt.tight_layout()
         saveplot = f'{SAVETO}/fit2pt_stability_test_{tag}.pdf' if args.saveto=='default' else f'{args.saveto}/fit2pt_stability_test_{tag}.pdf'
@@ -396,18 +431,18 @@ def main():
 
 
     
-    # LOG analysis =======================================================================
-    if SAVETO is not None:
-        string,data = log(tag,ens,mes,mom,args.prior_trange,args.Nstates,args.tmins,args.tmaxs,args.not_average)
+    # # LOG analysis =======================================================================
+    # if SAVETO is not None:
+    #     string,data = log(tag,ens,mes,mom,args.prior_trange,args.Nstates,args.tmins,args.tmaxs,args.not_average)
         
-        logfile = f'{SAVETO}/fit2pt_stability_test_{tag}.log'
-        with open(logfile,'w') as f:
-            f.write(string)
-            f.write(df.to_string())
+    #     logfile = f'{SAVETO}/fit2pt_stability_test_{tag}.log'
+    #     with open(logfile,'w') as f:
+    #         f.write(string)
+    #         f.write(df.to_string())
         
-        # logdata = f'{SAVETO}/fit2pt_stability_test_{tag}_d.log'
-        # with open(logdata,'wb') as handle:
-        #     pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    #     # logdata = f'{SAVETO}/fit2pt_stability_test_{tag}_d.log'
+    #     # with open(logdata,'wb') as handle:
+    #     #     pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
 
