@@ -1,7 +1,21 @@
 This repo contains the code to analyze MILC data aimed at the study of $B\rightarrow D^{(\star)}l\nu$ data.
 
 # Installation
-`to be added`
+The package is ensured to work with a Python version $\geq$ 3.11.
+
+The following list of packages are required for the installation:
+- `numpy`
+- `pandas`
+- `gvar`
+- `lsqfit`
+- `jax`
+- ...
+
+### Instruction
+Once the listed packages are installed in the working evironment, it should be enough to hit
+```
+pip install /path/to/B2heavy
+```
 
 # Workflow (2pts functions)
 
@@ -16,27 +30,116 @@ First of all, the user must set:
     > ```
     > such that the code will always search for existing analysis and save the output in `DEFAULT_ANALYSIS_ROOT` and avoid repeating the analysis.
 
-- Set location of the data and some general information in `routines/2pts_fit_config.toml`. This file contains general informations on how to perform the analysis (data location, fitting ranges, specifics of the fit). At this preliminary stage, the user should modify it at the field `data`, i.e.
+- Set location of the data and some general information in `routines/2pts_fit_config.toml`. This file contains general information on how to perform the analysis (data location, fitting ranges, specifics of the fit). At this preliminary stage, the user should modify it at the field `data`, i.e.
 ```
 [data]
     [data.MediumCoarse]
         name     = 'MediumCoarse'
-        data_dir = "/Users/pietro/code/data_analysis/BtoD/Alex"
+        data_dir = "/path/to/ensemble/dir/"
         binsize  = 13
-        mom_list = ['000','100','200','300','400','110','211','222']
+        mom_list = ['000','100','200','300','400','110']
         Nt       = 48
 ```
-and set here, in order: the ensemble name, the location of the folder `Ensemble`, the size of the bin for jackknife, the list of available momentum, the number of total timeslices.
+and set here, in order: 
+- the ensemble name 
+- the location of the folder `Ensemble` 
+- the size of the bin for jackknife, the list of available momentum
+- the number of total timeslices.
 
 
-## Pre-analysis
+> We remind that the folder `Ensemble` is expected to have the following structure
+> ```
+>Ensembles
+>└── FnalHISQ
+>    ├── a0.057
+>    │   └── l96192f211b672m0008m022m260-HISQscript.hdf5
+>    ├── a0.088
+>    │   ├── l4896f211b630m00363m0363m430-HISQscript.hdf5
+>    │   └── l6496f211b630m0012m0363m432-HISQscript.hdf5
+>    ├── a0.12
+>    │   ├── l2464f211b600m0102m0509m635-HISQscript.hdf5
+>    │   ├── l3264f211b600m00507m0507m628-HISQscript.hdf5
+>    │   ├── l4864f211b600m001907m05252m6382-HISQscript.hdf5
+>    └── a0.15
+>        ├── l3248f211b580m002426m06730m8447-HISQscript.hdf5
+>```
+
+Names of the ensembles and relative files must correspond to the metaparameters contained in `FnalHISQMetadata.py` file. A default version can be found in `/b2heavy/FnalHISQMetadata.py`. In case this needs to be changed, this file can be replaced, but must have the same location.
+
+
+## 2-points function fits
+The fits of the 2-points functions are automatically taken care of by the routine `/routines/fit_2pts_config.py`. Here we explain how to use it.
+
+This routine is thought to perform the fit in an _automatic_ and _sequential_ fashion. The user is expected to gather all the relevant parameters inside the aforementioned "config" file (like `/routines/2pts_fit_config.toml`) in the following way.
+
+The config file is expected to have the following structure for _each one_ of the fit that wants to be performed.
+```
+fit
+└── Fine-Phys
+    └── Dst
+        └── mom
+            ├── 000
+            │   ├── tag        = 'Fine-Phys_Dst_000'
+            │   ├── nstates    = 3
+            │   ├── trange_eff = [ 15, 37]
+            │   ├── trange     = [ 7, 37]
+            │   └── svd        = 1e-11
+            └── 100
+                ├── tag        = 'Fine-Phys_Dst_100'
+                ├── nstates    = 3
+                ├── trange_eff = [ 15, 33]
+                ├── trange     = [ 7, 33]
+                └── svd        = 0.0185410214733366
+```
+The specific values of the parameters are considered user-inputs, and therefore they are not inferred automatically in any way.
+
+Once this file has been prepared, the routine can be run in the following way
+
+```
+$ python 2pts_fit_config.py --config   [file location of the toml config file. Default: ./2pts_fit_config.toml]         
+                            --ensemble [list of ensembles analyzed]                    
+                            --meson    [list of meson analyzed]                        
+                            --mom      [list of momenta considered]  
+
+                            --jkfit    [repeat same fit inside each bin. Default: false]               
+                            --saveto   [where do you want to save files. Default: ./]             
+                            --logto    [Log file name]                                 
+                            --override [do you want to override pre-existing analysis?]
+       
+                            --diag     [Default: False]
+                            --block    [Default: False] 
+                            --scale    [Default: False]    
+                            --shrink   [Default: False]  
+                            --svd      [Default: None] 
+                          
+                            --no_priors_chi [don't consider priors in the calculation of expected chi2. Default: False]
+       
+                            --plot_eff [Default: False]
+                            --plot_fit [Default: False]
+                            --show     [Default: False]
+```  
+> In principle, there are no mandatory flags.
+
+> Note that specifics of for the treatment of the covariance matrix are given as flags and they are not considered user inputs. The only exception is `svd`: if one value is indicated after the flag, it _overrides the input in the `toml` file_
+
+
+> The flags `ensemble`, `meson` and `mom` can be omitted, in that case, the list of fits is inferred from the `toml` config file. Elsewise, a list of ensemble, mesons and momenta can be indicated after the respective flag, using the standard nomenclature, without comas.
+
+> The flag `saveto` is not mandatory, but if specified must be followed by the path of the folder where the user wants to direct the output of the fit.
+
+
+
+
+
+
+<!-- ## Pre-analysis
 Before performing the complete jackknife analysis on the different ensembles/meson/momenta, it is advisable to explore the fit in terms of performance, p-values and $\chi^2$. This is dealt with the routine `fit_2pts_preanalysis.py`
 
 It performs the following tasks:
 - Perform `tmax` analysis: looks for the timeslice in which the relative error starts to be >30% (percentage tunable through the parameter `maxerr`) 
-- Perform the fits for given parameters with different modes (with and without shrinking and rescaling of covariance matrix) and collect the $\chi^2$ and the $p$-values of the fit and prints on screen a table that sums up this information
+- Perform the fits for given parameters with different modes (with and without shrinking and rescaling of covariance matrix) and collect the $\chi^2$ and the $p$-values of the fit and prints on screen a table that sums up this information -->
 
-### Usage
+<!-- ### Usage
 The possible parameters are
 ```
 $ python fit_2pts_preanalysis.py --help
@@ -108,4 +211,4 @@ python 2pts_fit_stability_test.py --config        [file location of the toml con
                                   --plot_AIC     [do you want to plot also the AIC weight?]
 Examples
 python fit_2pts_stability_test.py --ensemble Coarse-1 --meson Dsst --mom 100 --prior_trange 14 23 --Nstates 1 2 3 --tmins 7 8 9 10 11 12 13 14 15 16 --tmaxs 23 --saveto default --plot --showfig --plot_AIC
-```
+``` -->

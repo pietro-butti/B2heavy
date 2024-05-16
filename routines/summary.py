@@ -181,10 +181,8 @@ def main2():
             e0 = p2['E'][0]
             trange = (min(fit2pts['x']),max(fit2pts['x']))
 
-            io = CorrelatorIO(ens,'Dst',mom,PathToDataDir=fit2['data'][ens]['data_dir'])
-            pstd = standard_p(io,fit2pts,p2)
-
             collinear = mom.endswith('00') and not mom.startswith('0')
+
 
             if collinear:
                 z_1S_Par = np.exp(p2['Z_1S_Par'][0])  * np.sqrt(2*e0)  
@@ -209,22 +207,20 @@ def main2():
             except FileNotFoundError:
                 pass
 
+            breakpoint()
 
 
             d = {
-                'ens'        : ens,
-                'mom'        : mom,
-                'trange'     : trange,
-                'eps cut'    : f'{specs["svd"]:.1e}',
-                'chi2/chiexp': f'{fit2pts["chi2red"]/fit2pts["chi2exp"]:.2f}',
-                # 'p-value'    : f'{fit2pts["pvalue"]:.3f}',
-                # 'p-value (*)': f'{pstd:.3f}',
-                'p-value'    : fit2pts["pvalue"],
-                'p-value (*)': pstd,
-                'E_0 (D*)'   : e0,
-                'Z_1S'       : [z_1S_Par, z_1S_Bot] if collinear else z_1S_Unpol ,
-                'Z_d'        : [z_d_Par, z_d_Bot]   if collinear else z_d_Unpol ,
-
+                'ens'           : ens,
+                'mom'           : mom,
+                'trange'        : trange,
+                'E_0 (D*)'      : e0,
+                'Z_1S'          : [z_1S_Par, z_1S_Bot] if collinear else z_1S_Unpol ,
+                'Z_d'           : [z_d_Par, z_d_Bot]   if collinear else z_d_Unpol ,
+                'chi2aug/chiexp': f'{fit2pts["chi2aug"]/fit2pts["chiexp"]:.2f}',
+                'chi2'          : f'{fit2pts["chi2"]:.2f}',
+                'p-exp'         : fit2pts['pexp'],
+                'p-std'         : fit2pts['pstd'],
             }
 
             df.append(d)
@@ -233,20 +229,8 @@ def main2():
 
     print(df)
 
-    if args.plot_p:
-        p1 = df['p-value'].to_numpy()
-        p2 = df['p-value (*)'].to_numpy()
 
-        np.save('scemo1',p1,allow_pickle=True)
-        np.save('scemo2',p2,allow_pickle=True)
 
-        # ax[0].hist(df['p-value'].to_numpy(), bins=10)
-        # ax[1].hist(df['p-value (*)'].to_numpy(), bins=10)
-
-        # ax[0].set_xticklabels(rotation=45)
-        # ax[1].set_xticklabels(rotation=45)
-
-        # plt.show()
 
 if __name__=='__main__':
     main2()

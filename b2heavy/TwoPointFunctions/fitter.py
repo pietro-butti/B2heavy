@@ -480,7 +480,7 @@ class StagFitter(Correlator):
 
         res = dict(
             fit     = fit,
-            chi2    = chi2['chi2'],
+            chi2red = chi2['chi2'],
             chi2aug = chi2['chi2_aug'],
             chiexp  = chiexp,
             pexp    = p,

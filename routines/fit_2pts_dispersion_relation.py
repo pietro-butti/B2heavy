@@ -35,7 +35,6 @@ from b2heavy import FnalHISQMetadata
 
 
 def extract_single_energy(tag,path=None,N=0,jk=False,key='E'):
-    # breakpoint()
     ret = read_config_fit(tag,jk=jk,path=path)
 
     if not jk:

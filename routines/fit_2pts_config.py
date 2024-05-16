@@ -238,16 +238,18 @@ def main():
                 )
 
                 aux.append({
-                    'ensemble'   : ens,
-                    'meson'      : meson,
-                    'momentum'   : mom,
-                    'tmin(3+3)'  : trange[0],
-                    'tmax'       : trange[1],
-                    'svd'        : cutsvd,
-                    'trange_eff' : trange_eff,
-                    'E0'         : stag.fits[nstates,trange].p['E'][0],
-                    'pexp'       : fitres['pexp'],
-                    'pstd'       : fitres['pstd']
+                    'ensemble'     : ens,
+                    'meson'        : meson,
+                    'momentum'     : mom,
+                    'tmin(3+3)'    : trange[0],
+                    'tmax'         : trange[1],
+                    'svd'          : cutsvd,
+                    'trange_eff'   : trange_eff,
+                    'E0'           : stag.fits[nstates,trange].p['E'][0],
+                    'chiaug/chiexp': fitres['chi2aug']/fitres['chiexp'],
+                    'chi2red'      : fitres['chi2red'],
+                    'pexp'         : fitres['pexp'],
+                    'pstd'         : fitres['pstd']
                 })
 
 

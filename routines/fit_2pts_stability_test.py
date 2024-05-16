@@ -96,7 +96,7 @@ def stability_test_fit(ens,meson,mom,data_dir,binsize,smslist,nexcrange,tminrang
                     p       = fit.p,
                     pstd    = d['pstd'],
                     pexp    = d['pexp'],
-                    chi2    = d['chi2'],
+                    chi2red = d['chi2red'],
                     chi2aug = d['chi2aug'],
                     chiexp  = d['chiexp']
                 )
@@ -230,8 +230,6 @@ def stability_test_plot_AIC(ax, df, IC='TIC', pkey='pstd', legend=True, **kwargs
 
     
     return ax2
-
-
 
 
 def log(tag,ens,meson,mom,prior_trange,Nstates,tmins,tmaxs):
