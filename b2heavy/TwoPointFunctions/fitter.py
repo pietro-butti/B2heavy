@@ -415,7 +415,7 @@ class StagFitter(Correlator):
 
         if verbose:
             print(f'# ---------- U+03C7 ^2_exp analysis -------------')
-            print(f'# U+03C7 ^2_exp = {chiexp} +/- {dchiexp} ')
+            print(f'# chi2_exp = {chiexp} +/- {dchiexp} ')
             print(f'# p-value [eval] = {pvalue["eigval"]}')
             print(f'# p-value [MC]   = {pvalue["MC"]}')
 
@@ -447,7 +447,7 @@ class StagFitter(Correlator):
         nconf = len(aux.data.jkbin)
         pvalue = p_value(chi2,nconf,ndof)
 
-        return dict(chi2=chi2, chi2_pr=chi_pr, chi2_aug=chi2_aug, pvalue=pvalue)
+        return dict(chi2=chi2, chi2_pr=chi_pr, chi2_aug=chi2_aug, pstd=pvalue)
 
     def fit_result(self, Nexc, trange, verbose=True, error=False, priors=None):
         fit = self.fits[Nexc,trange]
@@ -475,16 +475,16 @@ class StagFitter(Correlator):
             print(f'# aug chi2       = {chi2["chi2_aug"]:.2f}')
             print(f'# chi2_exp       = {chiexp:.2f}')
             print(f'# chi2/chi_exp   = {chi2["chi2"]/chiexp:.2f}')
-            print(f'# p-value        = {p:.2f}')
-            print(f'# p-value (std.) = {chi2["pvalue"]:.2f}')
+            print(f'# p-value (exp)  = {p:.2f}')
+            print(f'# p-value (std)  = {chi2["pstd"]:.2f}')
 
         res = dict(
-            fit        = fit,
-            chi2       = chi2['chi2'],
-            chi2aug    = chi2['chi2_aug'],
-            chiexp     = chiexp,
-            pvalue     = p,
-            p_standard = chi2['pvalue'],
+            fit     = fit,
+            chi2    = chi2['chi2'],
+            chi2aug = chi2['chi2_aug'],
+            chiexp  = chiexp,
+            pexp    = p,
+            pstd    = chi2['pstd'],
         )
 
         if error:

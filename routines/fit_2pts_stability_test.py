@@ -8,6 +8,7 @@ python 2pts_fit_stability_test.py --config       [file location of the toml conf
                                   --Nstates      [list of N for (N+N) fit (listed without comas)]
                                   --tmins        [list of tmins (listed without commas)]
                                   --tmaxs        [list of tmaxs (listed without commas)]
+                                  --obs          [which observable to observe]
                                   --diag         [True/False] default is False
                                   --block        [True/False] default is False
                                   --shrink       [True/False] default is False
@@ -63,8 +64,6 @@ def stability_test_fit(ens,meson,mom,data_dir,binsize,smslist,nexcrange,tminrang
     else:
         find_epsilon = True
 
-
-
     effm,effa = stag.meff(prior_trange,**cov_specs)
 
     aux = {}
@@ -95,8 +94,8 @@ def stability_test_fit(ens,meson,mom,data_dir,binsize,smslist,nexcrange,tminrang
                     x       = fit.x,
                     y       = fit.y,
                     p       = fit.p,
-                    pstd    = d['p_standard'],
-                    pexp    = d['pvalue'],
+                    pstd    = d['pstd'],
+                    pexp    = d['pexp'],
                     chi2    = d['chi2'],
                     chi2aug = d['chi2aug'],
                     chiexp  = d['chiexp']
@@ -111,7 +110,7 @@ def stability_test_fit(ens,meson,mom,data_dir,binsize,smslist,nexcrange,tminrang
     return aux
 
 
-def read_results_stability_test(dumped, show=True):
+def read_results_stability_test(dumped, Nt=30, show=True, obs='E', n_states=0):
     if type(dumped) is str: 
         with open(dumped,'rb') as f:
             d = pickle.load(f)
@@ -131,7 +130,7 @@ def read_results_stability_test(dumped, show=True):
     for k in d:
         nexc,(tmin,tmax) = k
 
-        e0 = d[k]['p']['E'][0]
+        e0 = d[k]['p'][obs][n_states]
 
         chiexp  = d[k]['chiexp']
         chi2aug = d[k]['chi2aug']
@@ -151,8 +150,8 @@ def read_results_stability_test(dumped, show=True):
                 'aug/exp': chi2aug/chiexp,
                 'TIC': np.exp(-tic/2)/sumw,
                 'AIC': np.exp(-aic/2),
-                'p-exp': d[k]['pexp'],
-                'p-standard': d[k]['pstd'],
+                'pexp': d[k]['pexp'],
+                'pstd': d[k]['pstd'],
             }
 
         for zk in Zs:
@@ -172,102 +171,70 @@ def read_results_stability_test(dumped, show=True):
     return df
 
 
+def stability_test_plot(ax, df, IC='TIC', label_mod_av='mod. av.'):
+    Nstates = np.unique([n for n,tr in df.index])
 
-def stability_test_model_average(fits,Nt,not_average,IC='tic'):
-    Ws = []
-    E0  = []
-    for (Nstates,(tmin,tmax)),fit in fits.items():
-        if (Nstates,(tmin,tmax)) not in not_average:
-            Ncut = Nt//2 - (tmax+1-tmin)
-            Npars = 2*Nstates + 2*Nstates*2 + (2*Nstates-2)
-
-            if IC=='aic':
-                ic = fit['chi2aug'] + 2*Npars + 2*Ncut
-            elif IC=='tic':
-                ic = fit['chi2aug'] - 2*fit['chiexp']
-
-            Ws.append(np.exp(-ic/2))
-            E0.append(fit['p']['E'][0])
-
-    E0 = np.array(E0)
-
-    sumw = sum(Ws)
-    Ws = np.array(Ws)/sumw
-    stat = sum(Ws*E0)
-    syst = np.sqrt(gv.mean(sum(Ws*E0*E0) - (sum(Ws*E0))**2))
-
-    return stat,syst,sumw
-
-
-def stability_test_plot(ax,fits,Nstates,modav,tmax=False,pkey='pstd'):
-    pnorm = sum([fit[pkey] for fit in fits.values()])/500
-
-    # Energy plot for different tmin and Nexc
+    # Plot observable
+    obs = df.columns[0]
     for nexc in Nstates:
-        E0 = [f['p']['E'][0] for k,f in fits.items() if k[0]==nexc]
-        # pvaln = np.array([f['chi2red']/f['chiexp'] for k,f in fits.items() if k[0]==nexc])/pnorm
-        pvaln = np.array([f[pkey] for k,f in fits.items() if k[0]==nexc])/pnorm
-        xplot = np.array([k[1][1 if tmax else 0] for k,f in fits.items() if k[0]==nexc])
-        yplot = gv.mean(E0)
-        yerr  = gv.sdev(E0)
+        idx = [i for i in df.index if i[0]==nexc]
 
-        ax.errorbar(xplot+(-0.1 + 0.1*(nexc-1)), yplot, yerr=yerr, fmt=',' ,color=f'C{nexc-1}', capsize=2)
-        ax.scatter( xplot+(-0.1 + 0.1*(nexc-1)), yplot, marker='s', s=pvaln , facecolors='w', edgecolors=f'C{nexc-1}')
-        ax.errorbar([], [], yerr=[], fmt='s' ,color=f'C{nexc-1}', capsize=2, label=f'{nexc}+{nexc}')
+        xplot = [i[1][0] for i in idx]
+        yplot = gv.mean(df[df.index.isin(idx)][obs].values)
+        yerr  = gv.sdev(df[df.index.isin(idx)][obs].values)
 
-        ttitle = np.unique([t0 if tmax else t1 for n,(t0,t1) in fits])[-1]
+        ax.errorbar(xplot+(-0.1 + 0.1*(nexc-1)), yplot, yerr=yerr, fmt='o' ,color=f'C{nexc-1}', capsize=2)
+        # ax.scatter( xplot+(-0.1 + 0.1*(nexc-1)), yplot, marker='o', facecolors='w', edgecolors=f'C{nexc-1}')
+        ax.errorbar([], [], yerr=[], fmt='o' ,color=f'C{nexc-1}', capsize=2, label=f'{nexc}+{nexc}')
 
     # Plot model average
-    e0,syst = modav 
-    tstr = r'$t_{max}$=' if not tmax else r'$t_{min}$=' + f'{ttitle}'
-    ax.axhspan(e0.mean+e0.sdev,e0.mean-e0.sdev,color='gray',alpha=0.2,label=r'Model average of $E_0$ ('+f't={ttitle})')
-    ax.axhspan(e0.mean+syst,e0.mean-syst,color='gray',alpha=0.2)
+    ws = df[IC]
+    modav = (ws * df[obs]).sum()
+    # ax.axhline(modav.mean, color='gray', alpha=0.2)
+    ax.axhspan(modav.mean-modav.sdev, modav.mean+modav.sdev, color='gray', alpha=0.1, label=label_mod_av)
+    syst = np.sqrt((ws * df['E0']**2).sum() - modav**2).mean
+    ax.axhline(modav.mean+modav.sdev+syst, color='gray', linestyle=':', alpha=0.1)
+    ax.axhline(modav.mean-modav.sdev-syst, color='gray', linestyle=':', alpha=0.1)
 
-    ax.grid(alpha=0.5)
-    ax.set_xlabel(r'$t_{min}/a$' if not tmax else r'$t_{max}/a$')
-    ax.set_ylabel(r'$E_0$')
-    ax.legend()
+    # Plot other model average
+    IC2 = 'AIC' if IC=='TIC' else 'TIC'
+    ws2 = df[IC2]
+    modav2 = (ws2 * df[obs]).sum()    
+    ax.axhline(modav2.mean, color='tan', alpha=0.2, linestyle='--', label=f'{IC2} mod. av.')
+
     return
 
 
-def stability_test_plot_AIC(a1,Nt,fits, sum_ws, IC='tic', pkey='pstd'):
-    a1.grid(alpha=0.2)
-    a2 = a1.twinx()
+def stability_test_plot_AIC(ax, df, IC='TIC', pkey='pstd', legend=True, **kwargs):
+    Nstates = np.unique([n for n,tr in df.index])
 
-    icall = {}
-    for (Nstates,trange),fit in fits.items():
-        if IC=='aic':
-            Ncut  = Nt/2 - (max(trange)+1-min(trange))
-            Npars = 2*Nstates + 2*Nstates*2 + (2*Nstates-2)
-            ic = fit['chi2aug'] + 2*Npars + 2*Ncut
-        elif IC=='tic':
-            ic = fit['chi2aug'] - 2*fit['chiexp']
+    ax2 = ax.twinx()
 
-        icall[Nstates,trange] = np.exp(-ic/2) 
+    for nexc in Nstates:
+        idx = [i for i in df.index if i[0]==nexc]
+        xplot = [i[1][0] for i in idx]
+
+        # IC
+        yplot1 = df[df.index.isin(idx)][IC]
+        ax.plot(xplot, yplot1, color=f'C{nexc-1}', alpha=0.35)
+        
+        # pvalue
+        yplot2 = df[df.index.isin(idx)][pkey]
+        ax2.scatter(xplot, yplot2, color=f'C{nexc-1}')
+        ax2.plot(xplot, yplot2, color=f'C{nexc-1}',alpha=0.1,linestyle="--")
+
+    if legend:
+        ax.scatter([], [], color='gray', label=pkey)
+        ax.plot([], [], color=f'gray', alpha=0.35, label=IC)
+        ax.legend()
+
     
-
-    for i,nexc in enumerate(sorted(np.unique([n for (n,t) in fits]))):
-        x = [min(trange) for (n,trange),f in fits.items() if n==nexc]
-        w = [icall[n,t]/sum_ws for (n,t),f in fits.items() if n==nexc]
-        a1.scatter(x,w,color=f'C{i}')
-        # a1.plot(x,w,alpha=0.2,color=f'C{i}')
-
-        p = [f[pkey] for (n,t),f in fits.items() if n==nexc]
-        a1.plot(x,p,alpha=0.2,color=f'C{i}')
-
-    a1.set_ylabel(r'$w$')
-
-    a1.scatter([],[],color='gray',label=IC)
-    a1.plot([],[],alpha=0.2,color='gray',label=r'$p$')
-    a1.set_ylim(ymin=0,ymax=1.1)
-    a1.legend()
-
-    a2.set_ylabel(f'p-value {pkey}')
+    return ax2
 
 
 
 
-def log(tag,ens,meson,mom,prior_trange,Nstates,tmins,tmaxs,not_average):
+def log(tag,ens,meson,mom,prior_trange,Nstates,tmins,tmaxs):
     st = f'''
 # ================================== ({tag}) ==================================
 # fit_2pts_stability_test from {__file__} called at {datetime.datetime.now()} with
@@ -278,7 +245,6 @@ def log(tag,ens,meson,mom,prior_trange,Nstates,tmins,tmaxs,not_average):
 #        Nstates      = {Nstates     }
 #        tmins        = {tmins       }
 #        tmaxs        = {tmaxs       }
-#        not_average  = {not_average }
 # =============================================================================
 ''' 
 
@@ -297,10 +263,12 @@ prs.add_argument('-c','--config'  , type=str,  default='./2pts_fit_config.toml')
 prs.add_argument('-e','--ensemble', type=str)
 prs.add_argument('-m','--meson'   , type=str)
 prs.add_argument('-mm','--mom'    , type=str)
+
 prs.add_argument('--prior_trange' , type=int, nargs='+')
 prs.add_argument('--Nstates'      , type=int, nargs='+')
 prs.add_argument('--tmins'        , type=int, nargs='+')
 prs.add_argument('--tmaxs'        , type=int, nargs='+')
+prs.add_argument('--obs'          , type=str, default='E')
 
 prs.add_argument('--shrink', action='store_true')
 prs.add_argument('--scale' , action='store_true')
@@ -309,13 +277,13 @@ prs.add_argument('--block' , action='store_true')
 prs.add_argument('--svd'   , type=float, default=None)
 
 prs.add_argument('--nochipr', action='store_false')
+# prs.add_argument('--not_average', type=int, nargs='+', default=[])
 
 
 prs.add_argument('--saveto'  , type=str,  default=None)
 prs.add_argument('--readfrom', type=str,  default=None)
 prs.add_argument('--override', action='store_true')
 
-prs.add_argument('--not_average', type=int, nargs='+', default=[])
 
 prs.add_argument('--plot',      action='store_true')
 prs.add_argument('--plot_ymax', type=float, default=None)
@@ -342,8 +310,11 @@ def main():
     
     fits = None
     if args.readfrom is not None and not args.override: 
-        with open(f'{READFROM}/fit2pt_stability_test_{tag}.pickle','rb') as f:
-            fits = pickle.load(f)
+        try:
+            with open(f'{READFROM}/fit2pt_stability_test_{tag}.pickle','rb') as f:
+                fits = pickle.load(f)
+        except FileNotFoundError:
+            FileNotFoundError(f'fit2pt_stability_test_{tag}.pickle cannot be found in {args.readfrom}')
 
     elif os.path.exists(f'{SAVETO}/fit2pt_stability_test_{tag}.pickle') and not args.override:
         # Check if there is an existing former analysis with same specifics
@@ -395,12 +366,13 @@ def main():
             **cov_specs
         ) 
 
-    df = read_results_stability_test(fits, show=True)
-
-    e0,syst,sum_ws = stability_test_model_average(
-        fits, config['data'][ens]['Nt'], args.not_average
+    df = read_results_stability_test(
+        fits, 
+        show     = True, 
+        Nt       = config['data'][ens]['Nt'],
+        obs      = args.obs,
+        n_states = 0
     )
-
 
 
     if args.plot:
@@ -412,15 +384,29 @@ def main():
         else:
             f, (ax, a1, a2) = plt.subplots(3, 1, gridspec_kw={'height_ratios': [3, 1, 1]}, figsize=(6,6), sharex=True)
 
-        states = np.unique([n for n,(mi,ma) in fits])
-        stability_test_plot(ax,fits,states,[e0,syst])
+
+        stability_test_plot(ax,df)
         ax.set_ylim(ymax=args.plot_ymax,ymin=args.plot_ymin)
         ax.set_title(tag)
+        ax.grid(alpha=0.2)
+
+        ax.axvline(config['fit'][ens][mes]['mom'][mom]['trange'][0],color='gray',alpha=0.6,linestyle=":")
+
+        ax.set_ylabel(r'$E_0$' if args.obs=='E' else '')
+        ax.legend()
+        ax.set_xlabel(r'$t_{min}/a$')
 
 
         if args.plot_AIC:
-            stability_test_plot_AIC(a1,config['data'][ens]['Nt'],fits,sum_ws,IC='tic',pkey='pstd')
-            stability_test_plot_AIC(a2,config['data'][ens]['Nt'],fits,sum_ws,IC='aic',pkey='pexp')
+            twin_ax = stability_test_plot_AIC(a1,df,IC='TIC',pkey='pstd', legend=True)
+            a1.grid(alpha=0.2)
+            a1.set_ylabel(r'$w$')
+            twin_ax.set_ylabel(r'$p$-value')
+
+            twin_ax = stability_test_plot_AIC(a2,df,IC='AIC',pkey='pexp', legend=True)
+            a2.grid(alpha=0.2)
+            a2.set_ylabel(r'$w$')
+            twin_ax.set_ylabel(r'$p$-value')
 
         plt.tight_layout()
         saveplot = f'{SAVETO}/fit2pt_stability_test_{tag}.pdf' if args.saveto=='default' else f'{args.saveto}/fit2pt_stability_test_{tag}.pdf'
@@ -431,18 +417,18 @@ def main():
 
 
     
-    # # LOG analysis =======================================================================
-    # if SAVETO is not None:
-    #     string,data = log(tag,ens,mes,mom,args.prior_trange,args.Nstates,args.tmins,args.tmaxs,args.not_average)
+    # LOG analysis =======================================================================
+    if SAVETO is not None:
+        string,data = log(tag,ens,mes,mom,args.prior_trange,args.Nstates,args.tmins,args.tmaxs)
         
-    #     logfile = f'{SAVETO}/fit2pt_stability_test_{tag}.log'
-    #     with open(logfile,'w') as f:
-    #         f.write(string)
-    #         f.write(df.to_string())
+        logfile = f'{SAVETO}/fit2pt_stability_test_{tag}.log'
+        with open(logfile,'w') as f:
+            f.write(string)
+            f.write(df.to_string())
         
-    #     # logdata = f'{SAVETO}/fit2pt_stability_test_{tag}_d.log'
-    #     # with open(logdata,'wb') as handle:
-    #     #     pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        logdata = f'{SAVETO}/fit2pt_stability_test_{tag}_d.log'
+        with open(logdata,'wb') as handle:
+            pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
 
@@ -452,6 +438,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    # read_results_stability_test(
-    #     '/Users/pietro/code/data_analysis/data/QCDNf2p1stag/B2heavy/2024-03-12/fit2pt_stability_test_Coarse-1_Dst_000.pickle'
-    # )

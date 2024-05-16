@@ -246,8 +246,8 @@ def main():
                     'svd'        : cutsvd,
                     'trange_eff' : trange_eff,
                     'E0'         : stag.fits[nstates,trange].p['E'][0],
-                    'pexp'       : fitres['pvalue'],
-                    'p'          : fitres['p_standard']
+                    'pexp'       : fitres['pexp'],
+                    'pstd'       : fitres['pstd']
                 })
 
 

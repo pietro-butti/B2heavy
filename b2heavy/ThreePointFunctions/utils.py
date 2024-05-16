@@ -32,8 +32,8 @@ def dump_fit_object(base,f,**res):
         chi2red = res.get('chi2'), 
         chi2aug = res.get('chi2_aug'),
         chi2exp = res.get('chiexp'),
-        pvalue  = res.get('pvalue'),
-        pstd    = res.get('p_standard')
+        pexp    = res.get('pexp'),
+        pstd    = res.get('pstd')
     )
 
     if 'pars' in res:
