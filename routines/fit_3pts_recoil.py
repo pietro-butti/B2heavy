@@ -45,7 +45,7 @@ prs.add_argument('--readfrom', type=str, default='./')
 prs.add_argument('--saveto',   type=str, default='./')
 prs.add_argument('--override', action='store_true')
 prs.add_argument('--plot', action='store_true')
-prs.add_argument('--showfig', action='store_true')
+prs.add_argument('--show', action='store_true')
 
 
 
@@ -84,6 +84,7 @@ def main():
             continue
 
 
+
         for mom in (MOM_LIST if MOM_LIST else config['fit'][ens]['xfstpar']['mom'].keys()):
             # Compute recoil parameter from dispersion relation
             w1 = np.sqrt(1+mom_to_p2(mom,L=lvol)/m1**2)
@@ -92,12 +93,21 @@ def main():
 
             # Compute recoil parameter from ratio
             try:
-                fit,p = read_config_fit(f'fit3pt_config_{ens}_xfstpar_{mom}',path=readfrom)
+                res = read_config_fit(
+                    f'fit3pt_config_{ens}_xfstpar_{mom}',
+                    path=readfrom,
+                    jk = args.jkfit
+                )
             except FileNotFoundError:
                 print(f'XFSTPAR not calculated for ({ens},{mom})...')
                 continue   
             
-            xf = p['ratio'][0]
+            if not args.jkfit:
+                xf = res[-1]['ratio'][0]
+            else:
+                f0 = res['ratio'][0] 
+                xf = gv.gvar(f0.mean(),f0.std()*np.sqrt(len(f0)-1))
+
             wr = (1+xf**2)/(1-xf**2)
 
             wrecoil.append({
@@ -138,7 +148,7 @@ def main():
         axi.set_xticklabels(ps)
         axi.set_title(ens)
         axi.grid(alpha=0.2)
-        axi.set_xlabel(r'$\mathbf{p}$')
+        axi.set_xlabel(r'$\mathbf{p}^2$')
 
     axm1 = ax[0] if len(ENSEMBLE_LIST)>1 else ax
     axm1.set_ylabel(r'$w$')
@@ -152,7 +162,8 @@ def main():
     plt.tight_layout()
     plt.savefig(f'{saveto}recoil_parameter.pdf')
 
-    # plt.show()
+    if args.show:
+        plt.show()
 
 
 

@@ -200,9 +200,11 @@ class StagFitter(Correlator):
         self.priors_policy = priors_policy
         self.fits = {}
 
+
     def priors(self, Nstates, Meff=None, Aeff=None, prior_policy=None):
         prs = self.priors_policy if prior_policy is None else prior_policy
         return set_priors_phys(self,Nstates, Meff=Meff, Aeff=Aeff, prior_policy=prs)
+
 
     def diff_model(self, xdata, Nstates):
         '''
@@ -232,6 +234,7 @@ class StagFitter(Correlator):
             
         return _model, _jac, _hes
 
+
     def diff_cost(self, Nexc, xdata, W2):
         '''
             Return a `jax`-differentiable cost function.
@@ -258,6 +261,7 @@ class StagFitter(Correlator):
             return jax.jacfwd(jax.jacrev(_cost,argnums=1))(popt,ydata)
 
         return _cost, hess_par, hess_mix
+
 
     def fit(self, Nstates, trange, verbose=False, priors=None, p0=None, maxit=50000, svdcut=0., jkfit=False, **data_kwargs):
         xdata, ydata = self.format(
@@ -292,15 +296,22 @@ class StagFitter(Correlator):
 
 
         if jkfit:
+            # get info for standard p-value
+            ndof  = len(fit.y) - sum([len(pr) for k,pr in fit.prior.items()]) 
+            aux = Correlator(io=self.io,jkBin=0)
+            nconf = len(aux.data.jkbin)
+
+
             xdata, ydata, ally = self.format(trange=trange, flatten=True, alljk=True, **data_kwargs)
             cov = gv.evalcov(ydata)
 
             pkeys = sorted(fit.p.keys())
             fitpjk = []
+            pstds  = []
             for ijk in tqdm(range(ally.shape[0])):
                 ydata = gv.gvar(ally[ijk,:],cov)
 
-                fit = lsqfit.nonlinear_fit(
+                jfit = lsqfit.nonlinear_fit(
                     data   = (xdata,ydata),
                     fcn    = model,
                     prior  = pr,
@@ -308,12 +319,23 @@ class StagFitter(Correlator):
                     maxit  = maxit,
                     svdcut = svdcut
                 )
-                fitpjk.append(fit.pmean)
+                fitpjk.append(jfit.pmean)
+
+
+                # calculate p-value
+                chi_pr = 0.
+                for k,_pr in jfit.prior.items():
+                    dr = ((gv.mean(_pr) - jfit.pmean[k])/gv.sdev(_pr))**2
+                    chi_pr += dr.sum()
+                chi2red = jfit.chi2 - chi_pr
+                pvalue = p_value(chi2red,nconf,ndof)
+                pstds.append(pvalue)
 
             fitjk = {k: np.asarray([jf[k] for jf in fitpjk]) for k in pkeys}
+            fitjk['pstd'] = pstds
 
- 
         return fitjk if jkfit else fit
+
 
     def fit_error(self, Nexc, xdata, yvec, fitcov, popt):
         pkeys = sorted(popt.keys())
@@ -336,6 +358,7 @@ class StagFitter(Correlator):
         pars = gv.gvar(pmean,pcov)
 
         return pars, chi2
+
 
     def chi2exp(self, Nexc, trange, popt, fitcov, priors=None, pvalue=True, Nmc=10000, method='eigval', verbose=False):
         # Format data and estimate covariance matrix
@@ -414,7 +437,7 @@ class StagFitter(Correlator):
         pvalue['MC'] = 1. - np.mean(cexp<chi2)
 
         if verbose:
-            print(f'# ---------- U+03C7 ^2_exp analysis -------------')
+            print(f'# ---------- chi^2_exp analysis -------------')
             print(f'# chi2_exp = {chiexp} +/- {dchiexp} ')
             print(f'# p-value [eval] = {pvalue["eigval"]}')
             print(f'# p-value [MC]   = {pvalue["MC"]}')
@@ -424,6 +447,7 @@ class StagFitter(Correlator):
             return chi2, chiexp, pvalue[method]
         else:
             return chi2, chiexp
+
 
     def chi2(self, Nexc, trange):
         fit = self.fits[Nexc,trange]
@@ -448,6 +472,7 @@ class StagFitter(Correlator):
         pvalue = p_value(chi2,nconf,ndof)
 
         return dict(chi2=chi2, chi2_pr=chi_pr, chi2_aug=chi2_aug, pstd=pvalue)
+
 
     def fit_result(self, Nexc, trange, verbose=True, error=False, priors=None):
         fit = self.fits[Nexc,trange]
@@ -494,6 +519,7 @@ class StagFitter(Correlator):
 
 
         return res
+
 
     def plot_fit(self,ax,Nexc,trange):
         fit = self.fits[Nexc,trange]

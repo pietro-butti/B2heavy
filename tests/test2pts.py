@@ -108,15 +108,17 @@ def metapars():
                 
                 # choose tmin
                 Tmin1  = int(tmin1/a_fm)
-                tmin  = int(tmin3/a_fm)
                 Tmin2 = int(tmin2/a_fm)
 
-                #  diagnose correlation
-                # cov_specs = dict(scale=True,shrink=True)
-                # eps = find_eps_cut(stag,(tmin,tmax),**cov_specs)
+                if mes=='Dst':
+                    tmin = int(tmin3/a_fm)
+                elif mes=='B':
+                    tmin = int(0.85/a_fm)
 
-                scemo1,scemo2,ysamples = stag.format(trange=(tmin,tmax),flatten=True,alljk=True)
-                eps = correlation_diagnostics(ysamples,verbose=False)
+
+                # scemo1,scemo2,ysamples = stag.format(trange=(tmin,tmax),flatten=True,alljk=True)
+                # eps = correlation_diagnostics(ysamples,verbose=False)
+                eps = 1E-12
 
 
                 config['fit'][ens][mes]['mom'][mom] = {}
@@ -125,7 +127,7 @@ def metapars():
                 config['fit'][ens][mes]['mom'][mom]['nstates']    = 3
                 config['fit'][ens][mes]['mom'][mom]['trange_eff'] = [Tmin1,tmax] 
                 config['fit'][ens][mes]['mom'][mom]['trange']     = [tmin,tmax]
-                config['fit'][ens][mes]['mom'][mom]['svd']        = float(eps)
+                config['fit'][ens][mes]['mom'][mom]['svd']        = 1E-12
 
                 d = {
                     'ensemble'   : ens,

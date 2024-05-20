@@ -243,7 +243,7 @@ def main():
                     'momentum'     : mom,
                     'tmin(3+3)'    : trange[0],
                     'tmax'         : trange[1],
-                    'svd'          : cutsvd,
+                    'svd'          : cov_specs['cutsvd'],
                     'trange_eff'   : trange_eff,
                     'E0'           : stag.fits[nstates,trange].p['E'][0],
                     'chiaug/chiexp': fitres['chi2aug']/fitres['chiexp'],

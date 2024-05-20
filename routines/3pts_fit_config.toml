@@ -7,7 +7,7 @@ title = '3pts fits'
     list = ['Coarse-2','Coarse-Phys','Coarse-1','Fine-1']
 
 [ratio]
-    list = ['xfstpar', 'XV', 'R0', 'R1', 'RA1']#,'ZRA1']
+    list = ['xfstpar', 'XV', 'R0', 'R1', 'RA1', 'ZRA1']
 
 [momenta]
     list = ['000','100','200','300','400']

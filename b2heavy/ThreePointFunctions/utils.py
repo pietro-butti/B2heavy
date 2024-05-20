@@ -30,7 +30,7 @@ def dump_fit_object(base,f,**res):
         prior   = f.prior,
         chi2red = res.get('chi2red'), 
         chi2aug = res.get('chi2aug'),
-        chi2exp = res.get('chiexp'),
+        chiexp  = res.get('chiexp'),
         pexp    = res.get('pexp'),
         pstd    = res.get('pstd')
     )

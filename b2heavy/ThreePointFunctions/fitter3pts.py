@@ -1,4 +1,3 @@
-
 import jax 
 import jax.numpy         as jnp
 jax.config.update("jax_enable_x64", True)
@@ -43,7 +42,7 @@ def ModelRatio(T,rsp,sm,Nexc):
     return _model
 
 
-def phys_energy_priors(ens, mes, mom, nstates, readfrom=None):
+def phys_energy_priors(ens, mes, mom, nstates, readfrom=None, error=1.0):
     fit,p = read_config_fit(
         tag  = f'fit2pt_config_{ens}_{mes}_{mom}',
         path = readfrom
@@ -56,7 +55,7 @@ def phys_energy_priors(ens, mes, mom, nstates, readfrom=None):
             pr = gv.gvar(
                 p['E'][2*n+2].mean,
                 # p['E'][2*n+2].sdev*3
-                1.0
+                error
             )
         except IndexError:
             pr = gv.gvar('-1.5(1.0)')
@@ -123,10 +122,13 @@ class RatioFitter(Ratio):
 
         # Prepare the model
         def _model(xdata,pdict):
-            return [
+            return np.concatenate([
                 ModelRatio(self.Tb,self.specs,sm,Nstates)(xdata,pdict)
                 for sm in self.smr
-            ]
+            ])
+
+        if verbose:
+            print(f'---------- {Nstates}+{Nstates} fit in {trange} for mes: {self.info.ratio} of ens: {self.info.ensemble} for mom: {self.info.momentum} --------------')
 
         # Prepare priors
         pr = self.priors(Nstates) if priors is None else priors
@@ -145,6 +147,11 @@ class RatioFitter(Ratio):
             print(fit)
 
         if jkfit:
+            # get info for standard p-value
+            ndof  = len(fit.y) - sum([len(pr) for k,pr in fit.prior.items()]) 
+            aux = Ratio(io=self.io,jkBin=0)
+            nconf = aux.nbins
+
             xdata, ydata, ally = self.format(
                 trange  = trange, 
                 flatten = True, 
@@ -155,6 +162,7 @@ class RatioFitter(Ratio):
 
             pkeys = sorted(fit.p.keys())
             fitpjk = []
+            pstds  = []
             for ijk in tqdm(range(ally.shape[0])):
                 ydata = gv.gvar(ally[ijk,:],cov)
                 fit = lsqfit.nonlinear_fit(
@@ -167,7 +175,18 @@ class RatioFitter(Ratio):
 
                 fitpjk.append(fit.pmean)
 
+                # calculate p-value
+                chi_pr = 0.
+                for k, _pr in fit.prior.items():
+                    dr = ((gv.mean(_pr) - fit.pmean[k])/gv.sdev(_pr))**2
+                    chi_pr += dr.sum()
+                chi2red = fit.chi2 - chi_pr
+                pvalue = p_value(chi2red,nconf,ndof)
+                pstds.append(pvalue)
+
+
             fitjk = {k: np.asarray([jf[k] for jf in fitpjk]).T for k in pkeys}
+            fitjk['pstd'] = pstds
 
         return fitjk if jkfit else fit
 
@@ -221,9 +240,9 @@ class RatioFitter(Ratio):
         return _model, _jac, _hes
 
 
-    def chi2exp(self, Nexc, trange, popt, fitcov, priors=None, pvalue=True, Nmc=10000):
+    def chi2exp(self, Nexc, trange, popt, fitcov, priors=None, pvalue=True, Nmc=10000, verbose=True, method='eigval'):
         # Format data and estimate covariance matrix
-        xdata,ydata = self.format(trange=trange,flatten=False)
+        xdata,ydata = self.format(trange=trange)
         yvec = np.concatenate([ydata[k] for k in self.smr])
         cov = gv.evalcov(yvec)
 
@@ -235,9 +254,9 @@ class RatioFitter(Ratio):
         Jac = np.hstack([_jc[k] for k in pkeys])
 
         # Check chi2 from fit
-        w2 = jnp.linalg.inv(fitcov)
+        w2 = np.linalg.inv(fitcov)
         res = gv.mean(yvec) - fun(popt)
-        chi2 = res.T @ w2 @ res
+        chi2 = float(res.T @ w2 @ res)
 
         # Add prior part if needed
         if priors is not None:
@@ -250,7 +269,7 @@ class RatioFitter(Ratio):
             r      = gv.mean(prio_v) - popt_v
 
             dpr   = np.diag(1/gv.sdev(prio_v))**2
-            chi2 += r.T @ dpr @ r
+            chi2 += float(r.T @ dpr @ r)
 
             # Augment covariance matrices            
             O = np.zeros((fitcov.shape[0],dpr.shape[1]))
@@ -267,31 +286,71 @@ class RatioFitter(Ratio):
         proj = w - wg @ Hinv @ wg.T
 
         chiexp = np.trace(proj @ cov)
+        da = Hinv @ wg.T
 
-        if not pvalue:
-            return chi2, chiexp
-        
+        # Calculate nu matrix
+        l,evec = np.linalg.eig(cov)
+        if np.any(np.real(l)<0):
+            mask = np.real(l)>1e-12
+            Csqroot = evec[:,mask] @ np.diag(np.sqrt(l[mask])) @ evec[:,mask].T
         else:
-            l,evec = np.linalg.eig(cov)
-
-            if np.any(np.real(l)<0):
-                mask = np.real(l)>1e-12
-                Csqroot = evec[:,mask] @ np.diag(np.sqrt(l[mask])) @ evec[:,mask].T
-            else:
-                Csqroot= evec @ np.diag(np.sqrt(l)) @ evec.T
+            Csqroot= evec @ np.diag(np.sqrt(l)) @ evec.T
+        numat = Csqroot @ proj @ Csqroot
+        dchiexp = np.sqrt(2.*np.trace(numat @ numat))
 
 
-            numat = Csqroot @ proj @ Csqroot
-            l,_ = np.linalg.eig(numat)
-            ls = l[l.real>=1e-14].real
+        pvalue = {}
+        # Compute it with eigenvalue spectrum
+        l,_ = np.linalg.eig(numat)
+        ls = l[l.real>=1e-14].real
+        p = 0
+        for _ in range(Nmc):
+            ri = np.random.normal(0.,1.,len(ls))
+            p += 1. if (ls.T @ (ri**2) - chi2)>=0 else 0.
+        p /= Nmc
+        pvalue['eigval'] = p
 
-            p = 0
-            for _ in range(Nmc):
-                ri = np.random.normal(0.,1.,len(ls))
-                p += 1. if (ls.T @ (ri**2) - chi2)>=0 else 0.
-            p /= Nmc
-            
-            return chi2, chiexp, p
+        # Compute it with MC sampling
+        _n = cov.shape[0]
+        z = np.random.normal(0.,1.,Nmc*_n).reshape(Nmc,_n)
+        cexp = np.einsum('ia,ab,bi->i',z,numat,z.T)
+        pvalue['MC'] = 1. - np.mean(cexp<chi2)
+
+        if verbose:
+            print(f'# ---------- chi^2_exp analysis -------------')
+            print(f'# chi2_exp = {chiexp} +/- {dchiexp} ')
+            print(f'# p-value [eval] = {pvalue["eigval"]}')
+            print(f'# p-value [MC]   = {pvalue["MC"]}')
+
+        if pvalue:
+            return chi2, chiexp, pvalue[method]
+        else:
+            return chi2, chiexp
+
+
+    def chi2(self, Nexc, trange):
+        fit = self.fits[Nexc,trange]
+
+        # normal chi2
+        res = fit.fcn(fit.x,fit.pmean)-gv.mean(fit.y)
+        chi2 = res.T @ np.linalg.inv(gv.evalcov(fit.y)) @ res
+
+        # chi2 priors
+        chi_pr = 0.
+        for k, pr in fit.prior.items():
+            dr = ((gv.mean(pr) - fit.pmean[k])/gv.sdev(pr))**2
+            chi_pr += dr.sum()
+
+        # chi2 augmented
+        chi2_aug = chi2+chi_pr
+
+        # standard p-value
+        ndof  = len(fit.y) - sum([len(pr) for k,pr in fit.prior.items()]) 
+        aux = Ratio(io=self.io,jkBin=0)
+        nconf = aux.format(flatten=True,alljk=True)[-1].shape[0]
+        pvalue = p_value(chi2,nconf,ndof)
+
+        return dict(chi2=chi2, chi2_pr=chi_pr, chi2_aug=chi2_aug, pstd=pvalue)
 
 
     def fit_result(self,Nexc,trange,verbose=True, priors=None):
@@ -301,27 +360,35 @@ class RatioFitter(Ratio):
         fitcov = gv.evalcov(fit.y)
         popt   = dict(fit.pmean)
 
-        chi2, chiexp, p = self.chi2exp(Nexc, trange, popt, fitcov, pvalue=True, priors=priors)
+        _, chiexp, p = self.chi2exp(
+            Nexc, 
+            trange, 
+            popt, 
+            fitcov, 
+            pvalue=True, 
+            priors=priors
+        )
 
-        # p_st = standard_p(self.io, fit)
-
+        chi2dict = self.chi2(Nexc,trange)
 
         if verbose:
-            print(f'# ---------- {Nexc}+{Nexc} fit in {trange} for ratio: {self.info.ratio} of ens: {self.info.ensemble} for mom: {self.info.momentum} --------------')
+            print(f'# ---------- {Nexc}+{Nexc} fit in {trange} for mes: {self.info.ratio} of ens: {self.info.ensemble} for mom: {self.info.momentum} --------------')
             print(fit)
+            print(f'# red chi2       = {chi2dict["chi2"]:.2f}')
+            print(f'# aug chi2       = {chi2dict["chi2_aug"]:.2f}')
+            print(f'# chi2_exp       = {chiexp:.2f}')
+            print(f'# chi2/chi_exp   = {chi2dict["chi2_aug"]/chiexp:.2f}')
+            print(f'# p-value (exp)  = {p:.2f}')
+            print(f'# p-value (std)  = {chi2dict["pstd"]:.2f}')
 
-            print(f'# red chi2      = {chi2:.2f}')
-            print(f'# chi2_exp      = {chiexp:.2f}')
-            print(f'# chi2/chi_exp  = {chi2/chiexp:.2f}')
-            print(f'# p-value       = {p:.2f}')
-            # print(f'# p-value (std) = {p_st:.2f}')
 
         res = dict(
-            fit        = fit,
-            chi2       = chi2,
-            chiexp     = chiexp,
-            pvalue     = p,
-            # p_standard = p_st
+            fit     = fit,
+            chi2red = chi2dict['chi2'],
+            chi2aug = chi2dict['chi2_aug'],
+            chiexp  = chiexp,
+            pexp    = p,
+            pstd    = chi2dict['pstd'],
         )
 
         return res
@@ -332,15 +399,13 @@ from b2heavy.ThreePointFunctions.types3pts import ratio_prerequisites
 
 def main():
     ens = 'Coarse-1'
-    rat = 'RA1'
+    rat = 'xfstpar'
     mom = '100'
     frm = '/Users/pietro/code/data_analysis/BtoD/Alex'
-    readfrom = '/Users/pietro/code/data_analysis/data/QCDNf2p1stag/B2heavy/presentation'
-
-
+    readfrom = '/Users/pietro/code/data_analysis/data/QCDNf2p1stag/B2heavy/report'
 
     requisites = ratio_prerequisites(
-        ens, rat, mom, readfrom=readfrom, jk=False
+        ens, rat, mom, readfrom=readfrom, jk=True
     )
 
     io = RatioIO(ens,rat,mom,PathToDataDir=frm)
@@ -356,33 +421,33 @@ def main():
         block  = False,
         scale  = True,
         shrink = True,
-        cutsvd = 0.01
+        cutsvd = 1E-12
     )
 
     nstates = 1
-    trange  = (3,ratio.Ta-3)
+    trange  = (1,ratio.Ta-1-1)
 
 
     x,y = ratio.format()
     kmean = np.mean([y[sm][ratio.Ta//2].mean for sm in ratio.smr])
     Kmean = gv.gvar(kmean,0.1)
 
+    dE_src = phys_energy_priors(ens,'Dst',mom,nstates,readfrom=readfrom)
+    dE_snk = phys_energy_priors(ens,'B'  ,mom,nstates,readfrom=readfrom)
 
-    priors = ratio.priors(nstates,K=Kmean)
-    print(priors)
 
+    priors = ratio.priors(nstates,K=Kmean,dE_src=dE_src,dE_snk=dE_snk)
 
     fit = ratio.fit(
         Nstates = nstates,
         trange  = trange,
-        # verbose = True,
         priors  = priors,
+        verbose = False,
         **COV_SPECS
     )
 
+    ratio.fit_result(nstates,trange,priors=priors)
 
-    fig,ax = plt.subplots(1,1)
+    f, ax = plt.subplots(1,1,figsize=(6,6))
     ratio.plot_fit(ax,nstates,trange)
     plt.show()
-
-    ratio.fit_result(nstates,trange,priors=priors)

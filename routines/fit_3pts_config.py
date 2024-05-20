@@ -152,7 +152,7 @@ def main():
                 smlist   = config['fit'][ens][ratio]['smlist'] 
                 nstates  = config['fit'][ens][ratio]['mom'][mom]['nstates'] 
                 trange   = tuple(config['fit'][ens][ratio]['mom'][mom]['trange']) 
-                svd      = config['fit'][ens][ratio]['mom'][mom]['svd']
+                # svd      = config['fit'][ens][ratio]['mom'][mom]['svd']
 
 
                 #  =======================================================================================
@@ -232,7 +232,7 @@ def main():
                     'tmax'     : trange[1],
                     'svd'      : args.svd if args.svd is not None else svd,
                     'F0'       : robj.fits[nstates,trange].p['ratio'][0],
-                    'pval'     : fitres['pvalue']
+                    'pval'     : fitres['pstd']
                 })
 
                 # Plot ==============================================================================

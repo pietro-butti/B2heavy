@@ -140,20 +140,43 @@ def main():
     print(df)
 
 
-def standard_p(io, fitres, popt):
-    chi2red = fitres['chi2']
-    for k,pr in fitres['prior'].items():
-        for i,p in enumerate(pr):
-            chi2red -= ((gv.mean(popt)[k][i]-p.mean)/p.sdev)**2
-    
-    ndof  = len(fitres['y']) - sum([len(pr) for k,pr in fitres['prior'].items()]) 
-
-    aux = Correlator(io=io,jkBin=0)
-    nconf = aux.data.values.shape[-2]
-
-    return p_value(chi2red,nconf,ndof)
 
 
+
+def pvalues():
+    args = prs.parse_args()
+
+    fit2 = utils.load_toml(args.config2)
+    fit3 = utils.load_toml(args.config3)
+
+    READFROM = DEFAULT_ANALYSIS_ROOT if args.readfrom == 'default' else args.readfrom
+
+    ps = []
+
+    ens_list = fit2['fit']
+    for ens in ens_list:
+        for mom in fit2['data'][ens]['mom_list']:
+            specs = fit2['fit'][ens]['Dst']['mom'][mom]
+            fit = read_config_fit(
+                tag  = f'fit2pt_config_{specs["tag"]}',
+                path = READFROM,
+                jk = True
+            )
+            ps.append(fit['pstd'])
+
+    if args.plot_p:
+        plt.rcParams['text.usetex'] = True
+        plt.rcParams['font.size'] = 12
+
+        f, ax = plt.subplots(1, 1, figsize=(5,3))
+        ax.hist(np.concatenate(ps),bins=np.linspace(0,1,11))#, density=True)
+
+
+        ax.set_xlabel(r'$p$-value')
+
+        plt.tight_layout()
+        plt.savefig('/Users/pietro/Desktop/pvalues.pdf')
+        plt.show()    
 
 
 def main2():
@@ -168,8 +191,7 @@ def main2():
 
     ens_list = fit2['fit']
     for ens in ens_list:
-        print(f'--------------- {ens} --------------')
-        for mom in tqdm(fit2['data'][ens]['mom_list']):
+        for mom in fit2['data'][ens]['mom_list']:
 
             specs = fit2['fit'][ens]['Dst']['mom'][mom]
 
@@ -207,9 +229,6 @@ def main2():
             except FileNotFoundError:
                 pass
 
-            breakpoint()
-
-
             d = {
                 'ens'           : ens,
                 'mom'           : mom,
@@ -218,7 +237,7 @@ def main2():
                 'Z_1S'          : [z_1S_Par, z_1S_Bot] if collinear else z_1S_Unpol ,
                 'Z_d'           : [z_d_Par, z_d_Bot]   if collinear else z_d_Unpol ,
                 'chi2aug/chiexp': f'{fit2pts["chi2aug"]/fit2pts["chiexp"]:.2f}',
-                'chi2'          : f'{fit2pts["chi2"]:.2f}',
+                'chi2'          : f'{fit2pts["chi2red"]:.2f}',
                 'p-exp'         : fit2pts['pexp'],
                 'p-std'         : fit2pts['pstd'],
             }
@@ -226,11 +245,22 @@ def main2():
             df.append(d)
 
     df = pd.DataFrame(df).set_index(['ens','mom'])
-
     print(df)
 
 
+    if args.plot_p:
+        plt.rcParams['text.usetex'] = True
+        plt.rcParams['font.size'] = 12
+
+        f, ax = plt.subplots(1, 1, figsize=(5,3))
+        ax.hist(df['p-std'].values,bins=np.linspace(0,1,11), density=True)
+
+        ax.set_xlabel(r'$p$-value')
+
+        plt.tight_layout()
+        plt.savefig('/Users/pietro/Desktop/pvalues.pdf')
+        plt.show()
 
 
 if __name__=='__main__':
-    main2()
+    pvalues()

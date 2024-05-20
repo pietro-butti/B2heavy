@@ -593,6 +593,7 @@ class Ratio:
         shapes = np.unique(shapes)
         assert len(shapes)==2
 
+        self.nbins     = shapes[1]
         self.timeslice = np.arange(shapes[0])
 
         return
@@ -619,9 +620,10 @@ class Ratio:
         else:
             ally = None
 
-        sliced = {s: self.data[s][:,it] for s in smr}
         ydata = compute_covariance(
-            sliced, ally=ally, **cov_kwargs
+            {s: self.data[s][:,it] for s in smr},
+            ally=ally, 
+            **cov_kwargs
         )
         if flatten:
             ydata = np.concatenate([ydata[s] for s in smr])

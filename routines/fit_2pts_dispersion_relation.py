@@ -227,21 +227,17 @@ def main():
         plt.rcParams['text.usetex'] = True
         plt.rcParams['font.size'] = 12
 
-        plt.figure(figsize=(5, 4))
+        # plt.figure(figsize=(5, 4))
+        plt.figure(figsize=(4,3))
         ax = plt.subplot(1,1,1)
 
         yplot = E0**2
         ax.errorbar(p2,gv.mean(yplot),gv.sdev(yplot),fmt='o', ecolor='C0', mfc='w', capsize=2.5)
 
-
-
-
         plist = [np.sqrt([x/3,x/3,x/3]) for x in np.arange(0,max(p2)+0.1,0.01)]
         xplot = [sum(p**2) for p in plist]
         fitpar = [fit.p[k] for k in ['M1','M2','M4','w4']]
         fplot = [dispersion_relation(p,*fitpar) for p in plist]
-
-
         ax.fill_between(xplot,gv.mean(fplot)-gv.sdev(fplot),gv.mean(fplot)+gv.sdev(fplot),alpha=0.2)
 
         delta = (xplot[-1]-xplot[-2])/2
@@ -275,11 +271,9 @@ def main():
         yplot = E0**2/denominator
 
 
-        # fig,ax = plt.subplots(2,1,figsize=(3, 6),sharex=True)
-        fig,ax = plt.subplots(1,1,figsize=(6, 3))
+        fig,ax = plt.subplots(2,1,figsize=(4, 4),sharex=True)
 
         # Discr. errors on energies
-        ax = [ax]
 
         ax[0].errorbar(p2,gv.mean(yplot),gv.sdev(yplot),fmt='o', ecolor='C0', mfc='w', capsize=2.5)
         ax[0].axhline(1.,color='gray',alpha=0.5,linestyle=':')
@@ -296,50 +290,61 @@ def main():
         ax[0].grid(alpha=0.2)
 
 
-        # # Discr. errors on coefficients
-        # Z1S = np.asarray([])
-        # Zd  = np.asarray([])
-        # for p in psort:
-        #     fname = f'fit2pt_config_{ens}_{mes}_'
-        #     f = os.path.join(readfrom,f'{fname}{p}')
-        #     collinear = p.endswith('00') and not p.startswith('0')
+        # Discr. errors on coefficients
+        Z1S = []
+        Zd  = []
+        for p in psort:
+            fname = f'fit2pt_config_{ens}_{mes}_'
+            f = os.path.join(readfrom,f'{fname}{p}')
+            collinear = p.endswith('00') and not p.startswith('0')
 
-        #     k1s_1  = 'Z_1S_Par' if (collinear and mes=='Dst') else 'Z_1S_Unpol'      
-        #     z1s_1 = extract_single_energy(f,N=0,jk=JK,key=k1s_1)
-        #     z1s_1 = np.exp(z1s_1)*np.sqrt(2*E[p])
+            k1s_1  = 'Z_1S_Par' if (collinear and mes=='Dst') else 'Z_1S_Unpol'      
+            z1s_1 = extract_single_energy(f,N=0,jk=JK,key=k1s_1)
+            z1s_1 = np.exp(z1s_1)*np.sqrt(2*E[p])
 
-        #     k1s_2  = 'Z_1S_Bot' if (collinear and mes=='Dst') else 'Z_1S_Unpol'      
-        #     z1s_2 = extract_single_energy(f,N=0,jk=JK,key=k1s_2)
-        #     z1s_2 = np.exp(z1s_2)*np.sqrt(2*E[p])
+            k1s_2  = 'Z_1S_Bot' if (collinear and mes=='Dst') else 'Z_1S_Unpol'      
+            z1s_2 = extract_single_energy(f,N=0,jk=JK,key=k1s_2)
+            z1s_2 = np.exp(z1s_2)*np.sqrt(2*E[p])
 
-        #     Z1S = np.append(Z1S, np.mean([z1s_1,z1s_2]))
+            Z1S.append((z1s_1+z1s_2)/2)
 
 
-        #     kd_1  = 'Z_d_Par' if (collinear and mes=='Dst') else 'Z_d_Unpol'      
-        #     zd_1 = extract_single_energy(f,N=0,jk=JK,key=kd_1)
-        #     zd_1 = np.exp(zd_1)*np.sqrt(2*E[p])
+            kd_1  = 'Z_d_Par' if (collinear and mes=='Dst') else 'Z_d_Unpol'      
+            zd_1 = extract_single_energy(f,N=0,jk=JK,key=kd_1)
+            zd_1 = np.exp(zd_1)*np.sqrt(2*E[p])
 
-        #     kd_2  = 'Z_d_Bot' if (collinear and mes=='Dst') else 'Z_d_Unpol'      
-        #     zd_2 = extract_single_energy(f,N=0,jk=JK,key=kd_2)
-        #     zd_2 = np.exp(zd_2)*np.sqrt(2*E[p])
+            kd_2  = 'Z_d_Bot' if (collinear and mes=='Dst') else 'Z_d_Unpol'      
+            zd_2 = extract_single_energy(f,N=0,jk=JK,key=kd_2)
+            zd_2 = np.exp(zd_2)*np.sqrt(2*E[p])
 
-        #     Zd = np.append( Zd, np.mean([zd_1,zd_2])) 
-        # Z1S = Z1S/Z1S[0]; Z1S[0] = gv.gvar(1.,0)
-        # Zd  = Zd/Zd[0];   Zd [0] = gv.gvar(1.,0)
+            Zd.append((zd_1+zd_2)/2) 
+
+        Z1S = np.array(Z1S)
+        Zd  = np.array(Zd)
+
+        Z1S = Z1S/Z1S[0]; Z1S[0] = np.ones_like(Z1S[0]) if JK else gv.gvar(1.,0)
+        Zd  = Zd/Zd[0];   Zd [0] = np.ones_like(Z1S[0]) if JK else gv.gvar(1.,0)
+
+
+        if JK:
+            Z1S = gv.gvar( Z1S.mean(axis=1), np.cov(Z1S) * Z1S.shape[-1] )
+            Zd  = gv.gvar( Zd.mean(axis=1) , np.cov(Zd)  * Zd.shape[-1]  )
+
 
         # ax[1].errorbar(p2,gv.mean(Z1S),gv.sdev(Z1S),fmt='o', ecolor='C0', mfc='w', capsize=2.5)
-        # ax[1].errorbar(p2,gv.mean(Zd ),gv.sdev(Zd ),fmt='o', ecolor='C1', mfc='w', capsize=2.5)
-        # ax[1].axhline(1.,color='gray',alpha=0.5,linestyle=':')
+        ax[1].errorbar(p2,gv.mean(Zd ),gv.sdev(Zd ),fmt='o', ecolor='C0', mfc='w', capsize=2.5)
+        ax[1].axhline(1.,color='gray',alpha=0.5,linestyle=':')
 
-        # endp = max(p2)+p2[1]
-        # xcone = np.arange(0,endp,0.01)
-        # ax[1].fill_between(xcone, alphas*xcone+1,-alphas*xcone+1,alpha=0.1)
+        endp = max(p2)+p2[1]
+        xcone = np.arange(0,endp,0.01)
+        ax[1].fill_between(xcone, alphas*xcone+1,-alphas*xcone+1,alpha=0.1)
 
-        # ax[1].set_xlim(xmin=-0.01,xmax=endp-0.01)
+        ax[1].set_xlim(xmin=-0.01,xmax=endp-0.01)
 
-        # ax[1].set_ylabel(r'$\frac{Z(\mathbf{p})}{Z(0)}$')
-        # ax[1].set_xlabel(r'$a^2\mathbf{p}^2$')
+        ax[1].set_ylabel(r'$\frac{Z(\mathbf{p})}{Z(0)}$')
+        ax[1].set_xlabel(r'$a^2\mathbf{p}^2$')
 
+        ax[1].grid(alpha=0.2)
 
 
 
