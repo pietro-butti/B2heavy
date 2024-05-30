@@ -13,9 +13,37 @@ from .types3pts                import Ratio, RatioIO
 from .utils                    import read_config_fit
 from ..TwoPointFunctions.utils import p_value
 
-def ModelRatio_jax(T,rsp,sm,Nexc):
-    simple = (not isinstance(rsp['source'],list)) and rsp['source']==rsp['sink'] 
-    dE_k2 = 'dE_src' if simple else 'dE_snk'
+# def ModelRatio_jax(T,rsp,sm,Nexc):
+#     simple = (not isinstance(rsp['source'],list)) and rsp['source']==rsp['sink'] 
+#     dE_k2 = 'dE_src' if simple else 'dE_snk'
+
+#     def _model(t,p):
+#         tmp = jnp.full(len(t),1.)
+#         for iexc in range(Nexc):
+#             tmp = tmp + p[f'A_{sm}'][iexc] * jnp.exp(- jnp.exp(p['dE_src'][iexc]) * (t)) + \
+#                         p[f'B_{sm}'][iexc] * jnp.exp(- jnp.exp(p[dE_k2][iexc]) * (T-t))
+#         tmp = p['ratio'][0]*tmp
+#         return tmp
+
+#     return _model
+
+# def ModelRatio(T,rsp,sm,Nexc):
+#     simple = (not isinstance(rsp['source'],list)) and rsp['source']==rsp['sink'] 
+#     dE_k2 = 'dE_src' if simple else 'dE_snk'
+    
+#     def _model(t,p):
+#         tmp = np.full(len(t),1.)
+#         for iexc in range(Nexc):
+#             tmp = tmp + p[f'A_{sm}'][iexc] * np.exp(- np.exp(p['dE_src'][iexc]) * (t)) + \
+#                         p[f'B_{sm}'][iexc] * np.exp(- np.exp(p[dE_k2][iexc]) * (T-t))
+#         tmp = p['ratio'][0]*tmp
+#         return tmp
+
+#     return _model
+
+
+def ModelRatio_jax(T,same_sink,sm,Nexc):
+    dE_k2 = 'dE_src' if same_sink else 'dE_snk'
 
     def _model(t,p):
         tmp = jnp.full(len(t),1.)
@@ -27,10 +55,9 @@ def ModelRatio_jax(T,rsp,sm,Nexc):
 
     return _model
 
-def ModelRatio(T,rsp,sm,Nexc):
-    simple = (not isinstance(rsp['source'],list)) and rsp['source']==rsp['sink'] 
-    dE_k2 = 'dE_src' if simple else 'dE_snk'
-
+def ModelRatio(T,same_sink,sm,Nexc):
+    dE_k2 = 'dE_src' if same_sink else 'dE_snk'
+    
     def _model(t,p):
         tmp = np.full(len(t),1.)
         for iexc in range(Nexc):
@@ -40,7 +67,6 @@ def ModelRatio(T,rsp,sm,Nexc):
         return tmp
 
     return _model
-
 
 def phys_energy_priors(ens, mes, mom, nstates, readfrom=None, error=1.0):
     fit,p = read_config_fit(
@@ -63,7 +89,6 @@ def phys_energy_priors(ens, mes, mom, nstates, readfrom=None, error=1.0):
         dE.append(pr)
 
     return dE
-
 
 def standard_p(io, fit:lsqfit.nonlinear_fit):
     chi2red = fit.chi2
@@ -93,21 +118,27 @@ class RatioFitter(Ratio):
         self.Ta, self.Tb = io.mData['hSinks']
         self.fits = {}
 
+        self.same_sink = self.info.ratio.startswith('XF') or \
+            'RA1' in self.info.ratio or \
+            self.info.ratio=='RPLUS' 
+
 
     def priors(self, Nstates, K=None, dE_src=None, dE_snk=None):
-        rsp = self.specs
-        single = (not isinstance(rsp['source'],list)) and rsp['source']==rsp['sink'] 
-
+        x,y = self.format()
+        f0  = np.mean([y[sm][len(x)//2] for sm in y]).mean
         pr = {
-            'ratio' : [gv.gvar(-0.9,0.1 if self.info.ratio=='RA1' else 0.05) if K is None else K],
-            'dE_src': [gv.gvar(-1.5,1.0) for _ in range(Nstates)] if dE_src is None else dE_src,
+            'ratio': [gv.gvar(f0,0.1) if K is None else K]
         }
-        if not single:
-            pr['dE_snk'] = [gv.gvar(-1.5,1.0) for _ in range(Nstates)] if dE_snk is None else dE_snk
 
         for sm in self.smr:
             pr[f'A_{sm}'] = [gv.gvar('0(1)') for _ in range(Nstates)]
             pr[f'B_{sm}'] = [gv.gvar('0(1)') for _ in range(Nstates)]
+
+        pr = {
+            'dE_src': [gv.gvar(-1.5,1.0) for _ in range(Nstates)] if dE_src is None else dE_src,
+        }
+        if not self.same_sink:
+            pr['dE_snk'] = [gv.gvar(-1.5,1.0) for _ in range(Nstates)] if dE_snk is None else dE_snk
 
         return pr
 
@@ -123,7 +154,7 @@ class RatioFitter(Ratio):
         # Prepare the model
         def _model(xdata,pdict):
             return np.concatenate([
-                ModelRatio(self.Tb,self.specs,sm,Nstates)(xdata,pdict)
+                ModelRatio(self.Tb,self.same_sink,sm,Nstates)(xdata,pdict)
                 for sm in self.smr
             ])
 
@@ -142,16 +173,13 @@ class RatioFitter(Ratio):
             svdcut = svdcut
         )
         self.fits[Nstates,trange] = fit
+        ndof  = len(fit.y) - sum([len(pr) for k,pr in fit.prior.items()]) 
+        nconf = self.nbins
 
         if verbose:
             print(fit)
 
         if jkfit:
-            # get info for standard p-value
-            ndof  = len(fit.y) - sum([len(pr) for k,pr in fit.prior.items()]) 
-            aux = Ratio(io=self.io,jkBin=0)
-            nconf = aux.nbins
-
             xdata, ydata, ally = self.format(
                 trange  = trange, 
                 flatten = True, 
@@ -198,7 +226,7 @@ class RatioFitter(Ratio):
         mrk = ['o','^']
 
         for i,sm in enumerate(self.smr):
-            model = ModelRatio(self.Tb,self.specs,sm,Nstates)
+            model = ModelRatio(self.Tb,self.same_sink,sm,Nstates)
 
             iin = np.array([min(trange)<=x<=max(trange) for x in x])
 
@@ -227,7 +255,7 @@ class RatioFitter(Ratio):
     def diff_model(self, xdata, Nstates):
         def _model(pdict):
             return jnp.concatenate([
-                ModelRatio_jax(self.Tb,self.specs,sm,Nstates)(xdata,pdict)
+                ModelRatio_jax(self.Tb,self.same_sink,sm,Nstates)(xdata,pdict)
                 for sm in self.smr
             ])
         
@@ -346,9 +374,7 @@ class RatioFitter(Ratio):
 
         # standard p-value
         ndof  = len(fit.y) - sum([len(pr) for k,pr in fit.prior.items()]) 
-        aux = Ratio(io=self.io,jkBin=0)
-        nconf = aux.format(flatten=True,alljk=True)[-1].shape[0]
-        pvalue = p_value(chi2,nconf,ndof)
+        pvalue = p_value(chi2,self.nbins,ndof)
 
         return dict(chi2=chi2, chi2_pr=chi_pr, chi2_aug=chi2_aug, pstd=pvalue)
 
@@ -395,12 +421,12 @@ class RatioFitter(Ratio):
 
 
 
-from b2heavy.ThreePointFunctions.types3pts import ratio_prerequisites
+from b2heavy.ThreePointFunctions.types3pts_old import ratio_prerequisites
 
 def main():
     ens = 'Coarse-1'
-    rat = 'xfstpar'
-    mom = '100'
+    rat = 'RPLUS'
+    mom = '000'
     frm = '/Users/pietro/code/data_analysis/BtoD/Alex'
     readfrom = '/Users/pietro/code/data_analysis/data/QCDNf2p1stag/B2heavy/report'
 
@@ -424,30 +450,12 @@ def main():
         cutsvd = 1E-12
     )
 
-    nstates = 1
-    trange  = (1,ratio.Ta-1-1)
 
+    dE = phys_energy_priors(ens,'D',mom,2,readfrom=readfrom)
 
-    x,y = ratio.format()
-    kmean = np.mean([y[sm][ratio.Ta//2].mean for sm in ratio.smr])
-    Kmean = gv.gvar(kmean,0.1)
-
-    dE_src = phys_energy_priors(ens,'Dst',mom,nstates,readfrom=readfrom)
-    dE_snk = phys_energy_priors(ens,'B'  ,mom,nstates,readfrom=readfrom)
-
-
-    priors = ratio.priors(nstates,K=Kmean,dE_src=dE_src,dE_snk=dE_snk)
-
-    fit = ratio.fit(
-        Nstates = nstates,
-        trange  = trange,
-        priors  = priors,
-        verbose = False,
-        **COV_SPECS
+    ratio.fit(
+        Nstates = 2,
+        trange  = (2,13),
+        verbose = True,
+        priors  = ratio.priors(dE_src=dE)
     )
-
-    ratio.fit_result(nstates,trange,priors=priors)
-
-    f, ax = plt.subplots(1,1,figsize=(6,6))
-    ratio.plot_fit(ax,nstates,trange)
-    plt.show()

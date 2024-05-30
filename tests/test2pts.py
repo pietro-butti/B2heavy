@@ -26,46 +26,39 @@ binSizes  = {
     'SuperFine'   : 22
 }
 
-# def find_eps(stag,trange,**cov_specs):
-#     # cov_specs = dict(shrink=True, scale=True)
-#     x,y, data = stag.format(trange=trange,flatten=True,alljk=True,**cov_specs)    
+tranges = { #(tmin1,tmin2,tmin3,tmax)
+    'D': (1.8,0.9,0.45,2.7),
+    'B': (1.8,0.9,0.45,2.7),
+    'Dst': (0,0.631,1.021,'30%')
+}
 
-#     cov = np.cov(data.T) * (data.shape[0]-1)
-#     cdiag = np.diag(1./np.sqrt(np.diag(cov)))
-#     cor = cdiag @ cov @ cdiag
 
-#     eval,evec = np.linalg.eigh(cor)
-#     y = sorted(abs(eval))/max(eval)
-
-#     I=None
-#     for i,r in enumerate((y/np.roll(y,1))[1:]):
-#         if r>1e+05:
-#             I=i+1
-#             break
-
-#     return 10E-12 if I is None else sorted(abs(eval))[I]
 
 
 def metapars():
-    tmin1 = 1.4
-    tmin2 = 1.021 
-    tmin3 = 0.631
+    tmin1 = 1.8
+    # tmin2 = 1.021 
+    tmin2 = 0.9
+    # tmin3 = 0.631
+    tmin3 = 0.45
+
+    Tmax = 2.7
 
     # config = toml.load('../routines/2pts_fit_config.toml')
 
 
-    mes      = 'Dst'
+    mes      = 'D'
     data_dir = '/Users/pietro/code/data_analysis/BtoD/Alex/'
     smlist   = ['1S-1S','d-d','d-1S'] 
 
     ens_list = [
-        'SuperFine',
         'MediumCoarse',
         'Coarse-2',
         'Coarse-1',
         'Coarse-Phys',
         'Fine-1',
         'Fine-Phys',
+        'SuperFine',
     ]
     mom_list = [
         '000',
@@ -77,7 +70,8 @@ def metapars():
         '211',
         '222'
     ]
-    mes_list = ['Dst','B']
+    # mes_list = ['Dst','B']
+    mes_list = ['D']
 
 
     config = {'fit': {}}
@@ -105,12 +99,13 @@ def metapars():
 
                 # choose tmax
                 tmax = stag.tmax(threshold=0.3)
+                # tmax = int(Tmax/a_fm)
                 
                 # choose tmin
                 Tmin1  = int(tmin1/a_fm)
                 Tmin2 = int(tmin2/a_fm)
 
-                if mes=='Dst':
+                if mes in ['Dst','D']:
                     tmin = int(tmin3/a_fm)
                 elif mes=='B':
                     tmin = int(0.85/a_fm)
@@ -145,13 +140,8 @@ def metapars():
     print(df)
 
 
-    with open('scemo_2.toml','w') as f:
+    with open('scemo.toml','w') as f:
         toml.dump(config,f)
-
-
-
-
-
 
 
 
@@ -163,35 +153,36 @@ def test():
 
     ## ========================================
 
-    tmin1 = 1.4
-    tmin2 = 1.021 
-    tmin3 = 0.631
+    mes = 'D'
+    (tmin1,tmin2,tmin3,Tmax) = tranges['D']
 
 
-    config = '../routines/2pts_fit_config.toml'
 
-    mes      = 'Dst'
+
+    config = '../routines/2pts_fit_all.toml'
+
     data_dir = '/Users/pietro/code/data_analysis/BtoD/Alex/'
     smlist   = ['1S-1S','d-d','d-1S'] 
 
         
     ens_list = [
-        # 'MediumCoarse',
-        # 'Coarse-2',
-        # 'Coarse-1',
-        # 'Coarse-Phys',
-        # 'Fine-1'
-        'Fine-Phys'
+        'MediumCoarse',
+        'Coarse-2',
+        'Coarse-1',
+        'Coarse-Phys',
+        'Fine-1',
+        'Fine-Phys',
+        'SuperFine'
     ]
     mom_list = [
-        # '000',
-        # '100',
+        '000',
+        '100',
         '200',
-        # '300',
-        # '400',
-        # '110',
-        # '211',
-        # '222'
+        '300',
+        '400',
+        '110',
+        '211',
+        '222'
     ]
 
 
@@ -211,27 +202,21 @@ def test():
             continue
 
         # choose tmax
-        tmax = stag.tmax(threshold=0.3)
-        
-        # choose tmin
-        tmin  = int(tmin3/a_fm)
-        Tmin2 = int(tmin2/a_fm)
+        tmax1 = stag.tmax(threshold=0.3)
+        tmax2 = int(Tmax/a_fm)
+        tmax = min(tmax1,tmax2)
 
-        # diagnose correlation
-        # xdata,ydata,yjk = stag.format(trange=(tmin,tmax),alljk=True,flatten=True)
-        # svd = round(correlation_diagnostics(yjk,verbose=False),ndigits=4)
-        eps = find_eps(stag,(tmin,tmax),scale=True,shrink=True)
+
+        # choose tmin
+        Tmin3 = int(tmin3/a_fm)
+        Tmin2 = int(tmin2/a_fm)
+        tmin_eff = int(tmin1/a_fm)
 
 
         # print effective mass and p-value
         fit_conf = load_toml(config)['fit'][ens][mes]['mom'][mom]
-        teff_range = fit_conf['trange_eff']
-
-
-        # tmin = 7
-        # tmax = 29
-        # teff_range = (15,33)
-
+        # teff_range = fit_conf['trange_eff']
+        teff_range = (tmin_eff,tmax)
 
 
         cov_specs = dict(
@@ -239,44 +224,68 @@ def test():
             block  = False,
             scale  = True ,
             shrink = True ,
-            cutsvd = eps,
+            cutsvd = 1E-12,
         )
-        effm,effa = stag.meff(trange=teff_range,variant='cosh', **cov_specs)
-        chi2, chiexp, p = stag.chiexp_meff(trange=teff_range,variant='cosh',pvalue=True,**cov_specs)
+        effm,effa,p = stag.meff(trange=teff_range,variant='cosh', pvalue=True, **cov_specs)
+        # chi2, chiexp, p = stag.chiexp_meff(trange=teff_range,variant='cosh',pvalue=True,**cov_specs)
+
 
         d = {
             'ensemble'   : ens,
             'momentum'   : mom,
-            'tmin(3+3)'  : tmin,
-            # 'tmin(2+2)'  : Tmin2,
-            'tmax'       : tmax,
-            'svd'        : eps,#svd,
+            'tmin(3+3)'  : Tmin3,
+            'tmin(2+2)'  : Tmin2,
             'trange_eff' : teff_range,
+            'tmax'       : tmax,
             'E0 (eff)'   : effm,
             'pval (eff)' : p,
         }
 
         if not only_eff:
-            # tmax = 25
-
             # fit correlator
             fit = stag.fit(
                 Nstates = 3,
-                trange  = (tmin,tmax),
+                trange  = (Tmin3,tmax),
                 priors  = stag.priors(3,Meff=effm,Aeff=effa),
                 **cov_specs
             )
-            res = stag.fit_result(3,(tmin,tmax),priors=fit.prior)
-            # res = stag.fit_result(3,(tmin,tmax))
+            res = stag.fit_result(3,(Tmin3,tmax),priors=fit.prior)
 
-            d['E0'  ] = fit.p['E'][0]
-            d['pval'] = res['pvalue']
+            d['E0[3]'  ] = fit.p['E'][0]
+            d['pval[3]'] = res['pstd']
+
+            fit2 = stag.fit(
+                Nstates = 2,
+                trange  = (Tmin2,tmax),
+                priors  = stag.priors(2,Meff=effm,Aeff=effa),
+                **cov_specs
+            )
+            res2 = stag.fit_result(2,(Tmin2,tmax),priors=fit2.prior)
+
+            d['E0[2]'  ] = fit2.p['E'][0]
+            d['pval[2]'] = res2['pstd']
 
 
         aux.append(d)
     
     df = pd.DataFrame(aux).set_index(['ensemble','momentum'])
     print(df)
+
+
+
+
+
+
+
+if __name__=='__main__':
+    # test()
+    metapars()
+
+
+
+
+
+
 
 def eff_coeffs(FLAG):
     ens      = 'MediumCoarse'
@@ -402,15 +411,5 @@ def eff_coeffs(FLAG):
             print(f'A_eff[{k}] = {np.sum(AEFF[:,i]*tic)}')
     # --------------------------------------------------------------------------------
 
-
-
-
-if __name__=='__main__':
-    # prs = argparse.ArgumentParser()
-    # prs.add_argument('--eff', action='store_true')
-    # args = prs.parse_args()
-
-    # test()
-    metapars()
 
 

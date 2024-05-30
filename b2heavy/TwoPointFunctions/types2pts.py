@@ -18,7 +18,7 @@ jax.config.update("jax_enable_x64", True)
 from tqdm import tqdm
 
 from ..     import FnalHISQMetadata
-from .utils import jkCorr, compute_covariance, ConstantModel, ConstantDictModel, correlation_diagnostics
+from .utils import jkCorr, compute_covariance, ConstantModel, ConstantDictModel, correlation_diagnostics, p_value
 
 # ConstantModel, ConstantFunc
 
@@ -354,7 +354,7 @@ class Correlator:
         return (xdata, ydata) if not alljk else (xdata,ydata,yjk)
 
 
-    def meff(self, trange=None, prior=None, verbose=False, plottable=False, variant='cosh', **cov_kwargs):
+    def meff(self, trange=None, prior=None, verbose=False, plottable=False, variant='cosh', pvalue=False, **cov_kwargs):
         xdata,ydata = self.format(trange=None, flatten=False, **cov_kwargs)
 
         # Compute effective masses
@@ -390,6 +390,18 @@ class Correlator:
         Meff = fit.p['const']
         e0 = Meff.mean
 
+        # calculate FScorrected p value
+        if pvalue:
+            chi_pr = 0.
+            for k,_pr in fit.prior.items():
+                dr = ((gv.mean(_pr) - fit.pmean[k])/gv.sdev(_pr))**2
+                chi_pr += dr.sum()
+            chi2red = fit.chi2 - chi_pr
+            ndof  = len(fit.y) - 1
+            aux = Correlator(io=self.io,jkBin=0)
+            nconf = len(aux.data.jkbin)
+            pvalue = p_value(chi2red,nconf,ndof)
+
         if verbose:
             print(fit)
 
@@ -419,7 +431,10 @@ class Correlator:
         if plottable:
             return {k: xdata for k in ydata}, Aeff, aplt, apr, Meff, meffs, mpr
         else:
-            return Meff,Aeff
+            if pvalue:
+                return Meff,Aeff,pvalue
+            else:
+                return Meff,Aeff
 
 
     def chiexp_meff(self, trange, variant, pvalue=False, Nmc=50000, **cov_kwargs):
@@ -491,6 +506,7 @@ class Correlator:
         xdata,ydata = self.format()
         rel = np.vstack([abs(gv.sdev(y)/gv.mean(y)) for y in ydata.values()]).mean(axis=0)
         Tmax = criterion([t for t,r in enumerate(rel) if r<=threshold])
+        breakpoint()
         return Tmax
 
 

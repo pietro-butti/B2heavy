@@ -168,12 +168,13 @@ def main():
                             saveto = f'{SAVETO}/fit3pt_config_{tag}_jk' if args.saveto is not None else None
                     
                         # Check if there is an already existing analysis =====================================
+                        skip_fit = False
                         if os.path.exists(f'{saveto}_fit.pickle'):
                             if args.override:
                                 print(f'Already existing analysis for {tag}, but overriding...')
                             else:
                                 print(f'Analysis for {tag} already up to date')
-                                # continue
+                                skip_fit = True
 
 
                 # Perform analysis ===================================================================
@@ -182,47 +183,65 @@ def main():
                     block  = args.block,
                     scale  = args.scale,
                     shrink = args.shrink,
-                    cutsvd = args.svd if args.svd is not None else svd
+                    cutsvd = args.svd
                 )                
 
+                if not skip_fit:
+                    # Create ratio object
+                    ratio_req = ratio_prerequisites(
+                        ens      = ens,
+                        ratio    = ratio,
+                        mom      = mom,
+                        readfrom = readfrom,
+                        jk       = args.jkfit,
+                        meson    = args.meson
+                    )
 
-                # Create ratio object
-                ratio_req = ratio_prerequisites(
-                    ens      = ens,
-                    ratio    = ratio,
-                    mom      = mom,
-                    readfrom = readfrom,
-                    jk       = args.jkfit,
-                    meson    = args.meson
-                )
+                    io = RatioIO(ens,ratio,mom,PathToDataDir=data_dir)
+                    robj = RatioFitter(
+                        io,
+                        jkBin = binsize,
+                        smearing = smlist,
+                        **ratio_req
+                    )
 
-                io = RatioIO(ens,ratio,mom,PathToDataDir=data_dir)
-                robj = RatioFitter(
-                    io,
-                    jkBin = binsize,
-                    smearing = smlist,
-                    **ratio_req
-                )
+                    # Compute priors
+                    dE_src = phys_energy_priors(ens,'Dst',mom,nstates,readfrom=readfrom)
+                    dE_snk = phys_energy_priors(ens,'B'  ,mom,nstates,readfrom=readfrom)
 
-                # Compute priors
-                dE_src = phys_energy_priors(ens,'Dst',mom,nstates,readfrom=readfrom)
-                dE_snk = phys_energy_priors(ens,'B'  ,mom,nstates,readfrom=readfrom)
+                    x,ydata = robj.format(trange,flatten=True)
+                    f_0    = gv.gvar(np.mean(ydata).mean,0.1)
+                    pr = robj.priors(nstates, K=f_0, dE_src=dE_src, dE_snk=dE_snk)
 
-                x,ydata = robj.format(trange,flatten=True)
-                f_0    = gv.gvar(np.mean(ydata).mean,0.1)
-                pr = robj.priors(nstates, K=f_0, dE_src=dE_src, dE_snk=dE_snk)
+                    # Perform fit
+                    fitres = fit_ratio(
+                        robj,
+                        nstates,
+                        trange,
+                        saveto  = saveto, 
+                        priors  = pr,
+                        jkfit   = JKFIT,  
+                        wpriors = args.no_priors_chi,
+                        **cov_specs
+                    )
 
-                # Perform fit
-                fitres = fit_ratio(
-                    robj,
-                    nstates,
-                    trange,
-                    saveto  = saveto, 
-                    priors  = pr,
-                    jkfit   = JKFIT,  
-                    wpriors = args.no_priors_chi,
-                    **cov_specs
-                )
+                    f0 = robj.fits[nstates,trange].p['ratio'][0]
+                    pval = fitres['pstd']
+                
+                else:
+                    fitres = read_config_fit(
+                        f'fit3pt_config_{tag}',
+                        jk=args.jkfit,
+                        path=SAVETO
+                    )
+
+                    if args.jkfit:
+                        f0 = fitres['ratio'][0]
+                        f0 = gv.gvar(f0.mean(),f0.std()*np.sqrt(len(f0)-1))
+                        pval = np.mean(fitres['pstd'])
+                    else:
+                        f0 = fitres[-1]['ratio'][0]
+                        pval = fitres[0]['pstd']
 
                 aux.append({
                     'ensemble' : ens,
@@ -230,9 +249,9 @@ def main():
                     'momentum' : mom,
                     'tmin'     : trange[0],
                     'tmax'     : trange[1],
-                    'svd'      : args.svd if args.svd is not None else svd,
-                    'F0'       : robj.fits[nstates,trange].p['ratio'][0],
-                    'pval'     : fitres['pstd']
+                    'svd'      : args.svd,
+                    'F0'       : f0,
+                    'pval'     : pval
                 })
 
                 # Plot ==============================================================================

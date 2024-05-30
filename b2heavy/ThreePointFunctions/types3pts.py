@@ -3,6 +3,7 @@ import h5py
 import gvar   as gv
 import numpy  as np
 import xarray as xr
+import pandas as pd
 
 import matplotlib.pyplot as plt
 
@@ -10,7 +11,10 @@ from .. import FnalHISQMetadata
 from ..TwoPointFunctions.utils   import jkCorr, compute_covariance
 
 from .utils import read_config_fit, exists, exists_analysis
+from ..FnalHISQMetadata import params
 
+# from .types3pts_old import Ratio   as Ratio_old
+# from .types3pts_old import RatioIO as RatioIO_old
 
 
 def read_ratio_from_files_list(corrname,*files,verbose=False):
@@ -27,6 +31,396 @@ def read_ratio_from_files_list(corrname,*files,verbose=False):
     return d
 
 
+def RatioSpecs(ratio, mData):
+    bStr    = '_k' + mData['kBStr']
+    cStr    = '_k' + mData['kDStr']
+    sStr    = '_m' + mData['msStr']
+    mStr    = '_m' + mData['mlStr']
+
+    match ratio:
+        # ========================== B ---> D ==========================
+        case 'XF1':
+            hStr   = cStr
+            lStr   = cStr
+            qStr   = mStr
+            nNames = [['P5_V1_P5_']]
+            nFacs  = [[1., 1., 1.]]
+            dNames = [['P5_V4_P5_']]
+            
+            specs  = dict(
+                source = 'D',
+                sink   = 'D'
+            )  
+        
+        case 'XF2':
+            hStr   = cStr
+            lStr   = cStr
+            qStr   = mStr
+            nNames = [['P5_V2_P5_']]
+            nFacs  = [[1., 1., 1.]]
+            dNames = [['P5_V4_P5_']]
+            
+            specs  = dict(
+                source = 'D',
+                sink   = 'D'
+            )  
+        
+        case 'XF3':
+            hStr   = cStr
+            lStr   = cStr
+            qStr   = mStr
+            nNames = [['P5_V3_P5_']]
+            nFacs  = [[1., 1., 1.]]
+            dNames = [['P5_V4_P5_']]
+            
+            specs  = dict(
+                source = 'D',
+                sink   = 'D'
+            )  
+
+        case 'QPLUS':
+            hStr   = bStr
+            lStr   = cStr
+            qStr   = mStr                
+            nNames = [['P5_V4_P5_']]
+            nFacs  = [[1.]]
+            dNames = [['P5_V4_P5_']]
+
+            specs  = dict(
+                source = 'B',
+                sink   = 'D'
+            )                  
+
+        case 'RMINUS1':
+            hStr   = bStr
+            lStr   = cStr
+            qStr   = mStr
+            nNames = [['P5_V1_P5_']]
+            nFacs  = [[1.,1.,1.]]
+            dNames = [['P5_V4_P5_']]
+
+            specs = dict(
+                source = 'B',
+                sink   = 'D' 
+            )
+
+        case 'RMINUS2':
+            hStr   = bStr
+            lStr   = cStr
+            qStr   = mStr
+            nNames = [['P5_V2_P5_']]
+            nFacs  = [[1.,1.,1.]]
+            dNames = [['P5_V4_P5_']]
+
+            specs = dict(
+                source = 'B',
+                sink   = 'D' 
+            )
+
+        case 'RMINUS3':
+            hStr   = bStr
+            lStr   = cStr
+            qStr   = mStr
+            nNames = [['P5_V3_P5_']]
+            nFacs  = [[1.,1.,1.]]
+            dNames = [['P5_V4_P5_']]
+
+            specs = dict(
+                source = 'B',
+                sink   = 'D' 
+            )
+
+        case 'RPLUS':
+            hStr   = bStr
+            lStr   = cStr
+            qStr   = mStr
+            nNames = [['P5_V4_P5_'],['P5_V4_P5_']]
+            nFacs  = [[1.],[1.]]
+            dNames = [['P5_V4_P5_'],['P5_V4_P5_']]                
+
+            specs = dict(
+                num = ['B->D','D->B'],
+                den = ['B->B','D->D']
+            )
+
+
+
+        # ========================== B ---> D* ==========================
+        case 'RA1':
+            hStr   = bStr
+            lStr   = cStr
+            qStr   = mStr
+            # nNames = [['P5_A2_V2_'], ['P5_A2_V2_']] # 'R' # <--- Alex version
+            # nFacs  = [[1., 1.], [ 1., 1.]]                # <--- Alex version    
+
+            nNames = [['P5_A2_V2_']]
+            nFacs  = [[1.]]   
+
+            # nNames = [['P5_A2_V2_','P5_A3_V3_']] #<--- should be the correct one 
+            # nFacs  = [[1., 1.], [ 1., 1.]]       #<--- should be the correct one 
+
+            dNames = [['V1_V4_V1_'],['P5_V4_P5_']] # 'V1_V4_V2_', 'V1_V4_V3_']         
+            
+            specs  = dict(
+                source = ['B','Dst'],
+                sink   = ['B','Dst']
+            )
+
+        case 'ZRA1':
+            hStr   = bStr
+            lStr   = cStr
+            qStr   = mStr
+            nNames = [['P5_A1_V1_', 'P5_A2_V2_', 'P5_A3_V3_'], ['V1_A1_P5_', 'V1_A2_P5_', 'V1_A3_P5_']] # 'R'
+            nFacs  = [[1., 1., 1.], [1., 1., 1.]]
+            dNames = [['V1_V4_V1_'],['P5_V4_P5_']] # 'V1_V4_V2_', 'V1_V4_V3_']
+            
+            specs  = dict(
+                source = ['B','Dst'],
+                sink   = ['B','Dst']
+            )
+
+        case 'R0':
+            hStr   = bStr
+            lStr   = cStr
+            qStr   = mStr
+            nNames = [['P5_A4_V1_']]
+            nFacs  = [[1.]]
+            dNames = [['P5_A2_V2_', 'P5_A3_V3_']]
+            
+            specs  = dict(
+                source = 'B',
+                sink   = 'Dst'
+            )
+
+        case 'R1':
+            hStr   = bStr
+            lStr   = cStr
+            qStr   = mStr
+            nNames = [['P5_A1_V1_']]
+            nFacs  = [[1.0]]
+            dNames = [['P5_A2_V2_', 'P5_A3_V3_']]
+            
+            specs  = dict(
+                source = 'B',
+                sink   = 'Dst'
+            )
+
+        case 'XV':
+            hStr   = bStr
+            lStr   = cStr
+            qStr   = mStr
+            nNames = [['P5_V3_V2_', 'P5_V2_V3_']]
+            nFacs  = [[1., -1.]]
+            dNames = [['P5_A2_V2_', 'P5_A3_V3_']]
+            
+            specs  = dict(
+                source = 'B',
+                sink   = 'Dst'
+            )
+
+        case 'XFSTPAR':
+            hStr   = cStr
+            lStr   = cStr
+            qStr   = mStr
+            nNames = [['V1_V1_V1_']]
+            nFacs  = [[1.]]
+            dNames = [['V1_V4_V1_']]
+            
+            specs  = dict(
+                source = 'Dst',
+                sink   = 'Dst'
+            )
+
+        case 'XFSTBOT':
+            hStr   = cStr
+            lStr   = cStr
+            qStr   = mStr
+            nNames = [['V1_V2_V1_', 'V1_V3_V1_']]
+            nFacs  = [[1., 1.]]
+            dNames = [['V1_V4_V2_', 'V1_V4_V3_']]
+            
+            specs  = dict(
+                source = 'Dst',
+                sink   = 'Dst'
+            )
+
+
+        # ========================== Bs ---> Ds* ==========================
+        case 'R0S':
+            hStr   = bStr
+            lStr   = cStr
+            qStr   = sStr
+            nNames = [['P5_A4_V1_']]
+            nFacs  = [[1.]]
+            dNames = [['P5_A2_V2_', 'P5_A3_V3_']]
+            
+            specs  = dict(
+                source = 'Bs',
+                sink   = 'Dsst'
+            )
+        
+        case 'R1S':
+            hStr   = bStr
+            lStr   = cStr
+            qStr   = sStr
+            nNames = [['P5_A1_V1_']]
+            nFacs  = [[0.5]]
+            dNames = [['P5_A2_V2_', 'P5_A3_V3_']]
+            
+            specs  = dict(
+                source = 'Bs',
+                sink   = 'Dsst'
+            )
+
+        case 'XVS':
+            hStr   = bStr
+            lStr   = cStr
+            qStr   = sStr
+            nNames = [['P5_V3_V2_', 'P5_V3_V2_']]
+            nFacs  = [[1., -1.]]
+            dNames = [['P5_A2_V2_', 'P5_A3_V3_']]
+            
+            specs  = dict(
+                source = 'Bs',
+                sink   = 'Dsst'
+            )
+
+        case 'XFSSTPAR':
+            hStr   = cStr
+            lStr   = cStr
+            qStr   = sStr
+            nNames = [['V1_V1_V1_']]
+            nFacs  = [[1.]]
+            dNames = ['V1_V4_V1_']
+            
+            specs  = dict(
+                source = 'Dsst',
+                sink   = 'Dsst'
+            )
+
+        case 'XFSSTBOT':
+            hStr   = cStr
+            lStr   = cStr
+            qStr   = sStr
+            nNames = [['V1_V2_V1_', 'V1_V3_V1_']]
+            nFacs  = [[1., 1.]]
+            dNames = ['V1_V4_V3_']#, 'V1_V4_V3_']
+            
+            specs  = dict(
+                source = 'Dsst',
+                sink   = 'Dsst'
+            )
+
+        case 'ZRA1S':
+            hStr   = bStr
+            lStr   = cStr
+            qStr   = mStr
+            nNames = [['P5_A1_V1_', 'P5_A2_V2_', 'P5_A3_V3_']] # 'R'
+            nFacs  = [[1., 1., 1.], [1., 1.]]
+            dNames = [['V1_V4_V1_'],['P5_V4_P5_']] # 'V1_V4_V2_', 'V1_V4_V3_']
+            
+            specs  = {'num': None, 'den': None}
+
+        case 'RA1S':
+            hStr   = bStr
+            lStr   = cStr
+            qStr   = sStr
+            nNames = [['P5_A2_V2_', 'P5_A3_V3_'], ['V1_A1_P5_', 'V1_A2_P5_', 'V1_A3_P5_']] # 'R'
+            nFacs  = [[1., 1.], [1., 1., 1.]]
+            dNames = [['V1_V4_V1_'],['P5_V4_P5']] # 'V1_V4_V2_', 'V1_V4_V3_']
+            
+            specs  = dict(
+                source = ['Bs','Dsst'],
+                sink   = ['Bs','Dsst']
+            )
+
+
+    return { 
+        'hStr'   : hStr  ,
+        'lStr'   : lStr  ,
+        'qStr'   : qStr  ,
+        'nNames' : nNames,
+        'nFacs'  : nFacs ,
+        'dNames' : dNames,
+        'specs'  : specs,
+    }
+
+
+def RatioFileString(name,ts,h,hss,q,l,p):
+    return f'{name}T{ts}{h}_RW_{hss}_rot_rot{q}{l}_p{p}'
+
+
+def RatioFileList(ratio,mom,mdata,sms=['RW','1S']):
+    specs = RatioSpecs(ratio,mdata)
+
+    h = specs['hStr']
+    q = specs['qStr']
+    l = specs['lStr']
+
+    tmp = []
+    for smr in sms: 
+        for t in sorted(mdata['hSinks']):
+            rname = lambda n,h,q,l: RatioFileString(n,t,h,smr,q,l,mom)
+            
+            nums = [[rname(n,h,q,l) for n in s] for s in specs['nNames']]
+            dens = [[rname(n,h,q,l) for n in s] for s in specs['dNames']]
+            facs = specs['nFacs']
+
+            # specific cases -----------------------------------
+            h_or_l = lambda n: h if n.startswith('P5') else l
+            if ratio=='ZRA1': # switch heavy with light in names
+                nums[1] = (
+                    [rname(n,l,q,h) for n in specs['nNames'][1]]
+                )
+                dens = [
+                    [rname(n, h_or_l(n), q, h_or_l(n))  for n in s] 
+                    for s in specs['dNames']
+                ]
+
+            if ratio in ['RA1','RA1S','QPLUS']: # at denom. mom must be 0
+                rname0 = lambda n,h,q,l: RatioFileString(n,t,h,smr,q,l,'000')
+                dens = [
+                    [rname0(n, h_or_l(n), q, h_or_l(n))  for n in s] 
+                    for s in specs['dNames']
+                ]
+            
+            if ratio=='RPLUS':
+                nums = [
+                    [RatioFileString('P5_V4_P5_',t,h,smr,q,l,'000')],
+                    [RatioFileString('P5_V4_P5_',t,l,smr,q,h,'000')],
+                ]
+                dens = [
+                    [RatioFileString('P5_V4_P5_',t,h,smr,q,h,'000')],
+                    [RatioFileString('P5_V4_P5_',t,l,smr,q,l,'000')],
+                ]
+
+            if ratio in ['RMINUS1','RMINUS2','RMINUS3']:
+                dir = ratio[-1]
+                nums = [[RatioFileString(f'P5_V{dir}_P5_',t,h,smr,q,l,mom)]]
+                dens = [[RatioFileString('P5_V4_P5_'     ,t,h,smr,q,l,mom)]]
+
+            if ratio in ['XF1','XF2','XF3']:
+                dir = ratio[-1]
+                nums = [[RatioFileString(f'P5_V{dir}_P5_',t,l,smr,q,l,mom)]]
+                dens = [[RatioFileString('P5_V4_P5_'     ,t,l,smr,q,l,mom)]]
+
+            if ratio=='QPLUS':
+                nums = [[RatioFileString('P5_V4_P5_',t,h,smr,q,l,mom)]]
+                dens = [[RatioFileString('P5_V4_P5_',t,h,smr,q,l,'000')]]
+            # ---------------------------------------------------
+
+
+            tmp.append({
+                'smearing': smr,
+                't_sink'  : t,
+                'num'     : nums, 
+                'den'     : dens,
+                'facs'    : facs 
+            })
+
+    return pd.DataFrame(tmp).set_index(['smearing','t_sink'])
+
+
 def ratio_prerequisites(
     ens  ,   
     ratio, 
@@ -34,7 +428,6 @@ def ratio_prerequisites(
     smearing = ['1S','d'],
     readfrom = None, 
     jk       = False,
-    meson    = 'Dst'
 ):
 
     req = dict(
@@ -46,12 +439,9 @@ def ratio_prerequisites(
         wrecoil = None
     )
 
-    if ratio in ['xfstpar','XV', 'ZRA1'] and mom!='000':
-        return req
-
-    elif ratio in ['R0','R1'] and mom!='000':
-        if exists_analysis(readfrom,ens,meson,mom,type='2',jkfit=jk):
-            tag = f'fit2pt_config_{ens}_{meson}_{mom}'
+    if ratio in ['R0','R1']:
+        if exists_analysis(readfrom,ens,'Dst',mom,type='2',jkfit=jk):
+            tag = f'fit2pt_config_{ens}_Dst_{mom}'
             p = read_config_fit(tag, path=readfrom, jk=jk)
 
             req['Zpar'] = {sm: None for sm in smearing}
@@ -66,37 +456,105 @@ def ratio_prerequisites(
                     req['Zpar'][sm] = np.exp(p[f'Z_{sm}_Par'][:,0]) * np.sqrt(2*p['E'][:,0])
                     req['Zbot'][sm] = np.exp(p[f'Z_{sm}_Bot'][:,0]) * np.sqrt(2*p['E'][:,0])
 
+    elif 'RA1' in ratio:
+        if exists_analysis(readfrom,ens,'Dst',mom,type='2',jkfit=jk) and \
+            exists_analysis(readfrom,ens,'Dst','000',type='2',jkfit=jk):
+                tag = f'fit2pt_config_{ens}_Dst_{mom}'
+                p2  = read_config_fit(tag, path=readfrom, jk=jk)
+                req['E0'] = p2['E'][:,0] if jk else p2[-1]['E'][0].mean
 
-    elif ratio=='RA1':
-        if exists_analysis(readfrom,ens,meson,mom,type='2',jkfit=jk) \
-            and exists_analysis(readfrom,ens,meson,'000',type='2',jkfit=jk):
-                tag = f'fit2pt_config_{ens}_{meson}_{mom}'
+                tag = f'fit2pt_config_{ens}_Dst_000'
+                p0 = read_config_fit(tag, path=readfrom, jk=jk)
+                req['m0'] = p0['E'][:,0] if jk else p0[-1]['E'][0].mean
+        
+        req['Zbot'] = {sm: None for sm in smearing}
+        req['Z0']   = {sm: None for sm in smearing}
+
+        if mom!='000' and \
+            exists_analysis(readfrom,ens,'xfstpar',mom,type='3',jkfit=jk):
+                tag = f'fit3pt_config_{ens}_xfstpar_{mom}'
+                p3 = read_config_fit(tag, path=readfrom, jk=jk)
+                xf = p3['ratio'].reshape(p3['ratio'].shape[-1]) if jk else p3[-1]['ratio'][0].mean
+                req['wrecoil'] = (1+xf**2)/(1-xf**2)
+
+        if mom=='000':
+            req['E0'] = None
+            req['m0'] = None
+
+        for sm in smearing:
+            pol = 'Bot' if mom!='000' else 'Unpol'
+            if not jk:
+                req['Zbot'][sm] = np.exp(p2[-1][f'Z_{sm}_{pol}'][0].mean) * np.sqrt(2*p2[-1]['E'][0]).mean
+                req['Z0']  [sm] = np.exp(p0[-1][f'Z_{sm}_Unpol'][0].mean) * np.sqrt(2*p0[-1]['E'][0]).mean
+            else:
+                req['Zbot'][sm] = np.exp(p2[f'Z_{sm}_{pol}'][:,0]) * np.sqrt(2*p2['E'][:,0])
+                req['Z0']  [sm] = np.exp(p0[f'Z_{sm}_Unpol'][:,0]) * np.sqrt(2*p0['E'][:,0])
+
+    elif ratio=='QPLUS':
+        if exists_analysis(readfrom,ens,'D',mom,type='2',jkfit=jk) \
+            and exists_analysis(readfrom,ens,'D','000',type='2',jkfit=jk):
+                tag = f'fit2pt_config_{ens}_D_{mom}'
                 p = read_config_fit(tag, path=readfrom, jk=jk)
                 req['E0'] = p['E'][:,0] if jk else p[-1]['E'][0].mean
 
-                tag = f'fit2pt_config_{ens}_{meson}_000'
+                tag = f'fit2pt_config_{ens}_D_000'
                 p0 = read_config_fit(tag, path=readfrom, jk=jk)
                 req['m0'] = p0['E'][:,0] if jk else p0[-1]['E'][0].mean
 
-        if mom!='000':
-            req['Zbot'] = {sm: None for sm in smearing}
-            req['Z0']   = {sm: None for sm in smearing}
+                for sm in smearing:
+                    if not jk:
+                        req['Zp'][sm] = np.exp(p [-1][f'Z_{sm}_Unpol'][0].mean) * np.sqrt(2*p[-1]['E'][0]).mean
+                        req['Z0'][sm] = np.exp(p0[-1][f'Z_{sm}_Unpol'][0].mean) * np.sqrt(2*p[-1]['E'][0]).mean
+                    else:
+                        req['Zp'][sm] = np.exp(p [f'Z_{sm}_Unpol'][:,0]) * np.sqrt(2*p['E'][:,0])
+                        req['Z0'][sm] = np.exp(p0[f'Z_{sm}_Unpol'][:,0]) * np.sqrt(2*p['E'][:,0])
 
-            for sm in smearing:
-                if not jk:
-                    req['Zbot'][sm] = np.exp(p [-1][f'Z_{sm}_Bot'  ][0].mean) * np.sqrt(2*p[-1]['E'][0]).mean
-                    req['Z0']  [sm] = np.exp(p0[-1][f'Z_{sm}_Unpol'][0].mean) * np.sqrt(2*p[-1]['E'][0]).mean
-                else:
-                    req['Zbot'][sm] = np.exp(p [f'Z_{sm}_Bot'  ][:,0]) * np.sqrt(2*p['E'][:,0])
-                    req['Z0']  [sm] = np.exp(p0[f'Z_{sm}_Unpol'][:,0]) * np.sqrt(2*p['E'][:,0])
 
-            if exists_analysis(readfrom,ens,'xfstpar',mom,type='3',jkfit=jk):
-                tag = f'fit3pt_config_{ens}_xfstpar_{mom}'
-                p = read_config_fit(tag, path=readfrom, jk=jk)
-                xf = p['ratio'].reshape(p['ratio'].shape[-1]) if jk else p[-1]['ratio'][0].mean
-                req['wrecoil'] = (1+xf**2)/(1-xf**2)
+        if exists_analysis(readfrom,ens,'xf',mom,type='3',jkfit=jk):
+            tag = f'fit3pt_config_{ens}_xf_{mom}'
+            p = read_config_fit(tag, path=readfrom, jk=jk)
+            xf = p['ratio'].reshape(p['ratio'].shape[-1]) if jk else p[-1]['ratio'][0].mean
+            req['wrecoil'] = (1+xf**2)/(1-xf**2)
+
 
     return req
+
+
+def ratio_correction_factor(ratio,T,smearing=['RW','1S'],**req):
+
+    factor = {}
+    for sm in smearing:
+        smi = 'd' if sm=='RW' else sm
+        match ratio:
+            case ratio if ratio in ['R0','R1']:
+                factor[sm] = np.sqrt(
+                    req['Zbot'][smi]/req['Zpar'][smi]
+                )
+
+            case ratio if ratio in ['RA1','RA1S']:
+                factor[sm] = 1./ req['wrecoil']**2 * \
+                    req['Zbot'][smi]/np.sqrt( req['Z0'][smi] * req['Z0']['1S'] ) * \
+                    np.exp(-(req['E0']-req['m0'])*T)
+
+            case ratio if ratio in ['ZRA1','ZRA1S']:
+                factor[sm] = req['Zbot'][smi] / np.sqrt( req['Z0'][smi] * req['Z0']['1S'] ) 
+
+            case 'QPLUS':
+                factor[sm] = 1./ req['wrecoil']**2 * \
+                    np.sqrt(req['Z0'][smi]/req['Zp'][smi]) * \
+                    np.exp(-(req['E0']-req['m0'])*T)
+
+    return factor if bool(factor) else None
+
+
+def func(ratio):
+    return dict(
+        fnum    = np.mean if 'RA1' in ratio else np.sum,
+        fden    = np.sum  if 'RA1' in ratio else np.mean,
+        reflect = ratio in ['RA1','RA1S']
+    )
+
+
 
 
 class RatioInfo:
@@ -112,491 +570,223 @@ class RatioInfo:
     def __str__(self):
         return f' # ------------- {self.name} -------------\n # ensemble = {self.ensemble}\n #    ratio = {self.ratio}\n # momentum = {self.momentum}\n #  binsize = {self.binsize}\n # filename = {self.filename}\n # ---------------------------------------'
 
+
 class RatioIO:
     def __init__(self, _ens:str, _rat:str, _mom:str, PathToFile=None, PathToDataDir=None, name=None):
+        if   _mom=='000' and _rat not in ['ZRA1','ZRA1S','RPLUS']:
+            raise NotImplementedError(f'At {_mom}, only ZRA1, ZRA1S, RPLUS are defined')
+        elif _mom!='000' and _rat in ['ZRA1','ZRA1S','RPLUS']:
+            raise NotImplementedError(f'{_rat} has not been defined for {_mom}>0')    
+
+
         dname = f'{_ens}_{_rat}_p{_mom}' if name is None else name
 
         self.info   = RatioInfo(dname,_ens,_rat,_mom)
         self.pmom   = [int(px) for px in self.info.momentum]
         self.mData  = FnalHISQMetadata.params(_ens)
 
+        self.Ta, self.Tb = self.mData['hSinks']
+
+        self.files = RatioFileList(_rat,_mom,self.mData)
+
         if PathToFile is not None:
-            self.RatioFile2 = PathToFile
+            self.RatioFile = PathToFile
         elif PathToDataDir is not None:
-            # path = os.path.join(PathToDataDir,self.mData['folder'],self.mData['hdf5File'])
-            # if os.path.exists(path):
-            #     self.RatioFile = path
-            # else:
-            #     raise FileNotFoundError(f'The file {path} has not been found')
-            
             path = os.path.join(PathToDataDir,self.mData['folder'],self.mData['hdf5File2'])
             if os.path.exists(path):
-                self.RatioFile2 = path
+                self.RatioFile = path
             else:
                 raise FileNotFoundError(f'The file {path} has not been found')
-            
         else:
             raise FileNotFoundError(f'Please specify as optional argument either data file in `PathToFile` or `PathToDataDir` to look at default data file.')
 
-    def RatioSpecs(self):
-        bStr    = '_k' + self.mData['kBStr']
-        cStr    = '_k' + self.mData['kDStr']
-        sStr    = '_m' + self.mData['msStr']
-        mStr    = '_m' + self.mData['mlStr']
+        self.raw       = None
+        self.corrected = None
+        self.data      = None 
 
-        match self.info.ratio:
-            case 'RA1':
-                hStr   = bStr
-                lStr   = cStr
-                qStr   = mStr
-                nNames = [['P5_A2_V2_'], ['P5_A3_V3_']] # 'R'
-                nFacs  = [[1., 1.], [ 1., 1.]]
-                dNames = [['V1_V4_V1_'],['P5_V4_P5_']] # 'V1_V4_V2_', 'V1_V4_V3_']         
-                
-                self.specs  = dict(
-                    source = ['B','Dst'],
-                    sink   = ['B','Dst']
-                )
-
-            case 'ZRA1':
-                hStr   = bStr
-                lStr   = cStr
-                qStr   = mStr
-                nNames = [['P5_A1_V1_', 'P5_A2_V2_', 'P5_A3_V3_'], ['V1_A1_P5_', 'V1_A2_P5_', 'V1_A3_P5_']] # 'R'
-                nFacs  = [[1., 1., 1.], [1., 1.]]
-                dNames = [['V1_V4_V1_'],['P5_V4_P5_']] # 'V1_V4_V2_', 'V1_V4_V3_']
-                
-                self.specs  = dict(
-                    source = ['B','Dst'],
-                    sink   = ['B','Dst']
-                )
-
-            case 'ZRA1S':
-                hStr   = bStr
-                lStr   = cStr
-                qStr   = mStr
-                nNames = [['P5_A1_V1_', 'P5_A2_V2_', 'P5_A3_V3_']] # 'R'
-                nFacs  = [[1., 1., 1.], [1., 1.]]
-                dNames = [['V1_V4_V1_'],['P5_V4_P5_']] # 'V1_V4_V2_', 'V1_V4_V3_']
-                
-                self.specs  = {'num': None, 'den': None}
-
-            case 'RA1S':
-                hStr   = bStr
-                lStr   = cStr
-                qStr   = sStr
-                nNames = [['P5_A2_V2_', 'P5_A3_V3_'], ['V1_A1_P5_', 'V1_A2_P5_', 'V1_A3_P5_']] # 'R'
-                nFacs  = [[1., 1.], [1., 1., 1.]]
-                dNames = [['V1_V4_V1_'],['P5_V4_P5']] # 'V1_V4_V2_', 'V1_V4_V3_']
-                
-                self.specs  = dict(
-                    source = ['Bs','Dsst'],
-                    sink   = ['Bs','Dsst']
-                )
-
-            case 'R0':
-                hStr   = bStr
-                lStr   = cStr
-                qStr   = mStr
-                nNames = [['P5_A4_V1_']]
-                nFacs  = [[1.]]
-                dNames = ['P5_A2_V2_', 'P5_A3_V3_']
-                
-                self.specs  = dict(
-                    source = 'B',
-                    sink   = 'Dst'
-                )
-
-            case 'R0S':
-                hStr   = bStr
-                lStr   = cStr
-                qStr   = sStr
-                nNames = [['P5_A4_V1_']]
-                nFacs  = [[1.]]
-                dNames = ['P5_A2_V2_', 'P5_A3_V3_']
-                
-                self.specs  = dict(
-                    source = 'Bs',
-                    sink   = 'Dsst'
-                )
-
-            case 'R1':
-                hStr   = bStr
-                lStr   = cStr
-                qStr   = mStr
-                nNames = [['P5_A1_V1_']]
-                nFacs  = [[1.0]]
-                dNames = ['P5_A2_V2_', 'P5_A3_V3_']
-                
-                self.specs  = dict(
-                    source = 'B',
-                    sink   = 'Dst'
-                )
-            
-            case 'R1S':
-                hStr   = bStr
-                lStr   = cStr
-                qStr   = sStr
-                nNames = [['P5_A1_V1_']]
-                nFacs  = [[0.5]]
-                dNames = ['P5_A2_V2_', 'P5_A3_V3_']
-                
-                self.specs  = dict(
-                    source = 'Bs',
-                    sink   = 'Dsst'
-                )
-
-            case 'XV':
-                hStr   = bStr
-                lStr   = cStr
-                qStr   = mStr
-                nNames = [['P5_V3_V2_', 'P5_V2_V3_']]
-                nFacs  = [[1., -1.]]
-                dNames = ['P5_A2_V2_', 'P5_A3_V3_']
-                
-                self.specs  = dict(
-                    source = 'B',
-                    sink   = 'Dst'
-                )
-
-            case 'XVS':
-                hStr   = bStr
-                lStr   = cStr
-                qStr   = sStr
-                nNames = [['P5_V3_V2_', 'P5_V3_V2_']]
-                nFacs  = [[1., -1.]]
-                dNames = ['P5_A2_V2_', 'P5_A3_V3_']
-                
-                self.specs  = dict(
-                    source = 'Bs',
-                    sink   = 'Dsst'
-                )
-
-            case 'XFSTPAR':
-                hStr   = cStr
-                lStr   = cStr
-                qStr   = mStr
-                nNames = [['V1_V1_V1_']]
-                nFacs  = [[1.]]
-                dNames = ['V1_V4_V1_']
-                
-                self.specs  = dict(
-                    source = 'Dst',
-                    sink   = 'Dst'
-                )
-
-            case 'XFSTBOT':
-                hStr   = cStr
-                lStr   = cStr
-                qStr   = mStr
-                nNames = [['V1_V2_V1_', 'V1_V3_V1_']]
-                nFacs  = [[1., 1.]]
-                dNames = ['V1_V4_V2_', 'V1_V4_V3_']
-                
-                self.specs  = dict(
-                    source = 'Dst',
-                    sink   = 'Dst'
-                )
-
-            case 'XFSSTPAR':
-                hStr   = cStr
-                lStr   = cStr
-                qStr   = sStr
-                nNames = [['V1_V1_V1_']]
-                nFacs  = [[1.]]
-                dNames = ['V1_V4_V1_']
-                
-                self.specs  = dict(
-                    source = 'Dsst',
-                    sink   = 'Dsst'
-                )
-
-            case 'XFSSTBOT':
-                hStr   = cStr
-                lStr   = cStr
-                qStr   = sStr
-                nNames = [['V1_V2_V1_', 'V1_V3_V1_']]
-                nFacs  = [[1., 1.]]
-                dNames = ['V1_V4_V3_']#, 'V1_V4_V3_']
-                
-                self.specs  = dict(
-                    source = 'Dsst',
-                    sink   = 'Dsst'
-                )
+        return
 
 
-        return { 
-            'hStr'   : hStr  ,
-            'lStr'   : lStr  ,
-            'qStr'   : qStr  ,
-            'nNames' : nNames,
-            'nFacs'  : nFacs ,
-            'dNames' : dNames
-        }
+    def read(self, files=None , sms=['RW','1S'], jkBin=None, verbose=False, fnum=np.mean, fden=np.sum, reflect=False, readfrom=None):
+        """
+            This functions reads and build a raw ratio (without any renormalization or exp(E0-m0) correction factor).
 
-    def RatioFileString(self,name,ts,h,hss,q,l,mom=None):
-        p = self.info.momentum if mom is None else mom
-        return f'{name}T{ts}{h}_RW_{hss}_rot_rot{q}{l}_p{p}'
-
-    def RatioFileDict(self,sms = ['RW','1S']):
-        specs = self.RatioSpecs()
-
-        aux = {}
-        for hss in sms:
-            aux[hss] = {}
-            for tSink in self.mData['hSinks']:
-                nuCorr = []
-                duCorr = []
-
-                flag = False
-                for j,(name,nFac) in enumerate(zip(specs['nNames'][0],specs['nFacs'][0])):
-                        filename = self.RatioFileString(name,tSink,specs["hStr"],hss,specs["qStr"],specs["lStr"])
-                        nuCorr.append(filename)
-
-                if ('RA1' not in self.info.ratio) and (self.info.momentum!='000'):
-                    flag = True
-                    if len(specs['dNames'])>0:
-                        for j,name in enumerate(specs['dNames']):
-                            filename = self.RatioFileString(name,tSink,specs["hStr"],hss,specs["qStr"],specs["lStr"])
-                            duCorr.append(filename)
-
-                elif 'RA1' in self.info.ratio:
-                    flag = True
-                    target = specs['nNames'][0] if self.info.ratio!='ZRA1' else specs['nNames'][1]
-                    for j,name in enumerate(target):
-                        if self.info.ratio=='ZRA1':
-                            filename = self.RatioFileString(name,tSink,specs["lStr"],hss,specs["qStr"],specs["hStr"])
-                        else:
-                            filename = self.RatioFileString(name,tSink,specs["hStr"],hss,specs["qStr"],specs["lStr"])
-                        nuCorr.append(filename)
-
-                if flag:
-                    aux[hss][tSink] = dict(nu=nuCorr,du=duCorr)
-
-        return aux
-
-    def ReadRatio(self, sms = ['RW','1S'], jkBin=None, E0=None, m0=None, verbose=False, datafiles=None):
-        if datafiles is None:
-            # files = [self.RatioFile,self.RatioFile2]
-            files = [self.RatioFile2]
-        else:
-            files = datafiles
-
-        specs = self.RatioSpecs()
-        T = self.mData['hSinks'][0]
-
-        if ('RA1' not in self.info.ratio) and (self.info.momentum!='000'):
-            not_RA1 = True
-        elif 'RA1' in self.info.ratio:
-            not_RA1 = False
-        else:
-            raise Exception(f'{self.info.ratio} is not a valid ratio name') 
+            Given a dataframe `files`, output of `RatioFileList` function, it does the following for every smearing and every :
+            - goes through the list of 3pf in the list numerators and reads them (multiply for `nFac`)
+            - apply jackknife resampling
+            - takes the product (effective in case of double ratio)
+            - averages (or sum) over space directions (if vector meson case)
+            - build the ratio
+        """
 
 
-        PROCESSED = {}
-        for hss in sms:
-            if not_RA1: # ==============================================================================================
-                AUX = []
-                for tSink in self.mData['hSinks']:
-                    nuCorr = []
-                    for j,(name,nFac) in enumerate(zip(specs['nNames'][0],specs['nFacs'][0])):
-                        corrname = self.RatioFileString(
-                            name,tSink,specs["hStr"],hss,specs["qStr"],specs["lStr"]
-                        )
-                        nuCorr.append(
-                            read_ratio_from_files_list(corrname,*files,verbose=verbose) * nFac
-                        )
+        # Here we set the file list (if nothing is specified, we look at self.files)
+        files = self.files if files is None else files
+        if files is None:
+            raise Exception(f'`RatioFileList` function must be called first')
 
-                    nuCorr = np.mean(nuCorr,axis=0)
-                    nuCorr = jkCorr(nuCorr,bsize=0 if jkBin is None else jkBin)
+        jk = 0 if jkBin is None else jkBin
+
+        readfrom = [self.RatioFile] if readfrom is None else readfrom
+        readhdf5 = lambda name: read_ratio_from_files_list(name,*readfrom,verbose=verbose)
+
+        tmp = {}
+        for sm in sms:
+            tmp[sm] = {}
+            for ts in sorted(self.mData['hSinks']):
+                tmp[sm][ts] = {}
+
+                # Here we stack 3pf for numerator
+                nums = []
+                for namelst, flst in zip(
+                    files.loc[sm,ts]['num'],
+                    files.loc[sm,ts]['facs']
+                ):
+                    num = np.array([
+                        jkCorr(readhdf5(name)*f, bsize=jk) 
+                        for name,f in zip(namelst,flst)
+                    ])
+                    nums.append(num)
 
 
-                    duCorr = []
-                    if len(specs['dNames'])>0:
-                        for j,name in enumerate(specs['dNames']):
-                            corrname = self.RatioFileString(
-                                name,tSink,specs["hStr"],hss,specs["qStr"],specs["lStr"]
-                            )
-                            duCorr.append(
-                                read_ratio_from_files_list(corrname,*files,verbose=verbose)
-                            )
-
-                    duCorr = np.sum(duCorr,axis=0)
-                    duCorr = jkCorr(duCorr,bsize=0 if jkBin is None else jkBin)
-                    
-                    AUX.append(
-                        nuCorr/duCorr if list(duCorr) else nuCorr
-                    )
-
-                PROCESSED[hss] = \
-                    0.5*AUX[0][:,0:T+1] + \
-                    0.25*AUX[1][:,0:T+1] + \
-                    0.25*np.roll(AUX[1], -1, axis=1)[:,0:T+1] 
-                
-            if not not_RA1: # ==========================================================================================
-                AUX = []
-                for tSink in self.mData['hSinks']:
-                    aux    = []
-                    nuCorr = []
-                    for name in specs['nNames'][0]:
-                        corrname = self.RatioFileString(
-                            name,tSink,specs["hStr"],hss,specs["qStr"],specs["lStr"]
-                        )
-                        aux.append(
-                            jkCorr(
-                                read_ratio_from_files_list(corrname,*files,verbose=verbose),
-                                bsize=0 if jkBin is None else jkBin
-                            )
-                        )
-                    nuCorr.append(np.array(aux)[:,:,0:(tSink+1)])
-
-                    target = specs['nNames'][0] if self.info.ratio!='ZRA1' else specs['nNames'][1]
+                if reflect: # if RA1, timeslice must be reflected
                     aux = []
-                    for j,name in enumerate(target):
-                        if self.info.ratio=='ZRA1':
-                            corrname = self.RatioFileString(
-                                name,tSink,specs["lStr"],hss,specs["qStr"],specs["hStr"]
-                            )
-                        else:
-                            corrname = self.RatioFileString(
-                                name,tSink,specs["hStr"],hss,specs["qStr"],specs["lStr"]
-                            )
-
-                        aux.append(
-                            jkCorr(
-                                read_ratio_from_files_list(corrname,*files,verbose=verbose),
-                                bsize=0 if jkBin is None else jkBin
-                            )
-                        )
-                    aux = np.flip(np.array(aux)[:,:,0:(tSink+1)], axis=2) if self.info.ratio!='ZRA1' else np.array(aux)[:,:,0:(tSink+1)]
-                    nuCorr.append(aux)
+                    for x in nums:
+                        num = np.flip(x,axis=-1)
+                        num = np.roll(num,ts+1,axis=-1)
+                        aux.append(x)
+                        aux.append(num)
+                    nums = aux
 
 
-                    duCorr = []
-                    for mesStr, cName in zip([specs['lStr'],specs['hStr']],specs['dNames']):
-                        aux = []
-                        for name in cName:
-                            corrname = self.RatioFileString(
-                                name,tSink,mesStr,hss,specs["qStr"],mesStr,mom='000'
-                            )
-                            aux.append(
-                                read_ratio_from_files_list(corrname,*files,verbose=verbose)
-                            )
-                        aux = np.array(aux).mean(axis=0)[:,0:(tSink+1)]
-                        duCorr.append(
-                            jkCorr(aux,bsize=0 if jkBin is None else jkBin)
-                        )
 
-                    AUX.append(
-                        (nuCorr[0]*nuCorr[1]).sum(axis=0)/(duCorr[0]*duCorr[1])
-                    )
+                # Here we stack 3pf for denominator
+                dens = []
+                for namelst in files.loc[sm,ts]['den']:
+                    den = [
+                        jkCorr(readhdf5(name), bsize=jk) 
+                        for name in namelst
+                    ]
+                    dens.append(den)
 
-                if E0 is None and m0 is None:
-                    if self.info.momentum!='000':
-                        raise Exception('Energy and rest mass must be provided')
-                elif isinstance(E0, np.ndarray) and isinstance(m0, np.ndarray): 
-                    perjk = True
-                    if E0.shape!=m0.shape:
-                        raise Exception(f'E0 ({E0.shape = }) and m0 ({m0.shape = }) must have compatible shapes ')
-                    elif len(E0)!=AUX[0].shape[0]:
-                        raise Exception(f'E0 ({E0.shape = }) and ratio data ({AUX[0].shape = }) must have compatible shapes ')
-                elif isinstance(E0, float) and isinstance(E0, float):
-                    perjk = False
-                    if E0==0. and m0==0.:
-                        Warning('E0 and m0 are set to 0')
+                nums = np.array(nums) # FIXME this works only if the double ratio is the product of 3pts with the same number of spatial component
+                dens = np.array(dens)
+
+                # Here we take product over dim=0 (only effective in case of multiple ratio)
+                nums = nums.prod(axis=0)
+                dens = dens.prod(axis=0)
+                
+                # Here we average or sum over directions
+                nums = fnum(nums,axis=0)
+                dens = fden(dens,axis=0)
+                
+                tmp[sm][ts] = nums/dens
+
+        self.raw = tmp
+        return
 
 
-                if self.info.momentum!='000':
-                    expT  = np.exp((E0 - m0)*T)
-                    expTp = np.exp((E0 - m0)*(T+1))
-                    if perjk:
-                        expT  = np.tile(expT,(T+1,1)).T
-                        expTp = np.tile(expTp,(T+1,1)).T
+    def correct(self, factor=None): # the first key of processed must be smearing, the second must be sink times
+        self.corrected = {}
+        
+        if factor is None:
+            self.corrected = self.raw
+        elif not isinstance(factor, dict):
+            raise TypeError(f'[factor] must be a dictionary with matching key as {self.raw = }')
+        else:
+            for sm in self.raw:
+                self.corrected[sm] = {}
+                for ts in self.raw[sm]:
+                    if isinstance(factor[sm],float):
+                        self.corrected[sm][ts] = self.raw[sm][ts] * factor[sm]
+                    elif isinstance(factor[sm],np.ndarray):
+                        self.corrected[sm][ts] = self.raw[sm][ts] *  np.tile(factor[sm],(self.raw[sm][ts].shape[-1],1)).T
 
-                    PROCESSED[hss] = \
-                        0.5*AUX[0][:,:T+1] * expT + \
-                        0.25*AUX[1][:,:T+1] * expTp + \
-                        0.25*np.roll(AUX[1], -1, axis=1)[:,:T+1] * expTp 
+        return
 
-                else:
-                    PROCESSED[hss] = \
-                        0.5*AUX[0][:,0:T+1] +\
-                        0.25*AUX[1][:,0:T+1] +\
-                        0.25*np.roll(AUX[1], -1, axis=1)[:,0:T+1]
 
-        return PROCESSED
+    def smooth(self,**kwargs):
+        if self.raw is None:
+            raise Exception('<read> method must me called first')
+        data = self.raw if self.corrected is None else self.corrected
+
+        E0 = kwargs.get('E0')
+        m0 = kwargs.get('m0')
+
+
+        f1, f2 = 1,1
+        if self.info.ratio in ['RA1','RA1S']:
+            if E0 is None and m0 is None:
+                raise Exception('Energy and rest mass must be provided')
+            elif isinstance(E0, (int,float)) and isinstance(E0, (int,float)):
+                perjk = True
+            elif isinstance(E0, np.ndarray) and isinstance(m0, np.ndarray): 
+                perjk = True
+                if E0.shape!=m0.shape:
+                    raise Exception(f'E0 ({E0.shape = }) and m0 ({m0.shape = }) must have compatible shapes ')
+
+            f1  = np.exp((E0 - m0)*self.Ta)
+            f2 = np.exp((E0 - m0)*(self.Ta+1))
+            if perjk:
+                f1 = np.tile(f1,(self.Ta+1,1)).T
+                f2 = np.tile(f2,(self.Ta+1,1)).T
+
+        self.data = {}
+        for sm in self.raw:
+            self.data[sm] = \
+                f1 * 0.5  * data[sm][self.Ta][:,:self.Ta+1] + \
+                f2 * 0.25 * data[sm][self.Tb][:,:self.Ta+1] + \
+                f2 * 0.25 * np.roll(data[sm][self.Tb], -1, axis=1)[:,:self.Ta+1]             
+
+        return
+
 
 class Ratio:
-    def __init__(self, io:RatioIO, jkBin=None, smearing=None, verbose=False, datafiles=None, **kwargs):
+    def __init__(self, io:RatioIO, datafiles=None, jkBin=None, smearing=None, verbose=False, **requisites):
         self.io           = io
         self.info         = io.info
         self.info.binsize = jkBin
         self.binsize      = jkBin
 
-        E0 = kwargs.get('E0')
-        m0 = kwargs.get('m0')
+        if smearing is not None:
+            io.files = RatioFileList(
+                self.info.ratio,
+                self.info.momentum,
+                io.mData,
+                sms = smearing
+            )
 
-        self.E0           = E0
-        self.m0           = m0
-
-        self.data = io.ReadRatio(
-            jkBin     = jkBin,
-            E0        = E0,
-            m0        = m0,
-            datafiles = datafiles,
-            verbose   = verbose,
-            sms       = ['1S','RW'] if smearing is None else smearing,
+        # import 3pf from datafiles, compute raw ratios
+        fcts = func(self.info.ratio)
+        io.read(
+            files   = datafiles,
+            sms     = smearing,
+            jkBin   = jkBin,
+            verbose = verbose,
+            **fcts
         )
-        self.specs = io.specs
 
-        factor = {}
-        if self.info.ratio in ['R0','R1','RA1'] and self.info.momentum!='000':
-            Zpar = kwargs.get('Zpar')
-            Zbot = kwargs.get('Zbot')
-            if self.info.ratio in ['R0','R1']:
-                if Zpar is None or Zbot is None:
-                    raise Exception('For R0 ratio, Z_1S_Par, Z_1S_Bot, Z_d_Par, Z_d_Bot must be provided')
-                else:
-                    for sm in smearing:
-                        smi = 'd' if sm=='RW' else sm
-                        factor[sm] = np.sqrt(Zbot[smi]/Zpar[smi])
+        # correct ratio with apposite (re)normalizatio/kinematic factors
+        ff = ratio_correction_factor(
+            self.info.ratio,
+            self.io.Ta,
+            **requisites
+        )
+        io.correct(factor=ff)
 
-            elif self.info.ratio=='RA1':
-                Z0      = kwargs.get('Z0')
-                wrecoil = kwargs.get('wrecoil')
-                if E0       is None or \
-                    m0      is None or \
-                    Zbot    is None or \
-                    Z0      is None or \
-                    wrecoil is None:
-                    raise Exception('For RA1 ratio, rest mass, E0, Z_d_Bot, Z_d_Bot (at 0 and non-0 momentum) and recoil parameter must be provided')
-                
-                else:
-                    T = self.io.mData['hSinks'][0]
-                    for sm in smearing:
-                        smi = 'd' if sm=='RW' else sm
-                        factor[sm] = 1./wrecoil**2 * \
-                            Zbot[smi]/np.sqrt( Z0[smi] * Z0['1S'] ) * \
-                            np.exp(-(E0-m0)*T)    
+        # smoothen ratio 
+        io.smooth(**requisites)
 
-            for sm in smearing:
-                if isinstance(factor[sm], np.ndarray):
-                    factor[sm] = np.tile(factor[sm],(self.data[sm].shape[-1],1)).T
-
-                self.data[sm] = self.data[sm] * factor[sm]
-
-
-
+        self.data = io.data
         self.smr = sorted(list(self.data.keys()))
+        
+        shapes = list({self.data[sm].shape for sm in self.data})
+        assert len(shapes)==1
 
-        shapes = [self.data[d].shape for d in self.data]
-        shapes = np.unique(shapes)
-        assert len(shapes)==2
+        self.nbins, tmax = shapes[0]
+        self.timeslice = np.arange(tmax)
 
-        self.nbins     = shapes[1]
-        self.timeslice = np.arange(shapes[0])
-
-        return
+        return        
 
 
     def format(self, trange=None, smearing=None, flatten=False, alljk=False, **cov_kwargs):
@@ -615,7 +805,10 @@ class Ratio:
 
         # Compute un-jk data
         if cov_kwargs.get('scale'):
-            ydata_full = self.io.ReadRatio(jkBin=1,E0=self.E0,m0=self.m0)
+            _e0 = self.E0.mean() if isinstance(self.E0, np.ndarray) else self.E0
+            _m0 = self.m0.mean() if isinstance(self.m0, np.ndarray) else self.m0
+
+            ydata_full = self.io.ReadRatio(jkBin=1,E0=_e0,m0=_m0)
             ally = {s: ydata_full[s][:,it] for s in smr}
         else:
             ally = None
@@ -636,25 +829,20 @@ class Ratio:
         return (xdata,ydata) if not alljk else (xdata,ydata,yjk)
 
 
-
-def find_eps_cut(ratio:Ratio,trange,tol=1e+05,default=1E-12,**cov_specs):
-    x,y, data = ratio.format(trange=trange,flatten=True,alljk=True,**cov_specs)    
-
-    cov = np.cov(data.T) * (data.shape[0]-1)
-    cdiag = np.diag(1./np.sqrt(np.diag(cov)))
-    cor = cdiag @ cov @ cdiag
-
-    eval,evec = np.linalg.eigh(cor)
-    y = sorted(abs(eval))/max(eval)
-
-    I=None
-    for i,r in enumerate((y/np.roll(y,1))[1:]):
-        if r>tol:
-            I=i+1
-            break
-
-    return default if I is None else sorted(abs(eval))[I]
-
+    def plot(self, ax, **kwargs):
+        x, y = self.format()
+        for i,sm in enumerate(self.smr):
+            ax.errorbar(
+                x,
+                gv.mean(y[sm]),
+                yerr = gv.sdev(y[sm]),
+                fmt    = 'o' , 
+                ecolor = kwargs['col'][sm] if 'col' in kwargs else f'C{i}',
+                color  = kwargs['col'][sm] if 'col' in kwargs else f'C{i}',
+                capsize=2.5,
+                mfc='w',
+                label=sm
+            )
 
 
 
@@ -663,92 +851,34 @@ def find_eps_cut(ratio:Ratio,trange,tol=1e+05,default=1E-12,**cov_specs):
 
 def main():
     ens = 'Coarse-1'
-    rat = 'RA1'
+    ratio = 'RA1'
     mom = '100'
     frm = '/Users/pietro/code/data_analysis/BtoD/Alex'
     readfrom = '/Users/pietro/code/data_analysis/data/QCDNf2p1stag/B2heavy/report'
 
-    reqs = ratio_prerequisites(
-        ens      = ens,
-        ratio    = rat,
-        mom      = mom,
-        readfrom = readfrom,
-        jk       = False
-    )
-
-    reqs['Z0']   = {'1S': 1., 'd': 1.}
-    reqs['Zbot'] = {'1S': 1., 'd': 1.}
-
-    io = RatioIO(ens,rat,mom,PathToDataDir=frm)
+    req = ratio_prerequisites(ens,ratio,mom,readfrom=readfrom,jk=True)
+    io = RatioIO(ens,ratio,mom,PathToDataDir=frm)
+    breakpoint()
     ratio = Ratio(
-        io,
-        jkBin=11,
-        smearing=['1S','RW'],
-        **reqs
+        io,jkBin=11,smearing=['RW','1S'],**req
     )
 
-    x,ydata = ratio.format()
-    plt.errorbar(x,gv.mean(ydata['1S']),gv.sdev(ydata['1S']),fmt='.')
-    plt.errorbar(x,gv.mean(ydata['RW']),gv.sdev(ydata['RW']),fmt='.')
-
+    fig = plt.figure(figsize=(5,3))
+    ax = plt.subplot(1,1,1)
+    ratio.plot(ax)
+    plt.legend()
     plt.show()
 
+    # # oi = RatioIO_old(ens,ratio,mom,PathToDataDir=frm)
+    # # ioo = Ratio_old(
+    # #     oi,
+    # #     jkBin=11,
+    # #     smearing=['1S','RW'],
+    # #     # verbose=True,
+    # #     **req
+    # # )    
 
 
+    # # flag = np.allclose(ioo.data['RW'],io.data['RW'],rtol=0.,atol=1e-14)
 
 
-def main_scan_all_ratio():
-    # mom_list   = ['000','100','200','300','110','211']
-    mom_list   = ['000','100','200','300']#,'400']
-    ratio_list = ['RA1','ZRA1','ZRA1S','RA1S']#,'R0','R0S','R1','R1S','XV','XVS','XFSTPAR','XFSTBOT','XFSSTPAR','XFSSTBOT']
-
-    f,ax = plt.subplots(
-        len(mom_list),len(ratio_list),
-        layout="constrained",
-        sharex=True,
-        figsize=(20,10)
-    )
-
-    for i,ratio in enumerate(ratio_list):
-        for j,mom in enumerate(mom_list):
-            r = RatioIO(
-                'Coarse-1',
-                ratio,
-                mom,
-                PathToDataDir='/Users/pietro/code/data_analysis/BtoD/Alex'
-            )
-
-            try:
-                d = r.ReadRatio(jkBin=11,E0=0,m0=0)
-                print(r.specs)
-            except Exception:
-                d = None
-
-            if d is not None:
-                ydata = gv.gvar(
-                    d['RW'].mean(axis=0),
-                    np.cov(d['RW'],rowvar=False)*(d['RW'].shape[0]-1)
-                )
-                y  = gv.mean(ydata)
-                ye = gv.sdev(ydata)
-                x = np.arange(len(y)) 
-
-                ax[j,i].errorbar(x,y,yerr=ye,fmt='.')
-                ax[j,i].set_xticks([])
-                ax[j,i].set_yticks([])
-            else:
-                ax[j,i].scatter([],[])
-                ax[j,i].set_xticks([])
-                ax[j,i].set_yticks([])
-
-            if j==0:
-                ax[0,i].set_title(ratio)
-            if i==0:
-                ax[j,0].set_ylabel(mom)
-
-            print(mom,ratio)
-
-
-    plt.tight_layout()
-    # plt.savefig('/Users/pietro/Desktop/MediumCoarse.pdf')
-    plt.show()
