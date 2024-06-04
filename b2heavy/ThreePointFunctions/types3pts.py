@@ -16,6 +16,9 @@ from ..FnalHISQMetadata import params
 # from .types3pts_old import Ratio   as Ratio_old
 # from .types3pts_old import RatioIO as RatioIO_old
 
+def ratiofmt(r:str):
+    return r.replace('+','PLUS').replace('-','MINUS').upper()
+
 
 def read_ratio_from_files_list(corrname,*files,verbose=False):
     for file in files:
@@ -37,14 +40,14 @@ def RatioSpecs(ratio, mData):
     sStr    = '_m' + mData['msStr']
     mStr    = '_m' + mData['mlStr']
 
-    match ratio:
+    match ratiofmt(ratio):
         # ========================== B ---> D ==========================
-        case 'XF1':
+        case 'XF':
             hStr   = cStr
             lStr   = cStr
             qStr   = mStr
             nNames = [['P5_V1_P5_']]
-            nFacs  = [[1., 1., 1.]]
+            nFacs  = [[1.]]
             dNames = [['P5_V4_P5_']]
             
             specs  = dict(
@@ -57,7 +60,7 @@ def RatioSpecs(ratio, mData):
             lStr   = cStr
             qStr   = mStr
             nNames = [['P5_V2_P5_']]
-            nFacs  = [[1., 1., 1.]]
+            nFacs  = [[1.]]
             dNames = [['P5_V4_P5_']]
             
             specs  = dict(
@@ -70,7 +73,7 @@ def RatioSpecs(ratio, mData):
             lStr   = cStr
             qStr   = mStr
             nNames = [['P5_V3_P5_']]
-            nFacs  = [[1., 1., 1.]]
+            nFacs  = [[1.]]
             dNames = [['P5_V4_P5_']]
             
             specs  = dict(
@@ -91,12 +94,12 @@ def RatioSpecs(ratio, mData):
                 sink   = 'D'
             )                  
 
-        case 'RMINUS1':
+        case 'RMINUS':
             hStr   = bStr
             lStr   = cStr
             qStr   = mStr
             nNames = [['P5_V1_P5_']]
-            nFacs  = [[1.,1.,1.]]
+            nFacs  = [[1.]]
             dNames = [['P5_V4_P5_']]
 
             specs = dict(
@@ -109,7 +112,7 @@ def RatioSpecs(ratio, mData):
             lStr   = cStr
             qStr   = mStr
             nNames = [['P5_V2_P5_']]
-            nFacs  = [[1.,1.,1.]]
+            nFacs  = [[1.]]
             dNames = [['P5_V4_P5_']]
 
             specs = dict(
@@ -350,7 +353,9 @@ def RatioFileString(name,ts,h,hss,q,l,p):
     return f'{name}T{ts}{h}_RW_{hss}_rot_rot{q}{l}_p{p}'
 
 
-def RatioFileList(ratio,mom,mdata,sms=['RW','1S']):
+def RatioFileList(rstr,mom,mdata,sms=['RW','1S']):
+    ratio = ratiofmt(rstr)
+
     specs = RatioSpecs(ratio,mdata)
 
     h = specs['hStr']
@@ -394,13 +399,13 @@ def RatioFileList(ratio,mom,mdata,sms=['RW','1S']):
                     [RatioFileString('P5_V4_P5_',t,l,smr,q,l,'000')],
                 ]
 
-            if ratio in ['RMINUS1','RMINUS2','RMINUS3']:
-                dir = ratio[-1]
+            if ratio in ['RMINUS','RMINUS2','RMINUS3']:
+                dir = 1 if ratio=='RMINUS' else ratio[-1]
                 nums = [[RatioFileString(f'P5_V{dir}_P5_',t,h,smr,q,l,mom)]]
                 dens = [[RatioFileString('P5_V4_P5_'     ,t,h,smr,q,l,mom)]]
 
-            if ratio in ['XF1','XF2','XF3']:
-                dir = ratio[-1]
+            if ratio in ['XF','XF2','XF3']:
+                dir = 1 if ratio=='XF' else ratio[-1]
                 nums = [[RatioFileString(f'P5_V{dir}_P5_',t,l,smr,q,l,mom)]]
                 dens = [[RatioFileString('P5_V4_P5_'     ,t,l,smr,q,l,mom)]]
 
@@ -421,106 +426,72 @@ def RatioFileList(ratio,mom,mdata,sms=['RW','1S']):
     return pd.DataFrame(tmp).set_index(['smearing','t_sink'])
 
 
-def ratio_prerequisites(
-    ens  ,   
-    ratio, 
-    mom  , 
-    smearing = ['1S','d'],
-    readfrom = None, 
-    jk       = False,
-):
-
+def ratio_prerequisites(ens,ratio,mom,smearing=['1S','d'],readfrom=None,jk=False):
     req = dict(
         E0      = None,
         m0      = None,
-        Z0      = None,
-        Zpar    = None,
-        Zbot    = None,
-        wrecoil = None
+        Z0      = {s: None for s in smearing},
+        Zpar    = {s: None for s in smearing},
+        Zbot    = {s: None for s in smearing},
+        Zp      = {s: None for s in smearing},
+        wrecoil = None,
+        jk      = jk
     )
 
-    if ratio in ['R0','R1']:
-        if exists_analysis(readfrom,ens,'Dst',mom,type='2',jkfit=jk):
-            tag = f'fit2pt_config_{ens}_Dst_{mom}'
-            p = read_config_fit(tag, path=readfrom, jk=jk)
+    rt = ratiofmt(ratio)
+    if rt in ['RA1','ZRA1','XFPAR','XFBOT','XV','R0','R1']:
+        mes = 'Dst'
+    elif rt in ['XF','QPLUS','RPLUS','RMINUS']:
+        mes = 'D'
 
-            req['Zpar'] = {sm: None for sm in smearing}
-            req['Zbot'] = {sm: None for sm in smearing}
+    assert exists_analysis(readfrom,ens,mes,mom  ,type='2',jkfit=jk)
+    assert exists_analysis(readfrom,ens,mes,'000',type='2',jkfit=jk)
 
-            for sm in smearing:
-                if not jk:
-                    req['Zpar'][sm] = (np.exp(p[-1][f'Z_{sm}_Par'][0]) * np.sqrt(2*p[-1]['E'][0])).mean
-                    req['Zbot'][sm] = (np.exp(p[-1][f'Z_{sm}_Bot'][0]) * np.sqrt(2*p[-1]['E'][0])).mean
+    p2 = read_config_fit(
+        f'fit2pt_config_{ens}_{mes}_{mom}',
+    path=readfrom,jk=jk)
+    p0 = read_config_fit(
+        f'fit2pt_config_{ens}_{mes}_000',
+    path=readfrom,jk=jk)
 
-                else:
-                    req['Zpar'][sm] = np.exp(p[f'Z_{sm}_Par'][:,0]) * np.sqrt(2*p['E'][:,0])
-                    req['Zbot'][sm] = np.exp(p[f'Z_{sm}_Bot'][:,0]) * np.sqrt(2*p['E'][:,0])
+    req['E0'] = p2['E'][:,0] if jk else p2[-1]['E'][0].mean
+    req['m0'] = p0['E'][:,0] if jk else p0[-1]['E'][0].mean
 
-    elif 'RA1' in ratio:
-        if exists_analysis(readfrom,ens,'Dst',mom,type='2',jkfit=jk) and \
-            exists_analysis(readfrom,ens,'Dst','000',type='2',jkfit=jk):
-                tag = f'fit2pt_config_{ens}_Dst_{mom}'
-                p2  = read_config_fit(tag, path=readfrom, jk=jk)
-                req['E0'] = p2['E'][:,0] if jk else p2[-1]['E'][0].mean
+    for sm in smearing:
+        if not jk:
+            req['Z0'][sm] = (np.exp(p0[-1][f'Z_{sm}_Unpol'][0])**2 * 2*p0[-1]['E'][0]).mean
+        else:
+            req['Z0'][sm] = np.exp(p0[f'Z_{sm}_Unpol'][:,0])**2 * 2*p0['E'][:,0]     
 
-                tag = f'fit2pt_config_{ens}_Dst_000'
-                p0 = read_config_fit(tag, path=readfrom, jk=jk)
-                req['m0'] = p0['E'][:,0] if jk else p0[-1]['E'][0].mean
-        
-        req['Zbot'] = {sm: None for sm in smearing}
-        req['Z0']   = {sm: None for sm in smearing}
-
-        if mom!='000' and \
-            exists_analysis(readfrom,ens,'xfstpar',mom,type='3',jkfit=jk):
-                tag = f'fit3pt_config_{ens}_xfstpar_{mom}'
-                p3 = read_config_fit(tag, path=readfrom, jk=jk)
-                xf = p3['ratio'].reshape(p3['ratio'].shape[-1]) if jk else p3[-1]['ratio'][0].mean
-                req['wrecoil'] = (1+xf**2)/(1-xf**2)
-
-        if mom=='000':
-            req['E0'] = None
-            req['m0'] = None
-
-        for sm in smearing:
-            pol = 'Bot' if mom!='000' else 'Unpol'
+        if mes=='Dst' and mom!='000':
             if not jk:
-                req['Zbot'][sm] = np.exp(p2[-1][f'Z_{sm}_{pol}'][0].mean) * np.sqrt(2*p2[-1]['E'][0]).mean
-                req['Z0']  [sm] = np.exp(p0[-1][f'Z_{sm}_Unpol'][0].mean) * np.sqrt(2*p0[-1]['E'][0]).mean
+                req['Zpar'][sm] = (np.exp(p2[-1][f'Z_{sm}_Par'][0])**2 * 2*p2[-1]['E'][0]).mean
+                req['Zbot'][sm] = (np.exp(p2[-1][f'Z_{sm}_Bot'][0])**2 * 2*p2[-1]['E'][0]).mean                
             else:
-                req['Zbot'][sm] = np.exp(p2[f'Z_{sm}_{pol}'][:,0]) * np.sqrt(2*p2['E'][:,0])
-                req['Z0']  [sm] = np.exp(p0[f'Z_{sm}_Unpol'][:,0]) * np.sqrt(2*p0['E'][:,0])
+                req['Zpar'][sm] = np.exp(p2[f'Z_{sm}_Par'][:,0])**2 * 2*p2['E'][:,0]
+                req['Zbot'][sm] = np.exp(p2[f'Z_{sm}_Bot'][:,0])**2 * 2*p2['E'][:,0]     
 
-    elif ratio=='QPLUS':
-        if exists_analysis(readfrom,ens,'D',mom,type='2',jkfit=jk) \
-            and exists_analysis(readfrom,ens,'D','000',type='2',jkfit=jk):
-                tag = f'fit2pt_config_{ens}_D_{mom}'
-                p = read_config_fit(tag, path=readfrom, jk=jk)
-                req['E0'] = p['E'][:,0] if jk else p[-1]['E'][0].mean
+        elif mes=='D':
+            if not jk:
+                req['Zp'][sm] = (np.exp(p2[-1][f'Z_{sm}_Unpol'][0])**2 * 2*p2[-1]['E'][0]).mean
+            else:
+                req['Zp'][sm] = np.exp(p2[f'Z_{sm}_Unpol'][:,0])**2 * 2*p2['E'][:,0]     
 
-                tag = f'fit2pt_config_{ens}_D_000'
-                p0 = read_config_fit(tag, path=readfrom, jk=jk)
-                req['m0'] = p0['E'][:,0] if jk else p0[-1]['E'][0].mean
-
-                for sm in smearing:
-                    if not jk:
-                        req['Zp'][sm] = np.exp(p [-1][f'Z_{sm}_Unpol'][0].mean) * np.sqrt(2*p[-1]['E'][0]).mean
-                        req['Z0'][sm] = np.exp(p0[-1][f'Z_{sm}_Unpol'][0].mean) * np.sqrt(2*p[-1]['E'][0]).mean
-                    else:
-                        req['Zp'][sm] = np.exp(p [f'Z_{sm}_Unpol'][:,0]) * np.sqrt(2*p['E'][:,0])
-                        req['Z0'][sm] = np.exp(p0[f'Z_{sm}_Unpol'][:,0]) * np.sqrt(2*p['E'][:,0])
-
-
-        if exists_analysis(readfrom,ens,'xf',mom,type='3',jkfit=jk):
-            tag = f'fit3pt_config_{ens}_xf_{mom}'
-            p = read_config_fit(tag, path=readfrom, jk=jk)
-            xf = p['ratio'].reshape(p['ratio'].shape[-1]) if jk else p[-1]['ratio'][0].mean
-            req['wrecoil'] = (1+xf**2)/(1-xf**2)
-
+    if rt in ['RA1','RA1S']:
+        assert exists_analysis(readfrom,ens,'xfstpar',mom,type='3',jkfit=jk)
+        tag = f'fit3pt_config_{ens}_xfstpar_{mom}'
+        p3 = read_config_fit(tag, path=readfrom, jk=jk)
+        xf = p3['ratio'].reshape(p3['ratio'].shape[-1]) if jk else p3[-1]['ratio'][0].mean
+        req['wrecoil'] = (1+xf**2)/(1-xf**2)
+        # req['wrecoil'] = req['E0']/req['m0']
+    else:
+        req['wrecoil'] = req['E0']/req['m0']
 
     return req
 
 
-def ratio_correction_factor(ratio,T,smearing=['RW','1S'],**req):
+def ratio_correction_factor(rstr,T,smearing=['RW','1S'],**req):
+    ratio = ratiofmt(rstr)
 
     factor = {}
     for sm in smearing:
@@ -537,23 +508,26 @@ def ratio_correction_factor(ratio,T,smearing=['RW','1S'],**req):
                     np.exp(-(req['E0']-req['m0'])*T)
 
             case ratio if ratio in ['ZRA1','ZRA1S']:
-                factor[sm] = req['Zbot'][smi] / np.sqrt( req['Z0'][smi] * req['Z0']['1S'] ) 
+                factor[sm] = req['Z0'][smi] / np.sqrt( req['Z0'][smi] * req['Z0']['1S'] ) 
 
             case 'QPLUS':
-                factor[sm] = 1./ req['wrecoil']**2 * \
-                    np.sqrt(req['Z0'][smi]/req['Zp'][smi]) * \
-                    np.exp(-(req['E0']-req['m0'])*T)
+                factor[sm] = req['E0']/req['m0'] * \
+                    req['Z0'][smi]/req['Zp'][smi]
+                    # np.sqrt(req['Z0'][smi]/req['Zp'][smi])
 
     return factor if bool(factor) else None
 
 
 def func(ratio):
-    return dict(
-        fnum    = np.mean if 'RA1' in ratio else np.sum,
-        fden    = np.sum  if 'RA1' in ratio else np.mean,
-        reflect = ratio in ['RA1','RA1S']
-    )
+    match ratiofmt(ratio):
+        case ratio if ratio in ['ZRA1','ZRA1S']:
+            tmp = dict(fnum=np.sum, fden=np.mean, reflect=False)
+        case ratio if ratio in ['RA1','RA1S']:
+            tmp = dict(fnum=np.mean, fden=np.sum, reflect=True)
+        case _:
+            tmp = dict(fnum=np.sum, fden=np.mean, reflect=False)
 
+    return tmp
 
 
 
@@ -578,16 +552,17 @@ class RatioIO:
         elif _mom!='000' and _rat in ['ZRA1','ZRA1S','RPLUS']:
             raise NotImplementedError(f'{_rat} has not been defined for {_mom}>0')    
 
-
         dname = f'{_ens}_{_rat}_p{_mom}' if name is None else name
 
-        self.info   = RatioInfo(dname,_ens,_rat,_mom)
+        rstr = _rat.replace('+','PLUS').replace('-','MINUS')
+
+        self.info   = RatioInfo(dname,_ens,rstr,_mom)
         self.pmom   = [int(px) for px in self.info.momentum]
         self.mData  = FnalHISQMetadata.params(_ens)
 
         self.Ta, self.Tb = self.mData['hSinks']
 
-        self.files = RatioFileList(_rat,_mom,self.mData)
+        self.files = RatioFileList(self.info.ratio,_mom,self.mData)
 
         if PathToFile is not None:
             self.RatioFile = PathToFile
@@ -599,10 +574,6 @@ class RatioIO:
                 raise FileNotFoundError(f'The file {path} has not been found')
         else:
             raise FileNotFoundError(f'Please specify as optional argument either data file in `PathToFile` or `PathToDataDir` to look at default data file.')
-
-        self.raw       = None
-        self.corrected = None
-        self.data      = None 
 
         return
 
@@ -659,7 +630,6 @@ class RatioIO:
                     nums = aux
 
 
-
                 # Here we stack 3pf for denominator
                 dens = []
                 for namelst in files.loc[sm,ts]['den']:
@@ -682,102 +652,106 @@ class RatioIO:
                 
                 tmp[sm][ts] = nums/dens
 
-        self.raw = tmp
-        return
+        # self.raw = tmp
+        return tmp
 
 
-    def correct(self, factor=None): # the first key of processed must be smearing, the second must be sink times
-        self.corrected = {}
+    def correct(self, raw, factor=None): # the first key of processed must be smearing, the second must be sink times
+        corrected = {}
         
         if factor is None:
-            self.corrected = self.raw
+            corrected = raw
         elif not isinstance(factor, dict):
-            raise TypeError(f'[factor] must be a dictionary with matching key as {self.raw = }')
+            raise TypeError(f'[factor] must be a dictionary with matching key as {raw = }')
         else:
-            for sm in self.raw:
-                self.corrected[sm] = {}
-                for ts in self.raw[sm]:
+            for sm in raw:
+                corrected[sm] = {}
+                for ts in raw[sm]:
                     if isinstance(factor[sm],float):
-                        self.corrected[sm][ts] = self.raw[sm][ts] * factor[sm]
+                        corrected[sm][ts] = raw[sm][ts] * factor[sm]
                     elif isinstance(factor[sm],np.ndarray):
-                        self.corrected[sm][ts] = self.raw[sm][ts] *  np.tile(factor[sm],(self.raw[sm][ts].shape[-1],1)).T
+                        corrected[sm][ts] = raw[sm][ts] *  np.tile(factor[sm],(raw[sm][ts].shape[-1],1)).T
 
-        return
+        return corrected
 
 
-    def smooth(self,**kwargs):
-        if self.raw is None:
-            raise Exception('<read> method must me called first')
-        data = self.raw if self.corrected is None else self.corrected
-
+    def smooth(self, corrected, **kwargs):
         E0 = kwargs.get('E0')
         m0 = kwargs.get('m0')
 
-
         f1, f2 = 1,1
-        if self.info.ratio in ['RA1','RA1S']:
+        if self.info.ratio in ['RA1','RA1S','QPLUS']:
             if E0 is None and m0 is None:
                 raise Exception('Energy and rest mass must be provided')
             elif isinstance(E0, (int,float)) and isinstance(E0, (int,float)):
-                perjk = True
+                perjk = False
             elif isinstance(E0, np.ndarray) and isinstance(m0, np.ndarray): 
                 perjk = True
                 if E0.shape!=m0.shape:
                     raise Exception(f'E0 ({E0.shape = }) and m0 ({m0.shape = }) must have compatible shapes ')
 
-            f1  = np.exp((E0 - m0)*self.Ta)
-            f2 = np.exp((E0 - m0)*(self.Ta+1))
-            if perjk:
-                f1 = np.tile(f1,(self.Ta+1,1)).T
-                f2 = np.tile(f2,(self.Ta+1,1)).T
+            if self.info.ratio in ['RA1','RA1S']:
+                f1  = np.exp((E0 - m0)*self.Ta)
+                f2 = np.exp((E0 - m0)*(self.Ta+1))
+                if perjk:
+                    f1 = np.tile(f1,(self.Ta+1,1)).T
+                    f2 = np.tile(f2,(self.Ta+1,1)).T
 
-        self.data = {}
-        for sm in self.raw:
-            self.data[sm] = \
-                f1 * 0.5  * data[sm][self.Ta][:,:self.Ta+1] + \
-                f2 * 0.25 * data[sm][self.Tb][:,:self.Ta+1] + \
-                f2 * 0.25 * np.roll(data[sm][self.Tb], -1, axis=1)[:,:self.Ta+1]             
+            elif self.info.ratio=='QPLUS':
+                if not perjk:
+                    f1 = np.exp((E0-m0) * np.arange(self.Ta+1))
+                else:
+                    f1 = np.transpose([np.exp((E0-m0)*t) for t in np.arange(self.Ta+1)])
+                f2 = f1
 
-        return
+        data = {}
+        for sm in corrected:
+            data[sm] = \
+                f1 * 0.5  * corrected[sm][self.Ta][:,:self.Ta+1] + \
+                f2 * 0.25 * corrected[sm][self.Tb][:,:self.Ta+1] + \
+                f2 * 0.25 * np.roll(corrected[sm][self.Tb], -1, axis=1)[:,:self.Ta+1]             
+
+        return data
+
+
+    def build(self, smearing=['RW','1S'], jkBin=None, verbose=False, **reqs):
+        # import 3pf from default datafiles, compute raw ratios
+        fcts = func(self.info.ratio)
+        raw = self.read(
+            sms   = smearing,
+            jkBin = jkBin,
+            verbose = verbose,
+            **fcts
+        )
+
+
+        # correct ratio with apposite (re)normalizatio/kinematic factors
+        ff = ratio_correction_factor(
+            self.info.ratio,
+            self.Ta,
+            **reqs
+        )
+        corrected = self.correct(raw,factor=ff)
+
+        # smoothen ratio 
+        data = self.smooth(corrected, **reqs)
+
+        return data
 
 
 class Ratio:
-    def __init__(self, io:RatioIO, datafiles=None, jkBin=None, smearing=None, verbose=False, **requisites):
+    def __init__(self, io:RatioIO, jkBin=None, smearing=None, verbose=False, **requisites):
         self.io           = io
         self.info         = io.info
         self.info.binsize = jkBin
         self.binsize      = jkBin
 
-        if smearing is not None:
-            io.files = RatioFileList(
-                self.info.ratio,
-                self.info.momentum,
-                io.mData,
-                sms = smearing
-            )
-
-        # import 3pf from datafiles, compute raw ratios
-        fcts = func(self.info.ratio)
-        io.read(
-            files   = datafiles,
-            sms     = smearing,
-            jkBin   = jkBin,
-            verbose = verbose,
-            **fcts
-        )
-
-        # correct ratio with apposite (re)normalizatio/kinematic factors
-        ff = ratio_correction_factor(
-            self.info.ratio,
-            self.io.Ta,
+        self.data = io.build(
+            smearing = smearing,
+            jkBin    = jkBin,
+            verbose  = verbose,
             **requisites
         )
-        io.correct(factor=ff)
-
-        # smoothen ratio 
-        io.smooth(**requisites)
-
-        self.data = io.data
         self.smr = sorted(list(self.data.keys()))
         
         shapes = list({self.data[sm].shape for sm in self.data})
@@ -786,6 +760,25 @@ class Ratio:
         self.nbins, tmax = shapes[0]
         self.timeslice = np.arange(tmax)
 
+        # Check if some element in requisites is None *and* is a vector (jackknife)
+        _req = requisites
+        if requisites.get('jk'):
+            _req = {}
+            for k,rq in requisites.items():
+                if rq is not None and k!='jk':
+                    if isinstance(rq,dict):
+                        _req[k] = {k: rq[k].mean() for k in rq}
+                    else:
+                        _req[k] = rq.mean()
+                else:
+                    _req[k] = rq
+
+        self.data_full = io.build(
+            smearing = smearing,
+            jkBin    = 1,
+            verbose  = verbose,
+            **_req
+        )
         return        
 
 
@@ -805,11 +798,7 @@ class Ratio:
 
         # Compute un-jk data
         if cov_kwargs.get('scale'):
-            _e0 = self.E0.mean() if isinstance(self.E0, np.ndarray) else self.E0
-            _m0 = self.m0.mean() if isinstance(self.m0, np.ndarray) else self.m0
-
-            ydata_full = self.io.ReadRatio(jkBin=1,E0=_e0,m0=_m0)
-            ally = {s: ydata_full[s][:,it] for s in smr}
+            ally = {s: self.data_full[s][:,it] for s in smr}
         else:
             ally = None
 
@@ -851,34 +840,14 @@ class Ratio:
 
 def main():
     ens = 'Coarse-1'
-    ratio = 'RA1'
-    mom = '100'
+    r   = 'ZRA1'
+    mom = '000'
     frm = '/Users/pietro/code/data_analysis/BtoD/Alex'
     readfrom = '/Users/pietro/code/data_analysis/data/QCDNf2p1stag/B2heavy/report'
 
-    req = ratio_prerequisites(ens,ratio,mom,readfrom=readfrom,jk=True)
-    io = RatioIO(ens,ratio,mom,PathToDataDir=frm)
+    req = ratio_prerequisites(ens,r,mom,readfrom=readfrom,jk=False)
+    
+    io = RatioIO(ens,r,mom,PathToDataDir=frm)
+    io.build(smearing=['1S'],jkBin=8,**req)
+
     breakpoint()
-    ratio = Ratio(
-        io,jkBin=11,smearing=['RW','1S'],**req
-    )
-
-    fig = plt.figure(figsize=(5,3))
-    ax = plt.subplot(1,1,1)
-    ratio.plot(ax)
-    plt.legend()
-    plt.show()
-
-    # # oi = RatioIO_old(ens,ratio,mom,PathToDataDir=frm)
-    # # ioo = Ratio_old(
-    # #     oi,
-    # #     jkBin=11,
-    # #     smearing=['1S','RW'],
-    # #     # verbose=True,
-    # #     **req
-    # # )    
-
-
-    # # flag = np.allclose(ioo.data['RW'],io.data['RW'],rtol=0.,atol=1e-14)
-
-

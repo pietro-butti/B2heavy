@@ -1,6 +1,4 @@
-import sys
-import itertools
-import argparse
+import toml
 import numpy  as np
 import gvar   as gv
 import pandas as pd
@@ -13,157 +11,118 @@ from b2heavy.TwoPointFunctions.utils     import correlation_diagnostics
 
 from b2heavy.ThreePointFunctions.fitter3pts import RatioFitter, RatioIO
 from b2heavy.ThreePointFunctions.utils     import read_config_fit, dump_fit_object
-from b2heavy.ThreePointFunctions.types3pts import ratio_prerequisites, find_eps_cut
-
-# from routines.fit_2pts_utils             import load_toml, read_config_fit
-# from routines.fit_3pts_config            import elaborate_ratio, exists_2pts_analysis
+from b2heavy.ThreePointFunctions.types3pts import ratio_prerequisites, ratiofmt
 
 
 
-def ra1():
-    tmin = 0.4
 
-    binsize  = {
-        'MediumCoarse':13,
-        'Coarse-2':    16,
-        'Coarse-1':    11,
-        'Coarse-Phys': 19,
-        'Fine-1':      16,
-        'Fine-Phys':   16,
-        'SuperFine':   22
-    }
-    readfrom = '/Users/pietro/code/data_analysis/data/QCDNf2p1stag/B2heavy/presentation' 
-    data_dir = '/Users/pietro/code/data_analysis/BtoD/Alex/'
-    smslist  = ['1S']
-
-
-    enss = ['Coarse-2','Coarse-1','Coarse-Phys','Fine-1']
-    moms = ['000','100','200','300','400']
-    ratio = 'RA1'
-
-    itr = itertools.product(enss,moms)
-    aux = []
-    for ens,mom in itr:
-        print('--------------',ens,mom,'--------------')
-        try:
-            fitres_mes = read_config_fit(
-                tag = f'fit2pt_config_{ens}_Dst_{mom}',
-                path=readfrom,
-                jk=True
-            )
-            fitres_0  = read_config_fit(
-                tag = f'fit2pt_config_{ens}_Dst_000',
-                path=readfrom,
-                jk=True
-            )
-        except FileNotFoundError:
-            continue        
-
-        e0 = fitres_mes['E'][:,0]
-        m0 = fitres_0['E'][:,0]
-
-        io = RatioIO(ens, 'RA1', mom, PathToDataDir=data_dir)
-        robj = RatioFitter(
-            io, 
-            jkBin    = binsize[ens], 
-            smearing = smslist,
-            E0       = e0,
-            m0       = m0,
-            Zpar     = None,
-            Zbot     = None if mom=='000' else np.exp(fitres_mes['Z_1S_Bot'][:,0]) * np.sqrt(2. * e0),
-            Z0       = np.exp(fitres_0['Z_1S_Unpol'][:,0]) * np.sqrt(2. * m0),
-            wrecoil  = e0/m0
-        )
-
-        Tmin = int(tmin/mData(ens)['aSpc'].mean)
-
-        trange = (Tmin,robj.Tb-Tmin)
-
-        xdata,ydata,yjk = robj.format(trange,flatten=True,alljk=True)
-        # svd = round(correlation_diagnostics(yjk,verbose=False),ndigits=5)
-        svd = correlation_diagnostics(yjk,verbose=False)
-
-        aux.append({
-            'ensemble': ens,
-            'ratio'   : ratio,
-            'momentum': mom,
-            'tmin'    : Tmin,
-            'svd'     : svd,
-        })
-    
-    df = pd.DataFrame(aux).set_index(['ensemble','ratio','momentum'])
-    print(df)
+tmin2 = 0.15
+tmin1 = 0.30
 
 
 
 
 def main():
-    tmin = 0.4
-
-    binsize  = {
-        'MediumCoarse':13,
-        'Coarse-2':    16,
-        'Coarse-1':    11,
-        'Coarse-Phys': 19,
-        'Fine-1':      16,
-        'Fine-Phys':   16,
-        'SuperFine':   22
+    ens_list = [
+        'MediumCoarse',
+        'Coarse-2',
+        'Coarse-1',
+        'Coarse-Phys',
+        'Fine-1',
+        'Fine-Phys',
+        'SuperFine',
+    ]
+    binSizes  = {
+        'MediumCoarse': 13,
+        'Coarse-2'    : 16,
+        'Coarse-1'    : 11,
+        'Coarse-Phys' : 19,
+        'Fine-1'      : 16,
+        'Fine-Phys'   : 16,
+        'SuperFine'   : 22
     }
-    readfrom = '/Users/pietro/code/data_analysis/data/QCDNf2p1stag/B2heavy/report' 
+    mom_list = {
+        'MediumCoarse' : ['000','100','200','300','400'],
+        'Coarse-2'     : ['000','100','200','300'],
+        'Coarse-1'     : ['000','100','200','300'],
+        'Coarse-Phys'  : ['000','100','200','300','400'],
+        'Fine-1'       : ['000','100','200','300','400'],
+        'Fine-Phys'    : ['000','100','200','300','400'],
+        'SuperFine'    : ['000','100','200','300','400'],        
+    }
+
+
+
+    mes = 'D'
+    ratio_list = {
+        'D': ['xf','r+','r-','q+']
+    }
+
     data_dir = '/Users/pietro/code/data_analysis/BtoD/Alex/'
-    smslist  = ['1S']
+    frm = '/Users/pietro/code/data_analysis/data/QCDNf2p1stag/B2heavy/report'
 
+    # smlist   = ['1S','RW'] 
+    smlist   = ['1S'] 
+    config = {'fit': {}}
 
-    enss = ['Coarse-2','Coarse-1','Coarse-Phys','Fine-1']
-    moms = ['000','100','200','300','400']
-    rats = ['xfstpar','XV','R0','R1']
-
-    itr = itertools.product(enss,rats,moms)
     aux = []
-    for ens,ratio,mom in tqdm(itr):
-        if mom=='000' and 'RA1' not in ratio:
-            continue
-        elif mom!='000' and ratio=='ZRA1':
-            continue
+    for ens in ens_list:
+        config['fit'][ens] = {}
+        for rstr in ratio_list[mes]:
+            ratio = ratiofmt(rstr)
+            
+            config['fit'][ens][ratio] = {'smlist':smlist, 'mom': {}}
 
-        if mom=='400' and ens not in ['Coarse-Phys','Fine-1']:
-            continue
+            for mom in mom_list[ens]:
+                if mom=='000' and ratio!='RPLUS':
+                    continue
+                elif mom!='000' and ratio=='RPLUS':
+                    continue
+                        
+                config['fit'][ens][ratio]['mom'][mom] = {}
+
+                print(f'-------- {ens,ratio,mom} --------')
+                a_fm = mData(ens)['aSpc'].mean
 
 
-        try:
-            ratio_prq = ratio_prerequisites(
-                ens      = ens,
-                ratio    = ratio,
-                mom      = mom,
-                readfrom = readfrom,
-                meson    = 'Dst'
-            )
-        except FileNotFoundError:
-            continue
+                req = ratio_prerequisites(ens,ratio,mom,readfrom=frm)
+                try:
+                    io   = RatioIO(ens,ratio,mom,PathToDataDir=data_dir)
+                except NotImplementedError:
+                    continue
 
-        io = RatioIO(ens,ratio,mom,PathToDataDir=data_dir)
-        robj = RatioFitter(
-            io,
-            jkBin = binsize[ens],
-            smearing = ['1S','RW'],
-            **ratio_prq
-        )
+                robj = RatioFitter(
+                    io       = io,
+                    jkBin    = binSizes[ens],
+                    smearing = smlist,
+                    **req
+                )
 
-        Tmin = int(tmin/mData(ens)['aSpc'].mean)
-        trange = (Tmin,robj.Ta-Tmin-1)
+                # choose tmin
+                tmin = int(tmin2/a_fm)
+                tmax = robj.Ta - tmin
 
-        eps = find_eps_cut(robj,trange)
+                config['fit'][ens][ratio]['mom'][mom] = {}
+                config['fit'][ens][ratio]['mom'][mom]['nstates']    = 2
+                config['fit'][ens][ratio]['mom'][mom]['tag']        = f'{ens}_{ratio}_{mom}' # 'Coarse-Phys_B_211'
+                config['fit'][ens][ratio]['mom'][mom]['trange']     = [tmin,tmax]
 
-        aux.append({
-            'ensemble': ens,
-            'ratio'   : ratio,
-            'momentum': mom,
-            'tmin'    : Tmin,
-            'svd'     : eps,
-        })
+                d = {
+                    'ensemble'   : ens,
+                    'ratio'      : ratio,
+                    'momentum'   : mom,
+                    'tmin'       : tmin,
+                    'tmax'       : tmax,
+                }
+
+                aux.append(d)
     
     df = pd.DataFrame(aux).set_index(['ensemble','ratio','momentum'])
     print(df)
+
+
+    with open('scemo.toml','w') as f:
+        toml.dump(config,f)
 
 
 

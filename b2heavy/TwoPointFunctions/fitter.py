@@ -172,7 +172,8 @@ def set_priors_phys(corr, Nstates, Meff=None, Aeff=None, prior_policy=None):
                 v = np.log(v)/2
                 # priors[f'Z_{sm1}_{pol}'][0] = gv.gvar(np.log(v.mean)/2,priors[f'Z_{sm1}_{pol}'][0].sdev)
                 # priors[f'Z_{sm1}_{pol}'][0] = gv.gvar(v.mean,v.sdev*1000/2)
-                priors[f'Z_{sm1}_{pol}'][0] = gv.gvar(v.mean,v.sdev*100)
+                # priors[f'Z_{sm1}_{pol}'][0] = gv.gvar(v.mean,v.sdev*100)
+                priors[f'Z_{sm1}_{pol}'][0] = gv.gvar(v.mean,1.0)
 
     return priors  
 

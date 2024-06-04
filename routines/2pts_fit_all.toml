@@ -56,9 +56,9 @@ mom_list = [ "000", "100", "200", "300", "400", "110", "211", "222",]
 Nt = 96
 
 [data.SuperFine]
-name = "SuperFile"
+name = "SuperFine"
 data_dir = "/Users/pietro/code/data_analysis/BtoD/Alex"
-binsize = 16
+binsize = 22
 mom_list = [ "000", "100", "200", "300", "400", "110", "211", "222",]
 Nt = 192
 
@@ -173,62 +173,6 @@ trange_eff = [ 24, 39,]
 trange = [ 11, 39,]
 svd = 1e-12
 
-[fit.SuperFine.B.mom.000]
-tag = "SuperFine_B_000"
-nstates = 3
-trange_eff = [ 24, 47,]
-trange = [ 14, 47,]
-svd = 1e-12
-
-[fit.SuperFine.B.mom.100]
-tag = "SuperFine_B_100"
-nstates = 3
-trange_eff = [ 24, 47,]
-trange = [ 14, 47,]
-svd = 1e-12
-
-[fit.SuperFine.B.mom.200]
-tag = "SuperFine_B_200"
-nstates = 3
-trange_eff = [ 24, 44,]
-trange = [ 14, 44,]
-svd = 1e-12
-
-[fit.SuperFine.B.mom.300]
-tag = "SuperFine_B_300"
-nstates = 3
-trange_eff = [ 24, 42,]
-trange = [ 14, 42,]
-svd = 1e-12
-
-[fit.SuperFine.B.mom.400]
-tag = "SuperFine_B_400"
-nstates = 3
-trange_eff = [ 24, 45,]
-trange = [ 14, 45,]
-svd = 1e-12
-
-[fit.SuperFine.B.mom.110]
-tag = "SuperFine_B_110"
-nstates = 3
-trange_eff = [ 24, 47,]
-trange = [ 14, 47,]
-svd = 1e-12
-
-[fit.SuperFine.B.mom.211]
-tag = "SuperFine_B_211"
-nstates = 3
-trange_eff = [ 24, 43,]
-trange = [ 14, 43,]
-svd = 1e-12
-
-[fit.SuperFine.B.mom.222]
-tag = "SuperFine_B_222"
-nstates = 3
-trange_eff = [ 24, 39,]
-trange = [ 14, 39,]
-svd = 1e-12
-
 [fit.MediumCoarse.Dst.mom.000]
 tag = "MediumCoarse_Dst_000"
 nstates = 3
@@ -285,62 +229,6 @@ trange_eff = [ 9, 15,]
 trange = [ 4, 15,]
 svd = 1e-12
 
-[fit.MediumCoarse.B.mom.000]
-tag = "MediumCoarse_B_000"
-nstates = 3
-trange_eff = [ 9, 18,]
-trange = [ 5, 18,]
-svd = 1e-12
-
-[fit.MediumCoarse.B.mom.100]
-tag = "MediumCoarse_B_100"
-nstates = 3
-trange_eff = [ 9, 17,]
-trange = [ 5, 17,]
-svd = 1e-12
-
-[fit.MediumCoarse.B.mom.200]
-tag = "MediumCoarse_B_200"
-nstates = 3
-trange_eff = [ 9, 16,]
-trange = [ 5, 16,]
-svd = 1e-12
-
-[fit.MediumCoarse.B.mom.300]
-tag = "MediumCoarse_B_300"
-nstates = 3
-trange_eff = [ 9, 16,]
-trange = [ 5, 16,]
-svd = 1e-12
-
-[fit.MediumCoarse.B.mom.400]
-tag = "MediumCoarse_B_400"
-nstates = 3
-trange_eff = [ 9, 16,]
-trange = [ 5, 16,]
-svd = 1e-12
-
-[fit.MediumCoarse.B.mom.110]
-tag = "MediumCoarse_B_110"
-nstates = 3
-trange_eff = [ 9, 17,]
-trange = [ 5, 17,]
-svd = 1e-12
-
-[fit.MediumCoarse.B.mom.211]
-tag = "MediumCoarse_B_211"
-nstates = 3
-trange_eff = [ 9, 18,]
-trange = [ 5, 18,]
-svd = 1e-12
-
-[fit.MediumCoarse.B.mom.222]
-tag = "MediumCoarse_B_222"
-nstates = 3
-trange_eff = [ 9, 15,]
-trange = [ 5, 15,]
-svd = 1e-12
-
 [fit.Coarse-2.Dst.mom.000]
 tag = "Coarse-2_Dst_000"
 nstates = 3
@@ -387,52 +275,6 @@ svd = 1e-12
 
 [fit.Coarse-2.Dst.mom.222]
 
-[fit.Coarse-2.B.mom.000]
-tag = "Coarse-2_B_000"
-nstates = 3
-trange_eff = [ 11, 22,]
-trange = [ 6, 22,]
-svd = 1e-12
-
-[fit.Coarse-2.B.mom.100]
-tag = "Coarse-2_B_100"
-nstates = 3
-trange_eff = [ 11, 21,]
-trange = [ 6, 21,]
-svd = 1e-12
-
-[fit.Coarse-2.B.mom.200]
-tag = "Coarse-2_B_200"
-nstates = 3
-trange_eff = [ 11, 19,]
-trange = [ 6, 19,]
-svd = 1e-12
-
-[fit.Coarse-2.B.mom.300]
-tag = "Coarse-2_B_300"
-nstates = 3
-trange_eff = [ 11, 16,]
-trange = [ 6, 16,]
-svd = 1e-12
-
-[fit.Coarse-2.B.mom.400]
-
-[fit.Coarse-2.B.mom.110]
-tag = "Coarse-2_B_110"
-nstates = 3
-trange_eff = [ 11, 21,]
-trange = [ 6, 21,]
-svd = 1e-12
-
-[fit.Coarse-2.B.mom.211]
-tag = "Coarse-2_B_211"
-nstates = 3
-trange_eff = [ 11, 17,]
-trange = [ 6, 17,]
-svd = 1e-12
-
-[fit.Coarse-2.B.mom.222]
-
 [fit.Coarse-1.Dst.mom.000]
 tag = "Coarse-1_Dst_000"
 nstates = 3
@@ -478,52 +320,6 @@ trange = [ 5, 19,]
 svd = 1e-12
 
 [fit.Coarse-1.Dst.mom.222]
-
-[fit.Coarse-1.B.mom.000]
-tag = "Coarse-1_B_000"
-nstates = 3
-trange_eff = [ 11, 22,]
-trange = [ 6, 22,]
-svd = 1e-12
-
-[fit.Coarse-1.B.mom.100]
-tag = "Coarse-1_B_100"
-nstates = 3
-trange_eff = [ 11, 20,]
-trange = [ 6, 20,]
-svd = 1e-12
-
-[fit.Coarse-1.B.mom.200]
-tag = "Coarse-1_B_200"
-nstates = 3
-trange_eff = [ 11, 23,]
-trange = [ 6, 23,]
-svd = 1e-12
-
-[fit.Coarse-1.B.mom.300]
-tag = "Coarse-1_B_300"
-nstates = 3
-trange_eff = [ 11, 19,]
-trange = [ 6, 19,]
-svd = 1e-12
-
-[fit.Coarse-1.B.mom.400]
-
-[fit.Coarse-1.B.mom.110]
-tag = "Coarse-1_B_110"
-nstates = 3
-trange_eff = [ 11, 21,]
-trange = [ 6, 21,]
-svd = 1e-12
-
-[fit.Coarse-1.B.mom.211]
-tag = "Coarse-1_B_211"
-nstates = 3
-trange_eff = [ 11, 19,]
-trange = [ 6, 19,]
-svd = 1e-12
-
-[fit.Coarse-1.B.mom.222]
 
 [fit.Coarse-Phys.Dst.mom.000]
 tag = "Coarse-Phys_Dst_000"
@@ -579,62 +375,6 @@ tag = "Coarse-Phys_Dst_222"
 nstates = 3
 trange_eff = [ 11, 19,]
 trange = [ 5, 19,]
-svd = 1e-12
-
-[fit.Coarse-Phys.B.mom.000]
-tag = "Coarse-Phys_B_000"
-nstates = 3
-trange_eff = [ 11, 21,]
-trange = [ 7, 21,]
-svd = 1e-12
-
-[fit.Coarse-Phys.B.mom.100]
-tag = "Coarse-Phys_B_100"
-nstates = 3
-trange_eff = [ 11, 21,]
-trange = [ 7, 21,]
-svd = 1e-12
-
-[fit.Coarse-Phys.B.mom.200]
-tag = "Coarse-Phys_B_200"
-nstates = 3
-trange_eff = [ 11, 20,]
-trange = [ 7, 20,]
-svd = 1e-12
-
-[fit.Coarse-Phys.B.mom.300]
-tag = "Coarse-Phys_B_300"
-nstates = 3
-trange_eff = [ 11, 19,]
-trange = [ 7, 19,]
-svd = 1e-12
-
-[fit.Coarse-Phys.B.mom.400]
-tag = "Coarse-Phys_B_400"
-nstates = 3
-trange_eff = [ 11, 20,]
-trange = [ 7, 20,]
-svd = 1e-12
-
-[fit.Coarse-Phys.B.mom.110]
-tag = "Coarse-Phys_B_110"
-nstates = 3
-trange_eff = [ 11, 21,]
-trange = [ 7, 21,]
-svd = 1e-12
-
-[fit.Coarse-Phys.B.mom.211]
-tag = "Coarse-Phys_B_211"
-nstates = 3
-trange_eff = [ 11, 19,]
-trange = [ 7, 19,]
-svd = 1e-12
-
-[fit.Coarse-Phys.B.mom.222]
-tag = "Coarse-Phys_B_222"
-nstates = 3
-trange_eff = [ 11, 19,]
-trange = [ 7, 19,]
 svd = 1e-12
 
 [fit.Fine-1.Dst.mom.000]
@@ -693,62 +433,6 @@ trange_eff = [ 15, 23,]
 trange = [ 7, 23,]
 svd = 1e-12
 
-[fit.Fine-1.B.mom.000]
-tag = "Fine-1_B_000"
-nstates = 3
-trange_eff = [ 15, 33,]
-trange = [ 9, 33,]
-svd = 1e-12
-
-[fit.Fine-1.B.mom.100]
-tag = "Fine-1_B_100"
-nstates = 3
-trange_eff = [ 15, 32,]
-trange = [ 9, 32,]
-svd = 1e-12
-
-[fit.Fine-1.B.mom.200]
-tag = "Fine-1_B_200"
-nstates = 3
-trange_eff = [ 15, 30,]
-trange = [ 9, 30,]
-svd = 1e-12
-
-[fit.Fine-1.B.mom.300]
-tag = "Fine-1_B_300"
-nstates = 3
-trange_eff = [ 15, 27,]
-trange = [ 9, 27,]
-svd = 1e-12
-
-[fit.Fine-1.B.mom.400]
-tag = "Fine-1_B_400"
-nstates = 3
-trange_eff = [ 15, 25,]
-trange = [ 9, 25,]
-svd = 1e-12
-
-[fit.Fine-1.B.mom.110]
-tag = "Fine-1_B_110"
-nstates = 3
-trange_eff = [ 15, 31,]
-trange = [ 9, 31,]
-svd = 1e-12
-
-[fit.Fine-1.B.mom.211]
-tag = "Fine-1_B_211"
-nstates = 3
-trange_eff = [ 15, 27,]
-trange = [ 9, 27,]
-svd = 1e-12
-
-[fit.Fine-1.B.mom.222]
-tag = "Fine-1_B_222"
-nstates = 3
-trange_eff = [ 15, 27,]
-trange = [ 9, 27,]
-svd = 1e-12
-
 [fit.Fine-Phys.Dst.mom.000]
 tag = "Fine-Phys_Dst_000"
 nstates = 3
@@ -805,61 +489,41 @@ trange_eff = [ 15, 29,]
 trange = [ 7, 29,]
 svd = 1e-12
 
-[fit.Fine-Phys.B.mom.000]
-tag = "Fine-Phys_B_000"
-nstates = 3
-trange_eff = [ 15, 32,]
-trange = [ 9, 32,]
-svd = 1e-12
 
-[fit.Fine-Phys.B.mom.100]
-tag = "Fine-Phys_B_100"
-nstates = 3
-trange_eff = [ 15, 31,]
-trange = [ 9, 31,]
-svd = 1e-12
 
-[fit.Fine-Phys.B.mom.200]
-tag = "Fine-Phys_B_200"
-nstates = 3
-trange_eff = [ 15, 30,]
-trange = [ 9, 30,]
-svd = 1e-12
 
-[fit.Fine-Phys.B.mom.300]
-tag = "Fine-Phys_B_300"
-nstates = 3
-trange_eff = [ 15, 29,]
-trange = [ 9, 29,]
-svd = 1e-12
 
-[fit.Fine-Phys.B.mom.400]
-tag = "Fine-Phys_B_400"
-nstates = 3
-trange_eff = [ 15, 27,]
-trange = [ 9, 27,]
-svd = 1e-12
 
-[fit.Fine-Phys.B.mom.110]
-tag = "Fine-Phys_B_110"
-nstates = 3
-trange_eff = [ 15, 29,]
-trange = [ 9, 29,]
-svd = 1e-12
 
-[fit.Fine-Phys.B.mom.211]
-tag = "Fine-Phys_B_211"
-nstates = 3
-trange_eff = [ 15, 29,]
-trange = [ 9, 29,]
-svd = 1e-12
 
-[fit.Fine-Phys.B.mom.222]
-tag = "Fine-Phys_B_222"
-nstates = 3
-trange_eff = [ 15, 28,]
-trange = [ 9, 28,]
-svd = 1e-12
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1231,6 +895,397 @@ svd = 1e-12
 
 [fit.SuperFine.D.mom.222]
 tag = "SuperFine_D_222"
+nstates = 3
+trange_eff = [ 31, 47,]
+trange = [ 7, 47,]
+svd = 1e-12
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[fit.MediumCoarse.B.mom.000]
+tag = "MediumCoarse_B_000"
+nstates = 3
+trange_eff = [ 12, 18,]
+trange = [ 3, 18,]
+svd = 1e-12
+
+[fit.MediumCoarse.B.mom.100]
+tag = "MediumCoarse_B_100"
+nstates = 3
+trange_eff = [ 12, 18,]
+trange = [ 3, 18,]
+svd = 1e-12
+
+[fit.MediumCoarse.B.mom.200]
+tag = "MediumCoarse_B_200"
+nstates = 3
+trange_eff = [ 12, 18,]
+trange = [ 3, 18,]
+svd = 1e-12
+
+[fit.MediumCoarse.B.mom.300]
+tag = "MediumCoarse_B_300"
+nstates = 3
+trange_eff = [ 12, 18,]
+trange = [ 3, 18,]
+svd = 1e-12
+
+[fit.MediumCoarse.B.mom.400]
+tag = "MediumCoarse_B_400"
+nstates = 3
+trange_eff = [ 12, 18,]
+trange = [ 3, 18,]
+svd = 1e-12
+
+[fit.MediumCoarse.B.mom.110]
+tag = "MediumCoarse_B_110"
+nstates = 3
+trange_eff = [ 12, 18,]
+trange = [ 3, 18,]
+svd = 1e-12
+
+[fit.MediumCoarse.B.mom.211]
+tag = "MediumCoarse_B_211"
+nstates = 3
+trange_eff = [ 12, 18,]
+trange = [ 3, 18,]
+svd = 1e-12
+
+[fit.MediumCoarse.B.mom.222]
+tag = "MediumCoarse_B_222"
+nstates = 3
+trange_eff = [ 12, 18,]
+trange = [ 3, 18,]
+svd = 1e-12
+
+[fit.Coarse-2.B.mom.000]
+tag = "Coarse-2_B_000"
+nstates = 3
+trange_eff = [ 14, 21,]
+trange = [ 3, 21,]
+svd = 1e-12
+
+[fit.Coarse-2.B.mom.100]
+tag = "Coarse-2_B_100"
+nstates = 3
+trange_eff = [ 14, 21,]
+trange = [ 3, 21,]
+svd = 1e-12
+
+[fit.Coarse-2.B.mom.200]
+tag = "Coarse-2_B_200"
+nstates = 3
+trange_eff = [ 14, 21,]
+trange = [ 3, 21,]
+svd = 1e-12
+
+[fit.Coarse-2.B.mom.300]
+tag = "Coarse-2_B_300"
+nstates = 3
+trange_eff = [ 14, 21,]
+trange = [ 3, 21,]
+svd = 1e-12
+
+[fit.Coarse-2.B.mom.400]
+
+[fit.Coarse-2.B.mom.110]
+tag = "Coarse-2_B_110"
+nstates = 3
+trange_eff = [ 14, 21,]
+trange = [ 3, 21,]
+svd = 1e-12
+
+[fit.Coarse-2.B.mom.211]
+tag = "Coarse-2_B_211"
+nstates = 3
+trange_eff = [ 14, 21,]
+trange = [ 3, 21,]
+svd = 1e-12
+
+[fit.Coarse-2.B.mom.222]
+
+[fit.Coarse-1.B.mom.000]
+tag = "Coarse-1_B_000"
+nstates = 3
+trange_eff = [ 14, 22,]
+trange = [ 3, 22,]
+svd = 1e-12
+
+[fit.Coarse-1.B.mom.100]
+tag = "Coarse-1_B_100"
+nstates = 3
+trange_eff = [ 14, 22,]
+trange = [ 3, 22,]
+svd = 1e-12
+
+[fit.Coarse-1.B.mom.200]
+tag = "Coarse-1_B_200"
+nstates = 3
+trange_eff = [ 14, 22,]
+trange = [ 3, 22,]
+svd = 1e-12
+
+[fit.Coarse-1.B.mom.300]
+tag = "Coarse-1_B_300"
+nstates = 3
+trange_eff = [ 14, 22,]
+trange = [ 3, 22,]
+svd = 1e-12
+
+[fit.Coarse-1.B.mom.400]
+
+[fit.Coarse-1.B.mom.110]
+tag = "Coarse-1_B_110"
+nstates = 3
+trange_eff = [ 14, 22,]
+trange = [ 3, 22,]
+svd = 1e-12
+
+[fit.Coarse-1.B.mom.211]
+tag = "Coarse-1_B_211"
+nstates = 3
+trange_eff = [ 14, 22,]
+trange = [ 3, 22,]
+svd = 1e-12
+
+[fit.Coarse-1.B.mom.222]
+
+[fit.Coarse-Phys.B.mom.000]
+tag = "Coarse-Phys_B_000"
+nstates = 3
+trange_eff = [ 14, 22,]
+trange = [ 3, 22,]
+svd = 1e-12
+
+[fit.Coarse-Phys.B.mom.100]
+tag = "Coarse-Phys_B_100"
+nstates = 3
+trange_eff = [ 14, 22,]
+trange = [ 3, 22,]
+svd = 1e-12
+
+[fit.Coarse-Phys.B.mom.200]
+tag = "Coarse-Phys_B_200"
+nstates = 3
+trange_eff = [ 14, 22,]
+trange = [ 3, 22,]
+svd = 1e-12
+
+[fit.Coarse-Phys.B.mom.300]
+tag = "Coarse-Phys_B_300"
+nstates = 3
+trange_eff = [ 14, 22,]
+trange = [ 3, 22,]
+svd = 1e-12
+
+[fit.Coarse-Phys.B.mom.400]
+tag = "Coarse-Phys_B_400"
+nstates = 3
+trange_eff = [ 14, 22,]
+trange = [ 3, 22,]
+svd = 1e-12
+
+[fit.Coarse-Phys.B.mom.110]
+tag = "Coarse-Phys_B_110"
+nstates = 3
+trange_eff = [ 14, 22,]
+trange = [ 3, 22,]
+svd = 1e-12
+
+[fit.Coarse-Phys.B.mom.211]
+tag = "Coarse-Phys_B_211"
+nstates = 3
+trange_eff = [ 14, 22,]
+trange = [ 3, 22,]
+svd = 1e-12
+
+[fit.Coarse-Phys.B.mom.222]
+tag = "Coarse-Phys_B_222"
+nstates = 3
+trange_eff = [ 14, 22,]
+trange = [ 3, 22,]
+svd = 1e-12
+
+[fit.Fine-1.B.mom.000]
+tag = "Fine-1_B_000"
+nstates = 3
+trange_eff = [ 20, 30,]
+trange = [ 5, 30,]
+svd = 1e-12
+
+[fit.Fine-1.B.mom.100]
+tag = "Fine-1_B_100"
+nstates = 3
+trange_eff = [ 20, 30,]
+trange = [ 5, 30,]
+svd = 1e-12
+
+[fit.Fine-1.B.mom.200]
+tag = "Fine-1_B_200"
+nstates = 3
+trange_eff = [ 20, 30,]
+trange = [ 5, 30,]
+svd = 1e-12
+
+[fit.Fine-1.B.mom.300]
+tag = "Fine-1_B_300"
+nstates = 3
+trange_eff = [ 20, 30,]
+trange = [ 5, 30,]
+svd = 1e-12
+
+[fit.Fine-1.B.mom.400]
+tag = "Fine-1_B_400"
+nstates = 3
+trange_eff = [ 20, 30,]
+trange = [ 5, 30,]
+svd = 1e-12
+
+[fit.Fine-1.B.mom.110]
+tag = "Fine-1_B_110"
+nstates = 3
+trange_eff = [ 20, 30,]
+trange = [ 5, 30,]
+svd = 1e-12
+
+[fit.Fine-1.B.mom.211]
+tag = "Fine-1_B_211"
+nstates = 3
+trange_eff = [ 20, 30,]
+trange = [ 5, 30,]
+svd = 1e-12
+
+[fit.Fine-1.B.mom.222]
+tag = "Fine-1_B_222"
+nstates = 3
+trange_eff = [ 20, 30,]
+trange = [ 5, 30,]
+svd = 1e-12
+
+[fit.Fine-Phys.B.mom.000]
+tag = "Fine-Phys_B_000"
+nstates = 3
+trange_eff = [ 20, 30,]
+trange = [ 5, 30,]
+svd = 1e-12
+
+[fit.Fine-Phys.B.mom.100]
+tag = "Fine-Phys_B_100"
+nstates = 3
+trange_eff = [ 20, 30,]
+trange = [ 5, 30,]
+svd = 1e-12
+
+[fit.Fine-Phys.B.mom.200]
+tag = "Fine-Phys_B_200"
+nstates = 3
+trange_eff = [ 20, 30,]
+trange = [ 5, 30,]
+svd = 1e-12
+
+[fit.Fine-Phys.B.mom.300]
+tag = "Fine-Phys_B_300"
+nstates = 3
+trange_eff = [ 20, 30,]
+trange = [ 5, 30,]
+svd = 1e-12
+
+[fit.Fine-Phys.B.mom.400]
+tag = "Fine-Phys_B_400"
+nstates = 3
+trange_eff = [ 20, 30,]
+trange = [ 5, 30,]
+svd = 1e-12
+
+[fit.Fine-Phys.B.mom.110]
+tag = "Fine-Phys_B_110"
+nstates = 3
+trange_eff = [ 20, 30,]
+trange = [ 5, 30,]
+svd = 1e-12
+
+[fit.Fine-Phys.B.mom.211]
+tag = "Fine-Phys_B_211"
+nstates = 3
+trange_eff = [ 20, 30,]
+trange = [ 5, 30,]
+svd = 1e-12
+
+[fit.Fine-Phys.B.mom.222]
+tag = "Fine-Phys_B_222"
+nstates = 3
+trange_eff = [ 20, 30,]
+trange = [ 5, 30,]
+svd = 1e-12
+
+[fit.SuperFine.B.mom.000]
+tag = "SuperFine_B_000"
+nstates = 3
+trange_eff = [ 31, 47,]
+trange = [ 7, 47,]
+svd = 1e-12
+
+[fit.SuperFine.B.mom.100]
+tag = "SuperFine_B_100"
+nstates = 3
+trange_eff = [ 31, 47,]
+trange = [ 7, 47,]
+svd = 1e-12
+
+[fit.SuperFine.B.mom.200]
+tag = "SuperFine_B_200"
+nstates = 3
+trange_eff = [ 31, 47,]
+trange = [ 7, 47,]
+svd = 1e-12
+
+[fit.SuperFine.B.mom.300]
+tag = "SuperFine_B_300"
+nstates = 3
+trange_eff = [ 31, 47,]
+trange = [ 7, 47,]
+svd = 1e-12
+
+[fit.SuperFine.B.mom.400]
+tag = "SuperFine_B_400"
+nstates = 3
+trange_eff = [ 31, 47,]
+trange = [ 7, 47,]
+svd = 1e-12
+
+[fit.SuperFine.B.mom.110]
+tag = "SuperFine_B_110"
+nstates = 3
+trange_eff = [ 31, 47,]
+trange = [ 7, 47,]
+svd = 1e-12
+
+[fit.SuperFine.B.mom.211]
+tag = "SuperFine_B_211"
+nstates = 3
+trange_eff = [ 31, 47,]
+trange = [ 7, 47,]
+svd = 1e-12
+
+[fit.SuperFine.B.mom.222]
+tag = "SuperFine_B_222"
 nstates = 3
 trange_eff = [ 31, 47,]
 trange = [ 7, 47,]

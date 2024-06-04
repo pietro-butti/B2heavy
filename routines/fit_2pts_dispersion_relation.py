@@ -35,6 +35,7 @@ from b2heavy.ThreePointFunctions.utils import read_config_fit, dump_fit_object
 import fit_2pts_utils as utils
 
 from b2heavy import FnalHISQMetadata
+from b2heavy.FnalHISQMetadata import *
 
 
 def extract_single_energy(tag,path=None,N=0,jk=False,key='E'):
@@ -107,6 +108,48 @@ def dispersion_relation_lsqfit(pveclist,d):
         )
 
     return np.array(res)
+
+def disprel_priors(mp):
+    p = {'aInv': 1/mp['aSpc']}
+
+    lbQcd = 0.6/p['aInv']
+    lsQcd = 0.4/p['aInv']
+
+
+    m0D = 0.5/mp['u0']*(1./mp['kappaD'] - 1/mp['kappaCr'])
+    m0B = 0.5/mp['u0']*(1./mp['kappaB'] - 1/mp['kappaCr'])
+
+    #   c^2 = M1/M2 Speed of light prior, only for D* meson
+    c2_0 = m1_0(m0D)/m2_0(m0D)                      # Tree level
+    c2_1 = y2*g2(m0D) + z2*h2(m0D)                  # 1-loop correction
+
+    p['c2']   = c2_0 + als(mp['aSpc'])*c2_1 + lbQcd*l2(m0D)
+    p['c2s']  = np.sqrt((y2s*g2(m0D)*als(mp['aSpc']))**2 + (z2s*h2(m0D)*als(mp['aSpc']))**2 + (lsQcd*l2(m0D))**2)
+
+    #   A4' = M1 x W4 prior
+    cq_0 = w4_0(m0D)*m1_0(m0D)                      # Tree level
+    cq_1 = y4p*g4p(m0D) + z4p*h4p(m0D)              # 1-loop correction
+
+    p['A4p']  = (-1./3.)*(cq_0 + als(mp['aSpc'])*cq_1 + lbQcd*l4p(m0D))
+    p['A4ps'] = ( 1./3.)*np.sqrt((y4ps*g4p(m0D)*als(mp['aSpc']))**2 + (z4ps*h4p(m0D)*als(mp['aSpc']))**2 + (lsQcd*l4p(m0D))**2)   # Error l2 --> l4p
+
+
+    #   A4 = cp prior (A4)
+    cp_0 = 1/(m2_0(m0D)*m2_0(m0D)) - m1_0(m0D)*invm4_0_cu(m0D)  # Tree level
+    cp_1 = y4*g4(m0D) + z4*h4(m0D)                              # 1-loop correction
+
+    p['A4']   = 0.25*(cp_0 + als(mp['aSpc'])*cp_1 + lbQcd*l4(m0D))       # Error 1 --> als(p['aSpc'])*cp_1
+    p['A4s']  = 0.25*np.sqrt((y4s*g4(m0D)*als(mp['aSpc']))**2 + (z4s*h4(m0D)*als(mp['aSpc']))**2 + (lbQcd*l4(m0D))**2)
+
+
+    pr = {'M1': gv.gvar(0.5,0.5)}
+    pr['M2'] = pr['M1']/np.sqrt(p['c2'])
+    pr['M4'] = (pr['M1']/(1/pr['M2']**2 - 4*p['A4'])) ** (1/3)
+    pr['w4'] = 3*p['A4p']/pr['M1']
+
+    return pr
+
+
 
 
 def fit_disp_rel(e0:dict, Lvol=1., priors=None):
@@ -240,17 +283,19 @@ def main():
 
     tag = f'{ens}_{mes}'
 
-    priors = dict(
-        M1 = gv.gvar(0.5,1.5),
-        M2 = gv.gvar(0.5,1.5),
-        M4 = gv.gvar(0.5,1.5),
-        w4 = gv.gvar(0.5,1.5)
-    )
+    # priors = dict(
+    #     M1 = gv.gvar(0.5,1.5),
+    #     M2 = gv.gvar(0.5,1.5),
+    #     M4 = gv.gvar(0.5,1.5),
+    #     w4 = gv.gvar(0.5,1.5)
+    # )
+    priors = disprel_priors(mdata)
     es = extract_energies(ens,mes,jk=args.jk,readfrom=readfrom,sort=True)
     fit = fit_disp_rel(es, Lvol=Lvol, priors=priors)
     if args.jkfit:
         popt = fit_disp_rel_jk(fit,es)        
-
+    else:
+        popt = fit.p
 
 
     # Save data -----------------------------------------------------------------

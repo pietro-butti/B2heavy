@@ -26,28 +26,26 @@ binSizes  = {
     'SuperFine'   : 22
 }
 
-tranges = { #(tmin1,tmin2,tmin3,tmax)
+tranges = { #(tmin1,tmin3,tmin2,tmax)
     'D': (1.8,0.9,0.45,2.7),
     'B': (1.8,0.9,0.45,2.7),
-    'Dst': (0,0.631,1.021,'30%')
+    'Dst': (1.5,0.631,1.021,'30%')
 }
 
 
 
 
 def metapars():
-    tmin1 = 1.8
-    # tmin2 = 1.021 
-    tmin2 = 0.9
-    # tmin3 = 0.631
-    tmin3 = 0.45
+    mes      = 'Dst'
+    tmin1 = tranges[mes][0]
+    tmin2 = tranges[mes][2]
+    tmin3 = tranges[mes][1]
 
-    Tmax = 2.7
+    Tmax = tranges[mes][3]
 
     # config = toml.load('../routines/2pts_fit_config.toml')
 
 
-    mes      = 'D'
     data_dir = '/Users/pietro/code/data_analysis/BtoD/Alex/'
     smlist   = ['1S-1S','d-d','d-1S'] 
 
@@ -71,7 +69,7 @@ def metapars():
         '222'
     ]
     # mes_list = ['Dst','B']
-    mes_list = ['D']
+    mes_list = [mes]
 
 
     config = {'fit': {}}
@@ -105,10 +103,7 @@ def metapars():
                 Tmin1  = int(tmin1/a_fm)
                 Tmin2 = int(tmin2/a_fm)
 
-                if mes in ['Dst','D']:
-                    tmin = int(tmin3/a_fm)
-                elif mes=='B':
-                    tmin = int(0.85/a_fm)
+                tmin = int(tmin3/a_fm)
 
 
                 # scemo1,scemo2,ysamples = stag.format(trange=(tmin,tmax),flatten=True,alljk=True)
@@ -150,14 +145,10 @@ def metapars():
 def test():
     only_eff = False
 
-
     ## ========================================
 
-    mes = 'D'
-    (tmin1,tmin2,tmin3,Tmax) = tranges['D']
-
-
-
+    mes = 'Dst'
+    (tmin1,tmin2,tmin3,Tmax) = tranges[mes]
 
     config = '../routines/2pts_fit_all.toml'
 

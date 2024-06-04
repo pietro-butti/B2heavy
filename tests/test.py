@@ -31,8 +31,3 @@ if __name__ == "__main__":
     elif args.ratiofit:
         fitter3pts.main()
 
-    elif args.ralt:
-        types3pts_alt.main()
-
-
-

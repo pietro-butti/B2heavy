@@ -38,7 +38,7 @@ jax.config.update("jax_enable_x64", True)
 from b2heavy import FnalHISQMetadata
 
 from b2heavy.ThreePointFunctions.utils      import read_config_fit, dump_fit_object
-from b2heavy.ThreePointFunctions.types3pts  import Ratio, RatioIO, ratio_prerequisites
+from b2heavy.ThreePointFunctions.types3pts  import Ratio, RatioIO, ratio_prerequisites, ratiofmt
 from b2heavy.ThreePointFunctions.fitter3pts import RatioFitter, phys_energy_priors
 
 import fit_2pts_utils as utils
@@ -120,6 +120,9 @@ prs.add_argument('--plot_fit'     , action='store_true')
 prs.add_argument('--show'         , action='store_true')
 
 
+
+
+
 def main():
     args = prs.parse_args()
 
@@ -135,12 +138,13 @@ def main():
     
     JKFIT  = True if args.jkfit else False
 
+
     aux = []
     for ens in ENSEMBLE_LIST:
-        for ratio in RATIO_LIST:
+        for rt in RATIO_LIST:
+            ratio = ratiofmt(rt)
             for mom in (MOM_LIST if MOM_LIST else config['fit'][ens][ratio]['mom'].keys()):
-
-                if mom=='000' and ratio!='ZRA1':
+                if mom=='000' and ratio not in ['ZRA1','RPLUS']:
                     continue
 
                 print(f'--------------- {ens} ------------ {ratio} ----------- {mom} -----------------')
@@ -194,20 +198,30 @@ def main():
                         mom      = mom,
                         readfrom = readfrom,
                         jk       = args.jkfit,
-                        meson    = args.meson
                     )
 
                     io = RatioIO(ens,ratio,mom,PathToDataDir=data_dir)
                     robj = RatioFitter(
                         io,
-                        jkBin = binsize,
+                        jkBin    = binsize,
                         smearing = smlist,
                         **ratio_req
                     )
 
+                    if ratio in ['RPLUS','RMINUS','XF','QPLUS']:
+                        meson1 = 'D'
+                        meson2 = 'B' 
+                    elif ratio in ['ZRA1','RA1','XFSTPAR','R0','R1','XV']:
+                        meson1 = 'Dst'
+                        meson2 = 'B'
+                    elif ratio in ['ZRA1S','RA1S','XFSSTPAR','R0S','R1S','XVS']:
+                        meson1 = 'Dsst'
+                        meson2 = 'Bs'
+
+
                     # Compute priors
-                    dE_src = phys_energy_priors(ens,'Dst',mom,nstates,readfrom=readfrom)
-                    dE_snk = phys_energy_priors(ens,'B'  ,mom,nstates,readfrom=readfrom)
+                    dE_src = phys_energy_priors(ens,meson1,mom,nstates,readfrom=readfrom,error=1.)
+                    dE_snk = phys_energy_priors(ens,meson2,mom,nstates,readfrom=readfrom,error=1.)
 
                     x,ydata = robj.format(trange,flatten=True)
                     f_0    = gv.gvar(np.mean(ydata).mean,0.1)

@@ -13,35 +13,6 @@ from .types3pts                import Ratio, RatioIO
 from .utils                    import read_config_fit
 from ..TwoPointFunctions.utils import p_value
 
-# def ModelRatio_jax(T,rsp,sm,Nexc):
-#     simple = (not isinstance(rsp['source'],list)) and rsp['source']==rsp['sink'] 
-#     dE_k2 = 'dE_src' if simple else 'dE_snk'
-
-#     def _model(t,p):
-#         tmp = jnp.full(len(t),1.)
-#         for iexc in range(Nexc):
-#             tmp = tmp + p[f'A_{sm}'][iexc] * jnp.exp(- jnp.exp(p['dE_src'][iexc]) * (t)) + \
-#                         p[f'B_{sm}'][iexc] * jnp.exp(- jnp.exp(p[dE_k2][iexc]) * (T-t))
-#         tmp = p['ratio'][0]*tmp
-#         return tmp
-
-#     return _model
-
-# def ModelRatio(T,rsp,sm,Nexc):
-#     simple = (not isinstance(rsp['source'],list)) and rsp['source']==rsp['sink'] 
-#     dE_k2 = 'dE_src' if simple else 'dE_snk'
-    
-#     def _model(t,p):
-#         tmp = np.full(len(t),1.)
-#         for iexc in range(Nexc):
-#             tmp = tmp + p[f'A_{sm}'][iexc] * np.exp(- np.exp(p['dE_src'][iexc]) * (t)) + \
-#                         p[f'B_{sm}'][iexc] * np.exp(- np.exp(p[dE_k2][iexc]) * (T-t))
-#         tmp = p['ratio'][0]*tmp
-#         return tmp
-
-#     return _model
-
-
 def ModelRatio_jax(T,same_sink,sm,Nexc):
     dE_k2 = 'dE_src' if same_sink else 'dE_snk'
 
@@ -123,7 +94,11 @@ class RatioFitter(Ratio):
             self.info.ratio=='RPLUS' 
 
 
-    def priors(self, Nstates, K=None, dE_src=None, dE_snk=None):
+    def priors(self, Nstates, **kwargs):
+        K = kwargs.get('K')
+        dE_src = kwargs.get('dE_src')
+        dE_snk = kwargs.get('dE_snk')
+
         x,y = self.format()
         f0  = np.mean([y[sm][len(x)//2] for sm in y]).mean
         pr = {
@@ -134,13 +109,14 @@ class RatioFitter(Ratio):
             pr[f'A_{sm}'] = [gv.gvar('0(1)') for _ in range(Nstates)]
             pr[f'B_{sm}'] = [gv.gvar('0(1)') for _ in range(Nstates)]
 
-        pr = {
-            'dE_src': [gv.gvar(-1.5,1.0) for _ in range(Nstates)] if dE_src is None else dE_src,
-        }
+        pr['dE_src'] = dE_src if dE_src is not None else \
+            [gv.gvar(-1.5,1.0) for _ in range(Nstates)]
+
         if not self.same_sink:
             pr['dE_snk'] = [gv.gvar(-1.5,1.0) for _ in range(Nstates)] if dE_snk is None else dE_snk
 
         return pr
+
 
 
     def fit(self, Nstates, trange, verbose=True, priors=None, p0=None, svdcut=0., jkfit=False, **data_kwargs):
@@ -421,7 +397,7 @@ class RatioFitter(Ratio):
 
 
 
-from b2heavy.ThreePointFunctions.types3pts_old import ratio_prerequisites
+from b2heavy.ThreePointFunctions.types3pts import ratio_prerequisites
 
 def main():
     ens = 'Coarse-1'
@@ -434,28 +410,27 @@ def main():
         ens, rat, mom, readfrom=readfrom, jk=True
     )
 
-    io = RatioIO(ens,rat,mom,PathToDataDir=frm)
-    ratio = RatioFitter(
-        io,
-        jkBin    = 11,
-        smearing = ['1S','RW'],
-        **requisites
-    )
+    # io = RatioIO(ens,rat,mom,PathToDataDir=frm)
+    # ratio = RatioFitter(
+    #     io,
+    #     jkBin    = 11,
+    #     smearing = ['1S','RW'],
+    #     **requisites
+    # )
 
-    COV_SPECS = dict(
-        diag   = False,
-        block  = False,
-        scale  = True,
-        shrink = True,
-        cutsvd = 1E-12
-    )
+    # COV_SPECS = dict(
+    #     diag   = False,
+    #     block  = False,
+    #     scale  = True,
+    #     shrink = True,
+    #     cutsvd = 1E-12
+    # )
 
 
-    dE = phys_energy_priors(ens,'D',mom,2,readfrom=readfrom)
 
-    ratio.fit(
-        Nstates = 2,
-        trange  = (2,13),
-        verbose = True,
-        priors  = ratio.priors(dE_src=dE)
-    )
+    # ratio.fit(
+    #     Nstates = 2,
+    #     trange  = (2,13),
+    #     verbose = True,
+    #     priors  = ratio.priors(dE_src=dE)
+    # )

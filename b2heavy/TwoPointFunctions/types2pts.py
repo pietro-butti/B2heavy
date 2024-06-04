@@ -504,9 +504,14 @@ class Correlator:
 
     def tmax(self, threshold=0.25, criterion=max):
         xdata,ydata = self.format()
-        rel = np.vstack([abs(gv.sdev(y)/gv.mean(y)) for y in ydata.values()]).mean(axis=0)
-        Tmax = criterion([t for t,r in enumerate(rel) if r<=threshold])
-        breakpoint()
+        # rel = np.vstack([abs(gv.sdev(y)/gv.mean(y)) for y in ydata.values()]).mean(axis=0)
+        # Tmax = criterion([t for t,r in enumerate(rel) if r<=threshold])
+
+        for Tmax in range(len(xdata)):
+            err = min([abs(gv.sdev(y[Tmax])/gv.mean(y[Tmax])) for y in ydata.values()])
+            if err>threshold:
+                break
+
         return Tmax
 
 

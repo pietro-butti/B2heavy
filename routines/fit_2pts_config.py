@@ -31,6 +31,8 @@ import jax
 import jax.numpy         as jnp
 jax.config.update("jax_enable_x64", True)
 import pandas            as pd
+pd.set_option('display.max_columns', None)
+pd.set_option('display.expand_frame_repr', False)
 import matplotlib.pyplot as plt
 
 
@@ -100,6 +102,7 @@ def fit_2pts_single_corr(
         verbose = True,
         priors  = pr if wpriors else None
     )
+
     if saveto is not None:
         dump_fit_object(saveto,fit,**fitres)
 
@@ -161,6 +164,7 @@ prs.add_argument('--plot_fit'     , action='store_true')
 prs.add_argument('--show'         , action='store_true')
 
 def main():
+
     args = prs.parse_args()
 
     config_file = args.config
@@ -210,6 +214,28 @@ def main():
                                 print(f'Already existing analysis for {tag}, but overriding...')
                             else:
                                 print(f'Analysis for {tag} already up to date')
+
+                                fit = read_config_fit(f'fit2pt_config_{tag}',jk=False,path=SAVETO)
+                                aux.append({
+                                    'ensemble'     : ens,
+                                    'meson'        : meson,
+                                    'momentum'     : mom,
+                                    'trange_eff'   : trange_eff,
+                                    'trange'       : trange,
+                                    'chiaug/chiexp': round(fit[0]['chi2aug']/fit[0]['chiexp'],3),
+                                    'chi2red'      : round(fit[0]['chi2red'],3),
+                                    'pexp'         : fit[0]['pexp'],
+                                    'pstd'         : fit[0]['pstd'],
+                                    'E0'           : fit[1]['E'][0],
+                                    'Z_1S_Unpol'   : fit[1]['Z_1S_Unpol'][0] if 'Z_1S_Unpol' in fit[1] else " ",
+                                    'Z_1S_Par'     : fit[1]['Z_1S_Par'  ][0] if 'Z_1S_Par'   in fit[1] else " ",
+                                    'Z_1S_Bot'     : fit[1]['Z_1S_Bot'  ][0] if 'Z_1S_Bot'   in fit[1] else " ",
+                                    'Z_d_Unpol'    : fit[1]['Z_d_Unpol' ][0] if 'Z_d_Unpol'  in fit[1] else " ",
+                                    'Z_d_Par'      : fit[1]['Z_d_Par'   ][0] if 'Z_d_Par'    in fit[1] else " ",
+                                    'Z_d_Bot'      : fit[1]['Z_d_Bot'   ][0] if 'Z_d_Bot'    in fit[1] else " ",
+                                })
+
+                                continue
 
 
                 # Perform analysis ===================================================================
