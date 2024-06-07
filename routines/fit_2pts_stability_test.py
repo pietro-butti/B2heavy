@@ -171,8 +171,10 @@ def read_results_stability_test(dumped, Nt=30, show=True, obs='E', n_states=0):
     return df
 
 
-def stability_test_plot(ax, df, IC='TIC', label_mod_av='mod. av.'):
+def stability_test_plot(ax, df, IC='TIC', label_mod_av='mod. av.', obs_idx=0):
     Nstates = np.unique([n for n,tr in df.index])
+
+    breakpoint()
 
     # Plot observable
     obs = df.columns[0]

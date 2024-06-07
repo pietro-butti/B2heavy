@@ -32,8 +32,11 @@ import matplotlib.pyplot as plt
 import gvar              as gv
 import numpy             as np
 import jax.numpy         as jnp
-import pandas            as pd
 jax.config.update("jax_enable_x64", True)
+import pandas            as pd
+pd.set_option('display.expand_frame_repr', False)
+pd.set_option('display.max_columns', None)
+pd.set_option('display.max_rows', None)
 
 from b2heavy import FnalHISQMetadata
 
@@ -66,11 +69,12 @@ def fit_ratio(
         **cov_specs
     )
 
+
     if jkfit:
         fitjk = ratio.fit(
             Nstates = nstates,
             trange  = trange,
-            priors  = fit.prior,
+            priors  = dict(fit.prior),
             jkfit   = True,
             **cov_specs
         )
@@ -114,7 +118,7 @@ prs.add_argument('--block'        , action='store_true')
 prs.add_argument('--scale'        , action='store_true')
 prs.add_argument('--shrink'       , action='store_true')
 prs.add_argument('--svd'          , type=float, default=None)
-prs.add_argument('--no_priors_chi', action='store_true')
+# prs.add_argument('--no_priors_chi', action='store_true')
 prs.add_argument('--verbose'      , action='store_true')
 prs.add_argument('--plot_fit'     , action='store_true')
 prs.add_argument('--show'         , action='store_true')
@@ -178,7 +182,21 @@ def main():
                                 print(f'Already existing analysis for {tag}, but overriding...')
                             else:
                                 print(f'Analysis for {tag} already up to date')
-                                skip_fit = True
+                                
+                                fit = read_config_fit(f'fit3pt_config_{tag}',jk=False,path=SAVETO)
+                                aux.append({
+                                    'ensemble'     : ens,
+                                    'ratio'        : ratio,
+                                    'momentum'     : mom,
+                                    'trange'       : trange,
+                                    'chiaug/chiexp': round(fit[0]['chi2aug']/fit[0]['chiexp'],3),
+                                    'chi2red'      : round(fit[0]['chi2red'],3),
+                                    'pexp'         : fit[0]['pexp'],
+                                    'pstd'         : fit[0]['pstd'],
+                                    'F0'           : fit[1]['ratio'][0],
+                                })
+
+                                continue
 
 
                 # Perform analysis ===================================================================
@@ -235,7 +253,7 @@ def main():
                         saveto  = saveto, 
                         priors  = pr,
                         jkfit   = JKFIT,  
-                        wpriors = args.no_priors_chi,
+                        wpriors = True,
                         **cov_specs
                     )
 
@@ -253,6 +271,7 @@ def main():
                         f0 = fitres['ratio'][0]
                         f0 = gv.gvar(f0.mean(),f0.std()*np.sqrt(len(f0)-1))
                         pval = np.mean(fitres['pstd'])
+                        breakpoint()
                     else:
                         f0 = fitres[-1]['ratio'][0]
                         pval = fitres[0]['pstd']
@@ -263,7 +282,6 @@ def main():
                     'momentum' : mom,
                     'tmin'     : trange[0],
                     'tmax'     : trange[1],
-                    'svd'      : args.svd,
                     'F0'       : f0,
                     'pval'     : pval
                 })

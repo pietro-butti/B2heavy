@@ -208,8 +208,6 @@ class RatioFitter(Ratio):
             model = ModelRatio(self.Tb,self.same_sink,sm,Nstates)
 
             iin = np.array([min(trange)<=x<=max(trange) for x in x])
-
-            # label = None if label is None else f'{label} [{sm}]'
             
             off = (-1)**i*0.05
             # Plot fit points 
@@ -222,13 +220,17 @@ class RatioFitter(Ratio):
             yout = y[sm][~iin]
             ax.errorbar(xout+off,gv.mean(yout),gv.sdev(yout),fmt=mrk[i%2], ecolor=color, mfc='w', color=color, capsize=2.5, alpha=alpha/5)
             
-            # fit bands
-            xrange = np.arange(-1.,max(x)+1,0.01)
-            ye = model(xrange,fit.p)
-            ax.fill_between(xrange,gv.mean(ye)+gv.sdev(ye),gv.mean(ye)-gv.sdev(ye),color=color,alpha=alpha/6)
+            # fit curve
+            # xrange = np.arange(-1.,max(x)+1,0.01)
+            xrange = np.arange(min(xin),max(xin),0.001)
+            ye = model(xrange,fit.pmean)
+            ax.plot(xrange,ye,linestyle=':',color=color)
+
+            # ax.fill_between(xrange,gv.mean(ye)+gv.sdev(ye),gv.mean(ye)-gv.sdev(ye),color=color,alpha=alpha/6)
 
             # results
-            ax.errorbar(-0.25,fit.p['ratio'][0].mean,fit.p['ratio'][0].sdev,color=color_res,fmt='D', capsize=2.5)
+            ax.axhspan(fit.p['ratio'][0].mean-fit.p['ratio'][0].sdev,fit.p['ratio'][0].mean+fit.p['ratio'][0].sdev,color=color,alpha=0.25)
+            # ax.errorbar(-0.25,fit.p['ratio'][0].mean,fit.p['ratio'][0].sdev,color=color_res,fmt='D', capsize=2.5)
 
 
     def diff_model(self, xdata, Nstates):
@@ -414,24 +416,26 @@ BINSIZE  = {
 }
 
 def main():
-    ens = 'Coarse-Phys'
+    ens = 'Coarse-1'
     rat = 'QPLUS'
     mom = '100'
     frm = '/Users/pietro/code/data_analysis/BtoD/Alex'
     readfrom = '/Users/pietro/code/data_analysis/data/QCDNf2p1stag/B2heavy/lattice24'
 
-    nstates = 2
+    nstates = 1
     tmin    = 2
 
     requisites = ratio_prerequisites(
         ens, rat, mom, readfrom=readfrom, jk=True
     )
 
+    breakpoint()
+
     io = RatioIO(ens,rat,mom,PathToDataDir=frm)
     ratio = RatioFitter(
         io,
         jkBin    = BINSIZE[ens],
-        smearing = ['1S','RW'],
+        smearing = ['1S'],
         **requisites
     )
 
@@ -443,8 +447,8 @@ def main():
         cutsvd = 1E-12
     )
 
-    dE_src = phys_energy_priors(ens,'D',mom,nstates,readfrom=readfrom,error=0.5)
-    dE_snk = phys_energy_priors(ens,'B',mom,nstates,readfrom=readfrom,error=0.5)
+    dE_src = phys_energy_priors(ens,'D',mom,nstates,readfrom=readfrom,error=1.)
+    dE_snk = phys_energy_priors(ens,'B',mom,nstates,readfrom=readfrom,error=1.)
     pr = ratio.priors(nstates, dE_src=dE_src, dE_snk=dE_snk)
 
     ratio.fit(
@@ -454,5 +458,3 @@ def main():
         priors  = pr,
         **COV_SPECS
     )
-
-    breakpoint()

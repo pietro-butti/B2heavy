@@ -13,8 +13,6 @@ from ..TwoPointFunctions.utils   import jkCorr, compute_covariance
 from .utils import read_config_fit, exists, exists_analysis
 from ..FnalHISQMetadata import params
 
-# from .types3pts_old import Ratio   as Ratio_old
-# from .types3pts_old import RatioIO as RatioIO_old
 
 def ratiofmt(r:str):
     return r.replace('+','PLUS').replace('-','MINUS').upper()
@@ -156,11 +154,11 @@ def RatioSpecs(ratio, mData):
             # nNames = [['P5_A2_V2_'], ['P5_A2_V2_']] # 'R' # <--- Alex version
             # nFacs  = [[1., 1.], [ 1., 1.]]                # <--- Alex version    
 
-            nNames = [['P5_A2_V2_']]
-            nFacs  = [[1.]]   
+            # nNames = [['P5_A2_V2_']]
+            # nFacs  = [[1.]]   
 
-            # nNames = [['P5_A2_V2_','P5_A3_V3_']] #<--- should be the correct one 
-            # nFacs  = [[1., 1.], [ 1., 1.]]       #<--- should be the correct one 
+            nNames = [['P5_A2_V2_','P5_A3_V3_']] #<--- should be the correct one 
+            nFacs  = [[1., 1.], [ 1., 1.]]       #<--- should be the correct one 
 
             dNames = [['V1_V4_V1_'],['P5_V4_P5_']] # 'V1_V4_V2_', 'V1_V4_V3_']         
             
@@ -490,31 +488,32 @@ def ratio_prerequisites(ens,ratio,mom,smearing=['1S','d'],readfrom=None,jk=False
     return req
 
 
-def ratio_correction_factor(rstr,T,smearing=['RW','1S'],**req):
+def ratio_correction_factor(rstr,smearing=['RW','1S'],**req):
     ratio = ratiofmt(rstr)
 
     factor = {}
     for sm in smearing:
         smi = 'd' if sm=='RW' else sm
+
+        ff = 1.
         match ratio:
             case ratio if ratio in ['R0','R1']:
-                factor[sm] = np.sqrt(
+                ff = np.sqrt(
                     req['Zbot'][smi]/req['Zpar'][smi]
                 )
 
             case ratio if ratio in ['RA1','RA1S']:
-                factor[sm] = 1./ req['wrecoil']**2 * \
-                    req['Zbot'][smi]/np.sqrt( req['Z0'][smi] * req['Z0']['1S'] ) * \
-                    np.exp(-(req['E0']-req['m0'])*T)
+                ff = 1./ req['wrecoil']**2 * \
+                    req['Zbot'][smi]/np.sqrt( req['Z0'][smi] * req['Z0']['1S'] )
 
             case ratio if ratio in ['ZRA1','ZRA1S']:
-                factor[sm] = req['Z0'][smi] / np.sqrt( req['Z0'][smi] * req['Z0']['1S'] ) 
+                ff = req['Z0'][smi] / np.sqrt( req['Z0'][smi] * req['Z0']['1S'] ) 
 
             case 'QPLUS':
-                factor[sm] = req['E0']/req['m0'] * \
+                ff = req['E0']/req['m0'] * \
                     np.sqrt(req['Z0'][smi]/req['Zp'][smi]) # FIXME
-                    # req['Z0'][smi]/req['Zp'][smi] # FIXME
                 
+        factor[sm] = 1./ff
 
     return factor if bool(factor) else None
 
@@ -644,13 +643,13 @@ class RatioIO:
                 dens = np.array(dens)
 
                 # Here we take product over dim=0 (only effective in case of multiple ratio)
+                # dim=0 is different ratio types
                 nums = nums.prod(axis=0)
                 dens = dens.prod(axis=0)
                 
                 # Here we average or sum over directions
                 nums = fnum(nums,axis=0)
                 dens = fden(dens,axis=0)
-                
 
                 tmp[sm][ts] = nums/dens
 
@@ -668,10 +667,12 @@ class RatioIO:
             for sm in raw:
                 corrected[sm] = {}
                 for ts in raw[sm]:
-                    if isinstance(factor[sm],float):
-                        corrected[sm][ts] = raw[sm][ts] * factor[sm]
-                    elif isinstance(factor[sm],np.ndarray):
-                        corrected[sm][ts] = raw[sm][ts] *  np.tile(factor[sm],(raw[sm][ts].shape[-1],1)).T
+                    ff = factor[sm]
+
+                    if isinstance(ff,float):
+                        corrected[sm][ts] = raw[sm][ts] * ff
+                    elif isinstance(ff,np.ndarray):
+                        corrected[sm][ts] = raw[sm][ts] *  np.tile(ff,(raw[sm][ts].shape[-1],1)).T
 
         return corrected
 
@@ -680,7 +681,7 @@ class RatioIO:
         E0 = kwargs.get('E0')
         m0 = kwargs.get('m0')
 
-        f1, f2 = 1,1
+        f1, f2 = 1.,1.
         if self.info.ratio in ['RA1','RA1S','QPLUS']:
             if E0 is None and m0 is None:
                 raise Exception('Energy and rest mass must be provided')
@@ -692,8 +693,8 @@ class RatioIO:
                     raise Exception(f'E0 ({E0.shape = }) and m0 ({m0.shape = }) must have compatible shapes ')
 
             if self.info.ratio in ['RA1','RA1S']:
-                f1  = np.exp((E0 - m0)*self.Ta)
-                f2 = np.exp((E0 - m0)*(self.Ta+1))
+                f1 = np.exp((E0 - m0)*self.Ta)
+                f2 = np.exp((E0 - m0)*self.Tb)
                 if perjk:
                     f1 = np.tile(f1,(self.Ta+1,1)).T
                     f2 = np.tile(f2,(self.Ta+1,1)).T
@@ -702,8 +703,10 @@ class RatioIO:
                 if not perjk:
                     f1 = np.exp((E0-m0) * np.arange(self.Ta+1))
                 else:
-                    f1 = np.transpose([np.exp((E0-m0)*t) for t in np.arange(self.Ta+1)])
-                    # f1 = np.exp((E0-m0)*np.arange(self.Ta+1))
+                    tt = np.tile(np.arange(self.Ta+1),(len(E0),1))
+                    dE = np.tile(E0-m0,(self.Ta+1,1)).T
+                    f1 = np.exp(dE*tt)
+
                 f2 = f1
 
         data = {}
@@ -726,14 +729,11 @@ class RatioIO:
             **fcts
         )
 
-
         # correct ratio with apposite (re)normalizatio/kinematic factors
         ff = ratio_correction_factor(
             self.info.ratio,
-            self.Ta,
             **reqs
         )
-        breakpoint()
 
         corrected = self.correct(raw,factor=ff)
 
@@ -744,7 +744,7 @@ class RatioIO:
 
 
 class Ratio:
-    def __init__(self, io:RatioIO, jkBin=None, smearing=None, verbose=False, **requisites):
+    def __init__(self, io:RatioIO, jkBin=None, smearing=['1S','RW'], verbose=False, **requisites):
         self.io           = io
         self.info         = io.info
         self.info.binsize = jkBin
@@ -843,16 +843,14 @@ class Ratio:
 
 
 def main():
-    ens = 'Fine-1'
-    r   = 'RA1'
+    ens = 'Coarse-1'
+    r   = 'QPLUS'
     mom = '100'
     frm = '/Users/pietro/code/data_analysis/BtoD/Alex'
     readfrom = '/Users/pietro/code/data_analysis/data/QCDNf2p1stag/B2heavy/lattice24'
 
-    req = ratio_prerequisites(ens,r,mom,readfrom=readfrom,jk=False)
+    req = ratio_prerequisites(ens,r,mom,readfrom=readfrom,jk=True)
     
     io = RatioIO(ens,r,mom,PathToDataDir=frm)
     # io.build(smearing=['1S'],jkBin=11,**req)
     ra1 = Ratio(io,jkBin=11,smearing=['1S','RW'],**req)
-
-    breakpoint()

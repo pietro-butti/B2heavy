@@ -1,0 +1,257 @@
+--------------- MediumCoarse ------------ XF ----------- 100 -----------------
+Analysis for MediumCoarse_XF_100 already up to date
+--------------- MediumCoarse ------------ XF ----------- 200 -----------------
+Analysis for MediumCoarse_XF_200 already up to date
+--------------- MediumCoarse ------------ XF ----------- 300 -----------------
+Analysis for MediumCoarse_XF_300 already up to date
+--------------- MediumCoarse ------------ XF ----------- 400 -----------------
+Analysis for MediumCoarse_XF_400 already up to date
+--------------- MediumCoarse ------------ RPLUS ----------- 000 -----------------
+Analysis for MediumCoarse_RPLUS_000 already up to date
+--------------- MediumCoarse ------------ RMINUS ----------- 100 -----------------
+Analysis for MediumCoarse_RMINUS_100 already up to date
+--------------- MediumCoarse ------------ RMINUS ----------- 200 -----------------
+Analysis for MediumCoarse_RMINUS_200 already up to date
+--------------- MediumCoarse ------------ RMINUS ----------- 300 -----------------
+Analysis for MediumCoarse_RMINUS_300 already up to date
+--------------- MediumCoarse ------------ RMINUS ----------- 400 -----------------
+Analysis for MediumCoarse_RMINUS_400 already up to date
+--------------- MediumCoarse ------------ QPLUS ----------- 100 -----------------
+Analysis for MediumCoarse_QPLUS_100 already up to date
+--------------- MediumCoarse ------------ QPLUS ----------- 200 -----------------
+Analysis for MediumCoarse_QPLUS_200 already up to date
+--------------- MediumCoarse ------------ QPLUS ----------- 300 -----------------
+Analysis for MediumCoarse_QPLUS_300 already up to date
+--------------- MediumCoarse ------------ QPLUS ----------- 400 -----------------
+Analysis for MediumCoarse_QPLUS_400 already up to date
+--------------- Coarse-2 ------------ XF ----------- 100 -----------------
+Analysis for Coarse-2_XF_100 already up to date
+--------------- Coarse-2 ------------ XF ----------- 200 -----------------
+Analysis for Coarse-2_XF_200 already up to date
+--------------- Coarse-2 ------------ XF ----------- 300 -----------------
+Analysis for Coarse-2_XF_300 already up to date
+--------------- Coarse-2 ------------ RPLUS ----------- 000 -----------------
+Analysis for Coarse-2_RPLUS_000 already up to date
+--------------- Coarse-2 ------------ RMINUS ----------- 100 -----------------
+Analysis for Coarse-2_RMINUS_100 already up to date
+--------------- Coarse-2 ------------ RMINUS ----------- 200 -----------------
+Analysis for Coarse-2_RMINUS_200 already up to date
+--------------- Coarse-2 ------------ RMINUS ----------- 300 -----------------
+Analysis for Coarse-2_RMINUS_300 already up to date
+--------------- Coarse-2 ------------ QPLUS ----------- 100 -----------------
+Analysis for Coarse-2_QPLUS_100 already up to date
+--------------- Coarse-2 ------------ QPLUS ----------- 200 -----------------
+Analysis for Coarse-2_QPLUS_200 already up to date
+--------------- Coarse-2 ------------ QPLUS ----------- 300 -----------------
+Analysis for Coarse-2_QPLUS_300 already up to date
+--------------- Coarse-Phys ------------ XF ----------- 100 -----------------
+Analysis for Coarse-Phys_XF_100 already up to date
+--------------- Coarse-Phys ------------ XF ----------- 200 -----------------
+Analysis for Coarse-Phys_XF_200 already up to date
+--------------- Coarse-Phys ------------ XF ----------- 300 -----------------
+Analysis for Coarse-Phys_XF_300 already up to date
+--------------- Coarse-Phys ------------ XF ----------- 400 -----------------
+Analysis for Coarse-Phys_XF_400 already up to date
+--------------- Coarse-Phys ------------ RPLUS ----------- 000 -----------------
+Analysis for Coarse-Phys_RPLUS_000 already up to date
+--------------- Coarse-Phys ------------ RMINUS ----------- 100 -----------------
+Analysis for Coarse-Phys_RMINUS_100 already up to date
+--------------- Coarse-Phys ------------ RMINUS ----------- 200 -----------------
+Analysis for Coarse-Phys_RMINUS_200 already up to date
+--------------- Coarse-Phys ------------ RMINUS ----------- 300 -----------------
+Analysis for Coarse-Phys_RMINUS_300 already up to date
+--------------- Coarse-Phys ------------ RMINUS ----------- 400 -----------------
+Analysis for Coarse-Phys_RMINUS_400 already up to date
+--------------- Coarse-Phys ------------ QPLUS ----------- 100 -----------------
+Analysis for Coarse-Phys_QPLUS_100 already up to date
+--------------- Coarse-Phys ------------ QPLUS ----------- 200 -----------------
+Analysis for Coarse-Phys_QPLUS_200 already up to date
+--------------- Coarse-Phys ------------ QPLUS ----------- 300 -----------------
+Analysis for Coarse-Phys_QPLUS_300 already up to date
+--------------- Coarse-Phys ------------ QPLUS ----------- 400 -----------------
+Analysis for Coarse-Phys_QPLUS_400 already up to date
+--------------- Coarse-1 ------------ XF ----------- 100 -----------------
+Analysis for Coarse-1_XF_100 already up to date
+--------------- Coarse-1 ------------ XF ----------- 200 -----------------
+Analysis for Coarse-1_XF_200 already up to date
+--------------- Coarse-1 ------------ XF ----------- 300 -----------------
+Analysis for Coarse-1_XF_300 already up to date
+--------------- Coarse-1 ------------ RPLUS ----------- 000 -----------------
+Analysis for Coarse-1_RPLUS_000 already up to date
+--------------- Coarse-1 ------------ RMINUS ----------- 100 -----------------
+Analysis for Coarse-1_RMINUS_100 already up to date
+--------------- Coarse-1 ------------ RMINUS ----------- 200 -----------------
+Analysis for Coarse-1_RMINUS_200 already up to date
+--------------- Coarse-1 ------------ RMINUS ----------- 300 -----------------
+Analysis for Coarse-1_RMINUS_300 already up to date
+--------------- Coarse-1 ------------ QPLUS ----------- 100 -----------------
+Analysis for Coarse-1_QPLUS_100 already up to date
+--------------- Coarse-1 ------------ QPLUS ----------- 200 -----------------
+Analysis for Coarse-1_QPLUS_200 already up to date
+--------------- Coarse-1 ------------ QPLUS ----------- 300 -----------------
+Analysis for Coarse-1_QPLUS_300 already up to date
+--------------- Fine-1 ------------ XF ----------- 100 -----------------
+Analysis for Fine-1_XF_100 already up to date
+--------------- Fine-1 ------------ XF ----------- 200 -----------------
+Analysis for Fine-1_XF_200 already up to date
+--------------- Fine-1 ------------ XF ----------- 300 -----------------
+Analysis for Fine-1_XF_300 already up to date
+--------------- Fine-1 ------------ XF ----------- 400 -----------------
+Analysis for Fine-1_XF_400 already up to date
+--------------- Fine-1 ------------ RPLUS ----------- 000 -----------------
+Analysis for Fine-1_RPLUS_000 already up to date
+--------------- Fine-1 ------------ RMINUS ----------- 100 -----------------
+Analysis for Fine-1_RMINUS_100 already up to date
+--------------- Fine-1 ------------ RMINUS ----------- 200 -----------------
+Analysis for Fine-1_RMINUS_200 already up to date
+--------------- Fine-1 ------------ RMINUS ----------- 300 -----------------
+Analysis for Fine-1_RMINUS_300 already up to date
+--------------- Fine-1 ------------ RMINUS ----------- 400 -----------------
+Analysis for Fine-1_RMINUS_400 already up to date
+--------------- Fine-1 ------------ QPLUS ----------- 100 -----------------
+Analysis for Fine-1_QPLUS_100 already up to date
+--------------- Fine-1 ------------ QPLUS ----------- 200 -----------------
+Analysis for Fine-1_QPLUS_200 already up to date
+--------------- Fine-1 ------------ QPLUS ----------- 300 -----------------
+Analysis for Fine-1_QPLUS_300 already up to date
+--------------- Fine-1 ------------ QPLUS ----------- 400 -----------------
+Analysis for Fine-1_QPLUS_400 already up to date
+--------------- Fine-Phys ------------ XF ----------- 100 -----------------
+Analysis for Fine-Phys_XF_100 already up to date
+--------------- Fine-Phys ------------ XF ----------- 200 -----------------
+Analysis for Fine-Phys_XF_200 already up to date
+--------------- Fine-Phys ------------ XF ----------- 300 -----------------
+Analysis for Fine-Phys_XF_300 already up to date
+--------------- Fine-Phys ------------ XF ----------- 400 -----------------
+Analysis for Fine-Phys_XF_400 already up to date
+--------------- Fine-Phys ------------ RPLUS ----------- 000 -----------------
+Analysis for Fine-Phys_RPLUS_000 already up to date
+--------------- Fine-Phys ------------ RMINUS ----------- 100 -----------------
+Analysis for Fine-Phys_RMINUS_100 already up to date
+--------------- Fine-Phys ------------ RMINUS ----------- 200 -----------------
+Analysis for Fine-Phys_RMINUS_200 already up to date
+--------------- Fine-Phys ------------ RMINUS ----------- 300 -----------------
+Analysis for Fine-Phys_RMINUS_300 already up to date
+--------------- Fine-Phys ------------ RMINUS ----------- 400 -----------------
+Analysis for Fine-Phys_RMINUS_400 already up to date
+--------------- Fine-Phys ------------ QPLUS ----------- 100 -----------------
+Analysis for Fine-Phys_QPLUS_100 already up to date
+--------------- Fine-Phys ------------ QPLUS ----------- 200 -----------------
+Analysis for Fine-Phys_QPLUS_200 already up to date
+--------------- Fine-Phys ------------ QPLUS ----------- 300 -----------------
+Analysis for Fine-Phys_QPLUS_300 already up to date
+--------------- Fine-Phys ------------ QPLUS ----------- 400 -----------------
+Analysis for Fine-Phys_QPLUS_400 already up to date
+--------------- SuperFine ------------ XF ----------- 100 -----------------
+Analysis for SuperFine_XF_100 already up to date
+--------------- SuperFine ------------ XF ----------- 200 -----------------
+Analysis for SuperFine_XF_200 already up to date
+--------------- SuperFine ------------ XF ----------- 300 -----------------
+Analysis for SuperFine_XF_300 already up to date
+--------------- SuperFine ------------ XF ----------- 400 -----------------
+Analysis for SuperFine_XF_400 already up to date
+--------------- SuperFine ------------ RPLUS ----------- 000 -----------------
+Analysis for SuperFine_RPLUS_000 already up to date
+--------------- SuperFine ------------ RMINUS ----------- 100 -----------------
+Analysis for SuperFine_RMINUS_100 already up to date
+--------------- SuperFine ------------ RMINUS ----------- 200 -----------------
+Analysis for SuperFine_RMINUS_200 already up to date
+--------------- SuperFine ------------ RMINUS ----------- 300 -----------------
+Analysis for SuperFine_RMINUS_300 already up to date
+--------------- SuperFine ------------ RMINUS ----------- 400 -----------------
+Analysis for SuperFine_RMINUS_400 already up to date
+--------------- SuperFine ------------ QPLUS ----------- 100 -----------------
+Analysis for SuperFine_QPLUS_100 already up to date
+--------------- SuperFine ------------ QPLUS ----------- 200 -----------------
+Analysis for SuperFine_QPLUS_200 already up to date
+--------------- SuperFine ------------ QPLUS ----------- 300 -----------------
+Analysis for SuperFine_QPLUS_300 already up to date
+--------------- SuperFine ------------ QPLUS ----------- 400 -----------------
+Analysis for SuperFine_QPLUS_400 already up to date
+                               trange  chiaug/chiexp  chi2red    pexp      pstd           F0
+ensemble     ratio  momentum                                                                
+MediumCoarse XF     100        (1, 9)   1.117000e+00    1.803  0.4086  0.409878  -0.0722(31)
+                    200        (1, 9)   1.920000e+00    2.757  0.2509  0.256125  -0.1397(36)
+                    300        (1, 9)   3.359000e+00    5.693  0.0580  0.059758  -0.1963(50)
+                    400        (1, 9)   5.774000e+00   11.372  0.0031  0.003878   -0.234(10)
+             RPLUS  000        (1, 9)   2.128000e+00    4.116  0.1305  0.131578    1.022(10)
+             RMINUS 100        (1, 9)   1.337888e+06    4.819  0.0000  0.000000  -0.0772(80)
+                    200        (1, 9)  -8.921290e+06    7.170  0.0000  0.000000   -0.149(13)
+                    300        (1, 9)   6.055178e+07   10.058  0.0000  0.000000   -0.199(27)
+                    400        (1, 9)  -1.283329e+09   13.836  0.0000  0.000000   -0.223(39)
+             QPLUS  100        (1, 9)  -3.067293e+06   10.547  0.0000  0.000000   0.8957(59)
+                    200        (1, 9)  -2.108777e+06   10.621  0.0000  0.000000    0.658(13)
+                    300        (1, 9)  -2.500606e+06    9.815  0.0000  0.000000    0.399(13)
+                    400        (1, 9)  -4.011358e+07    7.362  0.0000  0.000000    0.217(15)
+Coarse-2     XF     100       (1, 11)   1.557000e+00    5.559  0.2427  0.278466   -0.126(20)
+                    200       (1, 11)   7.420000e-01    2.463  0.6470  0.679732   -0.224(16)
+                    300       (1, 11)   1.701000e+00    6.133  0.1805  0.232006   -0.305(23)
+             RPLUS  000       (1, 11)   5.650000e-01    2.198  0.6976  0.724349   1.0175(68)
+             RMINUS 100       (1, 11)   5.919000e+00   11.500  0.0030  0.005812   -0.135(11)
+                    200       (1, 11)   4.677000e+00    9.012  0.0094  0.016454   -0.237(26)
+                    300       (1, 11)   2.143000e+00    4.106  0.1236  0.145241   -0.309(38)
+             QPLUS  100       (1, 11)   4.151000e+00    7.886  0.0189  0.026662    0.763(10)
+                    200       (1, 11)   2.685000e+00    4.459  0.1137  0.123673    0.353(11)
+                    300       (1, 11)   3.138000e+00    4.292  0.1130  0.133471    0.114(10)
+Coarse-Phys  XF     100       (1, 11)   1.739000e+00    6.247  0.1817  0.235856   -0.070(16)
+                    200       (1, 11)   1.329000e+00    4.729  0.2991  0.372615   -0.131(21)
+                    300       (1, 11)   7.150000e-01    2.302  0.6849  0.713989   -0.188(26)
+                    400       (1, 11)   4.800000e-01    1.358  0.8534  0.867884   -0.236(28)
+             RPLUS  000       (1, 11)   2.144000e+00    8.466  0.0781  0.117646   1.0101(49)
+             RMINUS 100       (1, 11)   2.533000e+00    3.692  0.1588  0.180452   -0.079(15)
+                    200       (1, 11)   2.202000e+00    3.518  0.1734  0.195074   -0.146(19)
+                    300       (1, 11)   1.390000e+00    1.950  0.3861  0.398736   -0.217(36)
+                    400       (1, 11)   1.286000e+00    1.735  0.4233  0.440629   -0.269(41)
+             QPLUS  100       (1, 11)   3.658000e+00    7.194  0.0268  0.038774   0.9362(32)
+                    200       (1, 11)   3.154000e+00    6.209  0.0427  0.058894   0.7630(43)
+                    300       (1, 11)   2.643000e+00    4.596  0.0944  0.120751   0.5306(97)
+                    400       (1, 11)   2.157000e+00    3.455  0.1776  0.200756    0.334(11)
+Coarse-1     XF     100       (1, 11)   7.950000e-01    2.424  0.6568  0.678517   -0.095(16)
+                    200       (1, 11)   7.150000e-01    2.381  0.6718  0.685956   -0.179(28)
+                    300       (1, 11)   1.813000e+00    6.386  0.1712  0.201911   -0.262(55)
+             RPLUS  000       (1, 11)   9.210000e-01    3.669  0.4506  0.481524   1.0093(78)
+             RMINUS 100       (1, 11)   6.168000e+00   11.621  0.0034  0.004697  -0.1008(75)
+                    200       (1, 11)   2.977000e+00    5.476  0.0635  0.072997   -0.197(24)
+                    300       (1, 11)   2.730000e+00    4.603  0.0891  0.111426   -0.284(44)
+             QPLUS  100       (1, 11)   1.719000e+00    2.368  0.2905  0.318957   0.8629(47)
+                    200       (1, 11)   2.178000e+00    2.466  0.2896  0.304435   0.5360(74)
+                    300       (1, 11)   3.774000e+00    6.595  0.0378  0.043715    0.283(23)
+Fine-1       XF     100       (1, 16)   6.540000e-01    3.316  0.9502  0.966420  -0.0751(16)
+                    200       (1, 16)   4.650000e-01    2.410  0.9836  0.988765  -0.1501(32)
+                    300       (1, 16)   4.570000e-01    2.968  0.9657  0.976768  -0.2207(67)
+                    400       (1, 16)   1.211000e+00    9.045  0.4308  0.564488   -0.291(21)
+             RPLUS  000       (1, 16)   1.121000e+00    9.902  0.3621  0.496406   1.0368(74)
+             RMINUS 100       (1, 16)   9.030000e-01    5.104  0.6431  0.714276  -0.0851(22)
+                    200       (1, 16)   9.460000e-01    4.980  0.6666  0.727095  -0.1680(41)
+                    300       (1, 16)   3.840000e-01    2.255  0.9440  0.956709   -0.246(11)
+                    400       (1, 16)   4.570000e-01    2.423  0.9344  0.947575   -0.327(40)
+             QPLUS  100       (1, 16)   8.090000e-01    5.557  0.5902  0.667196   0.8610(34)
+                    200       (1, 16)   8.030000e-01    5.575  0.5888  0.665284   0.5980(65)
+                    300       (1, 16)   7.630000e-01    4.593  0.7080  0.766615   0.3321(64)
+                    400       (1, 16)   6.360000e-01    3.508  0.8355  0.869121   0.1662(73)
+Fine-Phys    XF     100       (1, 16)   1.783000e+00   14.816  0.0939  0.164420  -0.0595(15)
+                    200       (1, 16)   1.809000e+00   14.693  0.1013  0.169062  -0.1164(21)
+                    300       (1, 16)   2.014000e+00   15.861  0.0697  0.129372  -0.1687(28)
+                    400       (1, 16)   1.921000e+00   14.853  0.0915  0.163042  -0.2142(41)
+             RPLUS  000       (1, 16)   1.050000e+00    8.167  0.5134  0.597979   1.0237(35)
+             RMINUS 100       (1, 16)   1.235000e+00    7.994  0.3249  0.397453  -0.0610(53)
+                    200       (1, 16)   1.032000e+00    6.718  0.4529  0.518772  -0.1232(66)
+                    300       (1, 16)   1.194000e+00    7.680  0.3650  0.425442   -0.178(12)
+                    400       (1, 16)   1.399000e+00    9.221  0.2395  0.300314   -0.223(18)
+             QPLUS  100       (1, 16)   9.800000e-01    5.542  0.5957  0.644142   0.9351(21)
+                    200       (1, 16)   8.610000e-01    4.857  0.6778  0.719392   0.7568(39)
+                    300       (1, 16)   1.058000e+00    6.250  0.5162  0.567592   0.5391(54)
+                    400       (1, 16)   1.255000e+00    7.997  0.3319  0.397162   0.3490(74)
+SuperFine    XF     100       (2, 22)   1.761000e+00   24.189  0.0428  0.320850  -0.0612(37)
+                    200       (2, 22)   2.003000e+00   27.507  0.0166  0.225449  -0.1232(68)
+                    300       (2, 22)   2.191000e+00   29.879  0.0086  0.173218   -0.196(39)
+                    400       (2, 22)   1.855000e+00   25.223  0.0304  0.288134   -0.251(50)
+             RPLUS  000       (2, 22)   1.028000e+00   14.377  0.4259  0.744421   1.0478(50)
+             RMINUS 100       (2, 22)   1.045000e+00   11.964  0.4501  0.706399  -0.0642(27)
+                    200       (2, 22)   1.070000e+00   12.644  0.3977  0.667586  -0.1271(48)
+                    300       (2, 22)   1.321000e+00   15.658  0.2083  0.499527  -0.1847(95)
+                    400       (2, 22)   1.207000e+00   14.286  0.2815  0.574211   -0.246(14)
+             QPLUS  100       (2, 22)   2.615000e+00   31.070  0.0023  0.067317   0.9416(23)
+                    200       (2, 22)   3.423000e+00   40.413  0.0000  0.018087   0.7816(48)
+                    300       (2, 22)   3.502000e+00   41.151  0.0000  0.016314   0.5662(47)
+                    400       (2, 22)   3.395000e+00   39.643  0.0002  0.020144    0.350(21)
