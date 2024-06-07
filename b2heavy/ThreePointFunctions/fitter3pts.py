@@ -26,6 +26,7 @@ def ModelRatio_jax(T,same_sink,sm,Nexc):
 
     return _model
 
+
 def ModelRatio(T,same_sink,sm,Nexc):
     dE_k2 = 'dE_src' if same_sink else 'dE_snk'
     
@@ -38,6 +39,7 @@ def ModelRatio(T,same_sink,sm,Nexc):
         return tmp
 
     return _model
+
 
 def phys_energy_priors(ens, mes, mom, nstates, readfrom=None, error=1.0):
     fit,p = read_config_fit(
@@ -60,6 +62,7 @@ def phys_energy_priors(ens, mes, mom, nstates, readfrom=None, error=1.0):
         dE.append(pr)
 
     return dE
+
 
 def standard_p(io, fit:lsqfit.nonlinear_fit):
     chi2red = fit.chi2
@@ -399,38 +402,57 @@ class RatioFitter(Ratio):
 
 from b2heavy.ThreePointFunctions.types3pts import ratio_prerequisites
 
+
+BINSIZE  = {
+    'MediumCoarse':13,
+    'Coarse-2':    16,
+    'Coarse-1':    11,
+    'Coarse-Phys': 19,
+    'Fine-1':      16,
+    'Fine-Phys':   16,
+    'SuperFine':   22
+}
+
 def main():
-    ens = 'Coarse-1'
-    rat = 'RPLUS'
-    mom = '000'
+    ens = 'Coarse-Phys'
+    rat = 'QPLUS'
+    mom = '100'
     frm = '/Users/pietro/code/data_analysis/BtoD/Alex'
-    readfrom = '/Users/pietro/code/data_analysis/data/QCDNf2p1stag/B2heavy/report'
+    readfrom = '/Users/pietro/code/data_analysis/data/QCDNf2p1stag/B2heavy/lattice24'
+
+    nstates = 2
+    tmin    = 2
 
     requisites = ratio_prerequisites(
         ens, rat, mom, readfrom=readfrom, jk=True
     )
 
-    # io = RatioIO(ens,rat,mom,PathToDataDir=frm)
-    # ratio = RatioFitter(
-    #     io,
-    #     jkBin    = 11,
-    #     smearing = ['1S','RW'],
-    #     **requisites
-    # )
+    io = RatioIO(ens,rat,mom,PathToDataDir=frm)
+    ratio = RatioFitter(
+        io,
+        jkBin    = BINSIZE[ens],
+        smearing = ['1S','RW'],
+        **requisites
+    )
 
-    # COV_SPECS = dict(
-    #     diag   = False,
-    #     block  = False,
-    #     scale  = True,
-    #     shrink = True,
-    #     cutsvd = 1E-12
-    # )
+    COV_SPECS = dict(
+        diag   = False,
+        block  = False,
+        scale  = True,
+        shrink = True,
+        cutsvd = 1E-12
+    )
 
+    dE_src = phys_energy_priors(ens,'D',mom,nstates,readfrom=readfrom,error=0.5)
+    dE_snk = phys_energy_priors(ens,'B',mom,nstates,readfrom=readfrom,error=0.5)
+    pr = ratio.priors(nstates, dE_src=dE_src, dE_snk=dE_snk)
 
+    ratio.fit(
+        Nstates = nstates,
+        trange  = (tmin,ratio.Ta-tmin),
+        verbose = True,
+        priors  = pr,
+        **COV_SPECS
+    )
 
-    # ratio.fit(
-    #     Nstates = 2,
-    #     trange  = (2,13),
-    #     verbose = True,
-    #     priors  = ratio.priors(dE_src=dE)
-    # )
+    breakpoint()

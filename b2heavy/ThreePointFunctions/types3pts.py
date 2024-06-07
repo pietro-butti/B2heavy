@@ -459,31 +459,31 @@ def ratio_prerequisites(ens,ratio,mom,smearing=['1S','d'],readfrom=None,jk=False
 
     for sm in smearing:
         if not jk:
-            req['Z0'][sm] = (np.exp(p0[-1][f'Z_{sm}_Unpol'][0])**2 * 2*p0[-1]['E'][0]).mean
+            req['Z0'][sm] = (np.exp(p0[-1][f'Z_{sm}_Unpol'][0])**2).mean * 2*req['m0'] 
         else:
             req['Z0'][sm] = np.exp(p0[f'Z_{sm}_Unpol'][:,0])**2 * 2*p0['E'][:,0]     
 
         if mes=='Dst' and mom!='000':
             if not jk:
-                req['Zpar'][sm] = (np.exp(p2[-1][f'Z_{sm}_Par'][0])**2 * 2*p2[-1]['E'][0]).mean
-                req['Zbot'][sm] = (np.exp(p2[-1][f'Z_{sm}_Bot'][0])**2 * 2*p2[-1]['E'][0]).mean                
+                req['Zpar'][sm] = (np.exp(p2[-1][f'Z_{sm}_Par'][0])**2).mean * 2*req['E0']
+                req['Zbot'][sm] = (np.exp(p2[-1][f'Z_{sm}_Bot'][0])**2).mean * 2*req['E0']                
             else:
                 req['Zpar'][sm] = np.exp(p2[f'Z_{sm}_Par'][:,0])**2 * 2*p2['E'][:,0]
                 req['Zbot'][sm] = np.exp(p2[f'Z_{sm}_Bot'][:,0])**2 * 2*p2['E'][:,0]     
 
         elif mes=='D':
             if not jk:
-                req['Zp'][sm] = (np.exp(p2[-1][f'Z_{sm}_Unpol'][0])**2 * 2*p2[-1]['E'][0]).mean
+                req['Zp'][sm] = (np.exp(p2[-1][f'Z_{sm}_Unpol'][0])**2).mean * 2*req['E0']
             else:
                 req['Zp'][sm] = np.exp(p2[f'Z_{sm}_Unpol'][:,0])**2 * 2*p2['E'][:,0]     
 
     if rt in ['RA1','RA1S']:
-        assert exists_analysis(readfrom,ens,'xfstpar',mom,type='3',jkfit=jk)
-        tag = f'fit3pt_config_{ens}_xfstpar_{mom}'
-        p3 = read_config_fit(tag, path=readfrom, jk=jk)
-        xf = p3['ratio'].reshape(p3['ratio'].shape[-1]) if jk else p3[-1]['ratio'][0].mean
-        req['wrecoil'] = (1+xf**2)/(1-xf**2)
-        # req['wrecoil'] = req['E0']/req['m0']
+        # assert exists_analysis(readfrom,ens,'xfstpar',mom,type='3',jkfit=jk)
+        # tag = f'fit3pt_config_{ens}_xfstpar_{mom}'
+        # p3 = read_config_fit(tag, path=readfrom, jk=jk)
+        # xf = p3['ratio'].reshape(p3['ratio'].shape[-1]) if jk else p3[-1]['ratio'][0].mean
+        # req['wrecoil'] = (1+xf**2)/(1-xf**2)
+        req['wrecoil'] = req['E0']/req['m0']
     else:
         req['wrecoil'] = req['E0']/req['m0']
 
@@ -512,8 +512,9 @@ def ratio_correction_factor(rstr,T,smearing=['RW','1S'],**req):
 
             case 'QPLUS':
                 factor[sm] = req['E0']/req['m0'] * \
-                    req['Z0'][smi]/req['Zp'][smi]
-                    # np.sqrt(req['Z0'][smi]/req['Zp'][smi])
+                    np.sqrt(req['Z0'][smi]/req['Zp'][smi]) # FIXME
+                    # req['Z0'][smi]/req['Zp'][smi] # FIXME
+                
 
     return factor if bool(factor) else None
 
@@ -547,7 +548,7 @@ class RatioInfo:
 
 class RatioIO:
     def __init__(self, _ens:str, _rat:str, _mom:str, PathToFile=None, PathToDataDir=None, name=None):
-        if   _mom=='000' and _rat not in ['ZRA1','ZRA1S','RPLUS']:
+        if   _mom=='000' and _rat not in ['ZRA1','ZRA1S','RPLUS','RMINUS','XF','QPLUS']:
             raise NotImplementedError(f'At {_mom}, only ZRA1, ZRA1S, RPLUS are defined')
         elif _mom!='000' and _rat in ['ZRA1','ZRA1S','RPLUS']:
             raise NotImplementedError(f'{_rat} has not been defined for {_mom}>0')    
@@ -650,9 +651,9 @@ class RatioIO:
                 nums = fnum(nums,axis=0)
                 dens = fden(dens,axis=0)
                 
+
                 tmp[sm][ts] = nums/dens
 
-        # self.raw = tmp
         return tmp
 
 
@@ -702,6 +703,7 @@ class RatioIO:
                     f1 = np.exp((E0-m0) * np.arange(self.Ta+1))
                 else:
                     f1 = np.transpose([np.exp((E0-m0)*t) for t in np.arange(self.Ta+1)])
+                    # f1 = np.exp((E0-m0)*np.arange(self.Ta+1))
                 f2 = f1
 
         data = {}
@@ -731,6 +733,8 @@ class RatioIO:
             self.Ta,
             **reqs
         )
+        breakpoint()
+
         corrected = self.correct(raw,factor=ff)
 
         # smoothen ratio 
@@ -765,9 +769,9 @@ class Ratio:
         if requisites.get('jk'):
             _req = {}
             for k,rq in requisites.items():
-                if rq is not None and k!='jk':
+                if k!='jk' and rq is not None:
                     if isinstance(rq,dict):
-                        _req[k] = {k: rq[k].mean() for k in rq}
+                        _req[k] = {k: rq[k].mean() for k in rq if rq[k] is not None}
                     else:
                         _req[k] = rq.mean()
                 else:
@@ -839,15 +843,16 @@ class Ratio:
 
 
 def main():
-    ens = 'Coarse-1'
-    r   = 'ZRA1'
-    mom = '000'
+    ens = 'Fine-1'
+    r   = 'RA1'
+    mom = '100'
     frm = '/Users/pietro/code/data_analysis/BtoD/Alex'
-    readfrom = '/Users/pietro/code/data_analysis/data/QCDNf2p1stag/B2heavy/report'
+    readfrom = '/Users/pietro/code/data_analysis/data/QCDNf2p1stag/B2heavy/lattice24'
 
     req = ratio_prerequisites(ens,r,mom,readfrom=readfrom,jk=False)
     
     io = RatioIO(ens,r,mom,PathToDataDir=frm)
-    io.build(smearing=['1S'],jkBin=8,**req)
+    # io.build(smearing=['1S'],jkBin=11,**req)
+    ra1 = Ratio(io,jkBin=11,smearing=['1S','RW'],**req)
 
     breakpoint()
