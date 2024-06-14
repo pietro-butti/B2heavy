@@ -30,6 +30,11 @@ MPHYS  = {
 }
 
 
+def Tmax(y,errmax=0.3):
+    for i,el in enumerate(y):
+        if abs(gv.sdev(el)/gv.mean(el))>errmax:
+            return i
+    return len(y)
 
 
 def jkCorr(data, bsize=1):
@@ -170,6 +175,8 @@ def compute_covariance(ysamples, jk=True, ysamples_full=None, bias=False, **cov_
     # Rebuild dictionary
     yout = yout.reshape((len(ylist),len(yout)//len(ylist)))
     return jax.tree_util.build_tree(treestruct,yout)
+
+
 
 
 

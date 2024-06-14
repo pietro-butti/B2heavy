@@ -437,7 +437,7 @@ def ratio_prerequisites(ens,ratio,mom,smearing=['1S','d'],readfrom=None,jk=False
     )
 
     rt = ratiofmt(ratio)
-    if rt in ['RA1','ZRA1','XFPAR','XFBOT','XV','R0','R1']:
+    if rt in ['RA1','ZRA1','XFSTPAR','XFSTBOT','XV','R0','R1']:
         mes = 'Dst'
     elif rt in ['XF','QPLUS','RPLUS','RMINUS']:
         mes = 'D'

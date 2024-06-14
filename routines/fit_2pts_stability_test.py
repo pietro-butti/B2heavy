@@ -171,13 +171,11 @@ def read_results_stability_test(dumped, Nt=30, show=True, obs='E', n_states=0):
     return df
 
 
-def stability_test_plot(ax, df, IC='TIC', label_mod_av='mod. av.', obs_idx=0):
+def stability_test_plot(ax, df, IC='TIC', label_mod_av='mod. av.', obs='E0'):
     Nstates = np.unique([n for n,tr in df.index])
 
-    breakpoint()
-
     # Plot observable
-    obs = df.columns[0]
+    # obs = df.columns[0]
     for nexc in Nstates:
         idx = [i for i in df.index if i[0]==nexc]
 
@@ -268,7 +266,7 @@ prs.add_argument('--prior_trange' , type=int, nargs='+')
 prs.add_argument('--Nstates'      , type=int, nargs='+')
 prs.add_argument('--tmins'        , type=int, nargs='+')
 prs.add_argument('--tmaxs'        , type=int, nargs='+')
-prs.add_argument('--obs'          , type=str, default='E')
+prs.add_argument('--obs'          , type=str, default='E0')
 
 prs.add_argument('--shrink', action='store_true')
 prs.add_argument('--scale' , action='store_true')
@@ -370,7 +368,6 @@ def main():
         fits, 
         show     = True, 
         Nt       = config['data'][ens]['Nt'],
-        obs      = args.obs,
         n_states = 0
     )
 
@@ -385,7 +382,7 @@ def main():
             f, (ax, a1, a2) = plt.subplots(3, 1, gridspec_kw={'height_ratios': [3, 1, 1]}, figsize=(6,6), sharex=True)
 
 
-        stability_test_plot(ax,df)
+        stability_test_plot(ax,df, obs=args.obs)
         ax.set_ylim(ymax=args.plot_ymax,ymin=args.plot_ymin)
         ax.set_title(tag)
         ax.grid(alpha=0.2)

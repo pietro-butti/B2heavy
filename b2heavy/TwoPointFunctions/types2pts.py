@@ -281,6 +281,30 @@ class CorrelatorIO:
         return xd
 
 
+    def collect(self,smearing=['1S','d'], **kwargs):
+        data      = self.ReadCorrelator(**kwargs)
+        data_full = self.ReadCorrelator(jkBin=1)
+
+        self.Nt    = 2*data.timeslice.size
+        self.tdata = np.arange(self.Nt//2) 
+
+        mes = self.info.meson
+        mom = self.info.momentum
+
+        self.data = {}
+        self.data_full = {}
+        for sm in data.smearing.values:
+            for pol in data.polarization.values:
+                s1,s2 = sm.split('-')
+                if not (s1 in smearing and s2 in smearing):
+                    continue
+                tag = f'[{mes}]->[{mes}].{mom}.{s1}.{s2}.{pol}'
+                self.data[tag]      = data.loc[sm,pol].values
+                self.data_full[tag] = data_full.loc[sm,pol].values
+        
+        return
+
+
 class Correlator:
     def __init__(self, io:CorrelatorIO, smearing=None, polarization=None, jkBin=None, **kwargs):
         self.io           = io
