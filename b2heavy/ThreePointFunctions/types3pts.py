@@ -510,10 +510,11 @@ def ratio_correction_factor(rstr,smearing=['RW','1S'],**req):
                 ff = req['Z0'][smi] / np.sqrt( req['Z0'][smi] * req['Z0']['1S'] ) 
 
             case 'QPLUS':
-                ff = req['E0']/req['m0'] * \
-                    np.sqrt(req['Z0'][smi]/req['Zp'][smi]) # FIXME
+                ff = 1./(req['E0']/req['m0'] * \
+                    np.sqrt(req['Z0'][smi]/req['Zp'][smi]) )# FIXME
                 
         factor[sm] = 1./ff
+        # factor[sm] = ff
 
     return factor if bool(factor) else None
 
@@ -845,12 +846,18 @@ class Ratio:
 def main():
     ens = 'Coarse-1'
     r   = 'QPLUS'
-    mom = '100'
+    mom = '300'
     frm = '/Users/pietro/code/data_analysis/BtoD/Alex'
     readfrom = '/Users/pietro/code/data_analysis/data/QCDNf2p1stag/B2heavy/lattice24'
 
-    req = ratio_prerequisites(ens,r,mom,readfrom=readfrom,jk=True)
+    req = ratio_prerequisites(ens,r,mom,readfrom=readfrom,jk=False)
+    # breakpoint()
     
     io = RatioIO(ens,r,mom,PathToDataDir=frm)
-    # io.build(smearing=['1S'],jkBin=11,**req)
     ra1 = Ratio(io,jkBin=11,smearing=['1S','RW'],**req)
+
+    fig, ax = plt.subplots(1,1)
+    ra1.plot(ax)
+
+    ax.legend()
+    plt.show()

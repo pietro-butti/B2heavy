@@ -61,8 +61,8 @@ def main():
     data_dir = '/Users/pietro/code/data_analysis/BtoD/Alex/'
     frm = '/Users/pietro/code/data_analysis/data/QCDNf2p1stag/B2heavy/report'
 
-    # smlist   = ['1S','RW'] 
-    smlist   = ['1S'] 
+    smlist   = ['1S','RW'] 
+    # smlist   = ['1S'] 
     config = {'fit': {}}
 
     aux = []
@@ -103,7 +103,7 @@ def main():
                 tmax = robj.Ta - tmin
 
                 config['fit'][ens][ratio]['mom'][mom] = {}
-                config['fit'][ens][ratio]['mom'][mom]['nstates']    = 2
+                config['fit'][ens][ratio]['mom'][mom]['nstates']    = 1
                 config['fit'][ens][ratio]['mom'][mom]['tag']        = f'{ens}_{ratio}_{mom}' # 'Coarse-Phys_B_211'
                 config['fit'][ens][ratio]['mom'][mom]['trange']     = [tmin,tmax]
 
