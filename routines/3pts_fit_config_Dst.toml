@@ -60,534 +60,444 @@ title = '3pts fits'
 #              'Fine-Phys':   16,
 #              'SuperFine':   22}#22}
 
+[fit.Coarse-2.RA1]
+smlist = [ "1S", ]
 
-    
-[fit]
-    [fit.Coarse-2]
-        [fit.Coarse-2.xfstpar]
-            smlist = ['1S','RW']
-            [fit.Coarse-2.xfstpar.mom]
-                [fit.Coarse-2.xfstpar.mom.100]
-                    nstates = 1
-                    tag     = 'Coarse-2_xfstpar_100'
-                    trange  = [2,9]
-                    svd     = 0.0067
-                [fit.Coarse-2.xfstpar.mom.200]
-                    nstates = 1
-                    tag     = 'Coarse-2_xfstpar_200'
-                    trange  = [2,9]
-                    svd     = 0.0065            
-                [fit.Coarse-2.xfstpar.mom.300]
-                    nstates = 1
-                    tag     = 'Coarse-2_xfstpar_300'
-                    trange  = [2,9]
-                    svd     = 0.0061
+[fit.Coarse-2.ZRA1]
+smlist = [ "1S", ]
 
-        [fit.Coarse-2.RA1]
-            # smlist = ['1S','RW']
-            smlist = ['1S']
-            [fit.Coarse-2.RA1.mom]
-                [fit.Coarse-2.RA1.mom.000]
-                    nstates = 2
-                    tag     = 'Coarse-2_RA1_000'
-                    trange  = [2,9]
-                    svd     = 2.626059e-4
-                [fit.Coarse-2.RA1.mom.100]
-                    nstates = 2
-                    tag     = 'Coarse-2_RA1_100'
-                    trange  = [2,9]
-                    svd     = 6.618583e-6
-                [fit.Coarse-2.RA1.mom.200]
-                    nstates = 2
-                    tag     = 'Coarse-2_RA1_200'
-                    trange  = [2,9]
-                    svd     = 2.207537e-7           
-                [fit.Coarse-2.RA1.mom.300]
-                    nstates = 2
-                    tag     = 'Coarse-2_RA1_300'
-                    trange  = [2,9]
-                    svd     = 2.494207e-7
+[fit.Coarse-2.XFSTPAR]
+smlist = [ "1S", "RW",]
 
-        [fit.Coarse-2.ZRA1]
-            smlist = ['1S','RW']
-            [fit.Coarse-2.ZRA1.mom]
-                [fit.Coarse-2.ZRA1.mom.000]
-                    nstates = 1
-                    tag     = 'Coarse-2_ZRA1_000'
-                    trange  = [2,9]
+[fit.Coarse-2.R0]
+smlist = [ "1S", "RW",]
 
-        [fit.Coarse-2.R0]
-            smlist = ['1S','RW']
-            [fit.Coarse-2.R0.mom]
-                [fit.Coarse-2.R0.mom.100]
-                    nstates = 1
-                    tag     = 'Coarse-2_R0_100'
-                    trange  = [2,9]
-                    svd     = 0.0060
-                [fit.Coarse-2.R0.mom.200]
-                    nstates = 1
-                    tag     = 'Coarse-2_R0_200'
-                    trange  = [2,9]
-                    svd     = 0.0063            
-                [fit.Coarse-2.R0.mom.300]
-                    nstates = 1
-                    tag     = 'Coarse-2_R0_300'
-                    trange  = [2,9]
-                    svd     = 0.0060
+[fit.Coarse-2.R1]
+smlist = [ "1S", "RW",]
 
-        [fit.Coarse-2.R1]
-            smlist = ['1S','RW']
-            [fit.Coarse-2.R1.mom]
-                [fit.Coarse-2.R1.mom.100]
-                    nstates = 1
-                    tag     = 'Coarse-2_R1_100'
-                    trange  = [2,9]
-                    svd     = 0.0007
-                [fit.Coarse-2.R1.mom.200]
-                    nstates = 1
-                    tag     = 'Coarse-2_R1_200'
-                    trange  = [2,9]
-                    svd     = 0.0010           
-                [fit.Coarse-2.R1.mom.300]
-                    nstates = 1
-                    tag     = 'Coarse-2_R1_300'
-                    trange  = [2,9]
-                    svd     = 0.0013
+[fit.Coarse-2.XV]
+smlist = [ "1S", "RW",]
 
-        [fit.Coarse-2.XV]
-            smlist = ['1S','RW']
-            [fit.Coarse-2.XV.mom]
-                [fit.Coarse-2.XV.mom.100]
-                    nstates = 1
-                    tag     = 'Coarse-2_XV_100'
-                    trange  = [2,9]
-                    svd     = 0.0051
-                [fit.Coarse-2.XV.mom.200]
-                    nstates = 1
-                    tag     = 'Coarse-2_XV_200'
-                    trange  = [2,9]
-                    svd     = 0.0062            
-                [fit.Coarse-2.XV.mom.300]
-                    nstates = 1
-                    tag     = 'Coarse-2_XV_300'
-                    trange  = [2,9]
-                    svd     = 0.0107
+[fit.Coarse-1.RA1]
+smlist = [ "1S", ]
 
-    [fit.Coarse-1]
-        [fit.Coarse-1.xfstpar]
-            smlist = ['1S','RW']
-            [fit.Coarse-1.xfstpar.mom]
-                [fit.Coarse-1.xfstpar.mom.100]
-                    nstates = 1
-                    tag     = 'Coarse-1_xfstpar_100'
-                    trange  = [2,9]
-                    svd     = 0.0069
-                [fit.Coarse-1.xfstpar.mom.200]
-                    nstates = 1
-                    tag     = 'Coarse-1_xfstpar_200'
-                    trange  = [2,9]
-                    svd     = 0.0072            
-                [fit.Coarse-1.xfstpar.mom.300]
-                    nstates = 1
-                    tag     = 'Coarse-1_xfstpar_300'
-                    trange  = [2,9]
-                    svd     = 0.0085
+[fit.Coarse-1.ZRA1]
+smlist = [ "1S", ]
 
-        [fit.Coarse-1.RA1]
-            # smlist = ['1S','RW']
-            smlist = ['1S']
-            [fit.Coarse-1.RA1.mom]
-                [fit.Coarse-1.RA1.mom.000]
-                    nstates = 2
-                    tag     = 'Coarse-1_RA1_000'
-                    trange  = [2,9]
-                    svd     = 2.542399e-4
-                [fit.Coarse-1.RA1.mom.100]
-                    nstates = 2
-                    tag     = 'Coarse-1_RA1_100'
-                    trange  = [2,9]
-                    svd     = 2.181334e-6
-                [fit.Coarse-1.RA1.mom.200]
-                    nstates = 2
-                    tag     = 'Coarse-1_RA1_200'
-                    trange  = [2,9]
-                    svd     = 8.574746e-7            
-                [fit.Coarse-1.RA1.mom.300]
-                    nstates = 2
-                    tag     = 'Coarse-1_RA1_300'
-                    trange  = [2,9]
-                    svd     = 7.995491e-7
+[fit.Coarse-1.XFSTPAR]
+smlist = [ "1S", "RW",]
 
-        [fit.Coarse-1.ZRA1]
-            smlist = ['1S','RW']
-            [fit.Coarse-1.ZRA1.mom]
-                [fit.Coarse-1.ZRA1.mom.000]
-                    nstates = 1
-                    tag     = 'Coarse-1_ZRA1_000'
-                    trange  = [2,9]
-                    svd     = 0.0010
+[fit.Coarse-1.R0]
+smlist = [ "1S", "RW",]
 
-        [fit.Coarse-1.R0]
-            smlist = ['1S','RW']
-            [fit.Coarse-1.R0.mom]
-                [fit.Coarse-1.R0.mom.100]
-                    nstates = 1
-                    tag     = 'Coarse-1_R0_100'
-                    trange  = [2,9]
-                    svd     = 0.0079
-                [fit.Coarse-1.R0.mom.200]
-                    nstates = 1
-                    tag     = 'Coarse-1_R0_200'
-                    trange  = [2,9]
-                    svd     = 0.0071            
-                [fit.Coarse-1.R0.mom.300]
-                    nstates = 1
-                    tag     = 'Coarse-1_R0_300'
-                    trange  = [2,9]
-                    svd     = 0.0067
+[fit.Coarse-1.R1]
+smlist = [ "1S", "RW",]
 
-        [fit.Coarse-1.R1]
-            smlist = ['1S','RW']
-            [fit.Coarse-1.R1.mom]
-                [fit.Coarse-1.R1.mom.100]
-                    nstates = 1
-                    tag     = 'Coarse-1_R1_100'
-                    trange  = [2,9]
-                    svd     = 0.0007
-                [fit.Coarse-1.R1.mom.200]
-                    nstates = 1
-                    tag     = 'Coarse-1_R1_200'
-                    trange  = [2,9]
-                    svd     = 0.0008            
-                [fit.Coarse-1.R1.mom.300]
-                    nstates = 1
-                    tag     = 'Coarse-1_R1_300'
-                    trange  = [2,9]
-                    svd     = 0.0010
+[fit.Coarse-1.XV]
+smlist = [ "1S", "RW",]
 
-        [fit.Coarse-1.XV]
-            smlist = ['1S','RW']
-            [fit.Coarse-1.XV.mom]
-                [fit.Coarse-1.XV.mom.100]
-                    nstates = 1
-                    tag     = 'Coarse-1_XV_100'
-                    trange  = [2,9]
-                    svd     = 0.0077
-                [fit.Coarse-1.XV.mom.200]
-                    nstates = 1
-                    tag     = 'Coarse-1_XV_200'
-                    trange  = [2,9]
-                    svd     = 0.0101            
-                [fit.Coarse-1.XV.mom.300]
-                    nstates = 1
-                    tag     = 'Coarse-1_XV_300'
-                    trange  = [2,9]
-                    svd     = 0.0116
+[fit.Coarse-Phys.RA1]
+smlist = [ "1S", ]
 
-    [fit.Coarse-Phys]
-        [fit.Coarse-Phys.xfstpar]
-            smlist = ['1S','RW']
-            [fit.Coarse-Phys.xfstpar.mom]
-                [fit.Coarse-Phys.xfstpar.mom.100]
-                    nstates = 1
-                    tag     = 'Coarse-Phys_xfstpar_100'
-                    trange  = [2,9]
-                    svd     = 0.0084
-                [fit.Coarse-Phys.xfstpar.mom.200]
-                    nstates = 1
-                    tag     = 'Coarse-Phys_xfstpar_200'
-                    trange  = [2,9]
-                    svd     = 0.0090            
-                [fit.Coarse-Phys.xfstpar.mom.300]
-                    nstates = 1
-                    tag     = 'Coarse-Phys_xfstpar_300'
-                    trange  = [2,9]
-                    svd     = 0.0108
-                [fit.Coarse-Phys.xfstpar.mom.400]
-                    nstates = 1
-                    tag     = 'Coarse-Phys_xfstpar_400'
-                    trange  = [2,9]
-                    svd     = 0.0106
+[fit.Coarse-Phys.ZRA1]
+smlist = [ "1S", ]
 
-        [fit.Coarse-Phys.RA1]
-            # smlist = ['1S','RW']
-            smlist = ['1S']
-            [fit.Coarse-Phys.RA1.mom]
-                [fit.Coarse-Phys.RA1.mom.000]
-                    nstates = 2
-                    tag     = 'Coarse-Phys_RA1_000'
-                    trange  = [2,9]
-                    svd     = 3.436215e-4
-                [fit.Coarse-Phys.RA1.mom.100]
-                    nstates = 2
-                    tag     = 'Coarse-Phys_RA1_100'
-                    trange  = [2,9]
-                    svd     = 7.707141e-6
-                [fit.Coarse-Phys.RA1.mom.200]
-                    nstates = 2
-                    tag     = 'Coarse-Phys_RA1_200'
-                    trange  = [2,9]
-                    svd     =  3.459330e-6           
-                [fit.Coarse-Phys.RA1.mom.300]
-                    nstates = 2
-                    tag     = 'Coarse-Phys_RA1_300'
-                    trange  = [2,9]
-                    svd     = 7.375751e-7           
-                [fit.Coarse-Phys.RA1.mom.400]
-                    nstates = 2
-                    tag     = 'Coarse-Phys_RA1_400'
-                    trange  = [2,9]
-                    svd     = 1.097774e-7
+[fit.Coarse-Phys.XFSTPAR]
+smlist = [ "1S", "RW",]
 
-        [fit.Coarse-Phys.ZRA1]
-            smlist = ['1S','RW']
-            [fit.Coarse-Phys.ZRA1.mom]
-                [fit.Coarse-Phys.ZRA1.mom.000]
-                    nstates = 1
-                    tag     = 'Coarse-Phys_ZRA1_000'
-                    trange  = [2,9]
+[fit.Coarse-Phys.R0]
+smlist = [ "1S", "RW",]
 
-        [fit.Coarse-Phys.R0]
-            smlist = ['1S','RW']
-            [fit.Coarse-Phys.R0.mom]
-                [fit.Coarse-Phys.R0.mom.100]
-                    nstates = 1
-                    tag     = 'Coarse-Phys_R0_100'
-                    trange  = [2,9]
-                    svd     = 0.0081
-                [fit.Coarse-Phys.R0.mom.200]
-                    nstates = 1
-                    tag     = 'Coarse-Phys_R0_200'
-                    trange  = [2,9]
-                    svd     = 0.0083            
-                [fit.Coarse-Phys.R0.mom.300]
-                    nstates = 1
-                    tag     = 'Coarse-Phys_R0_300'
-                    trange  = [2,9]
-                    svd     = 0.0066
-                [fit.Coarse-Phys.R0.mom.400]
-                    nstates = 1
-                    tag     = 'Coarse-Phys_R0_400'
-                    trange  = [2,9]
-                    svd     = 0.0044
+[fit.Coarse-Phys.R1]
+smlist = [ "1S", "RW",]
 
-        [fit.Coarse-Phys.R1]
-            smlist = ['1S','RW']
-            [fit.Coarse-Phys.R1.mom]
-                [fit.Coarse-Phys.R1.mom.100]
-                    nstates = 1
-                    tag     = 'Coarse-Phys_R1_100'
-                    trange  = [2,9]
-                    svd     = 0.0008
-                [fit.Coarse-Phys.R1.mom.200]
-                    nstates = 1
-                    tag     = 'Coarse-Phys_R1_200'
-                    trange  = [2,9]
-                    svd     = 0.0007            
-                [fit.Coarse-Phys.R1.mom.300]
-                    nstates = 1
-                    tag     = 'Coarse-Phys_R1_300'
-                    trange  = [2,9]
-                    svd     = 0.0006
-                [fit.Coarse-Phys.R1.mom.400]
-                    nstates = 1
-                    tag     = 'Coarse-Phys_R1_400'
-                    trange  = [2,9]
-                    svd     = 0.0005
+[fit.Coarse-Phys.XV]
+smlist = [ "1S", "RW",]
 
-        [fit.Coarse-Phys.XV]
-            smlist = ['1S','RW']
-            [fit.Coarse-Phys.XV.mom]
-                [fit.Coarse-Phys.XV.mom.100]
-                    nstates = 1
-                    tag     = 'Coarse-Phys_XV_100'
-                    trange  = [2,9]
-                    svd     = 0.0066
-                [fit.Coarse-Phys.XV.mom.200]
-                    nstates = 1
-                    tag     = 'Coarse-Phys_XV_200'
-                    trange  = [2,9]
-                    svd     = 0.0080            
-                [fit.Coarse-Phys.XV.mom.300]
-                    nstates = 1
-                    tag     = 'Coarse-Phys_XV_300'
-                    trange  = [2,9]
-                    svd     = 0.0060
-                [fit.Coarse-Phys.XV.mom.400]
-                    nstates = 1
-                    tag     = 'Coarse-Phys_XV_400'
-                    trange  = [2,9]
-                    svd     = 0.0045
+[fit.Fine-1.RA1]
+smlist = [ "1S", ]
 
+[fit.Fine-1.ZRA1]
+smlist = [ "1S", ]
 
+[fit.Fine-1.XFSTPAR]
+smlist = [ "1S", "RW",]
 
+[fit.Fine-1.R0]
+smlist = [ "1S", "RW",]
 
-    [fit.Fine-1]
-        [fit.Fine-1.xfstpar]
-            smlist = ['1S','RW']
-            [fit.Fine-1.xfstpar.mom]
-                [fit.Fine-1.xfstpar.mom.100]
-                    nstates = 1
-                    tag     = 'Fine-1_xfstpar_100'
-                    trange  = [3,13]
-                    svd     = 0.0019
-                [fit.Fine-1.xfstpar.mom.200]
-                    nstates = 1
-                    tag     = 'Fine-1_xfstpar_200'
-                    trange  = [3,13]
-                    svd     = 0.0023            
-                [fit.Fine-1.xfstpar.mom.300]
-                    nstates = 1
-                    tag     = 'Fine-1_xfstpar_300'
-                    trange  = [3,13]
-                    svd     = 0.0029
-                [fit.Fine-1.xfstpar.mom.400]
-                    nstates = 1
-                    tag     = 'Fine-1_xfstpar_400'
-                    trange  = [3,13]
-                    svd     = 0.0034
+[fit.Fine-1.R1]
+smlist = [ "1S", "RW",]
 
-        [fit.Fine-1.RA1]
-            # smlist = ['1S','RW']
-            smlist = ['1S']
-            [fit.Fine-1.RA1.mom]
-                [fit.Fine-1.RA1.mom.000]
-                    nstates = 2
-                    tag     = 'Fine-1_RA1_000'
-                    trange  = [3,13]
-                    svd     = 3.736130e-5
-                [fit.Fine-1.RA1.mom.100]
-                    nstates = 2
-                    tag     = 'Fine-1_RA1_100'
-                    trange  = [3,13]
-                    svd     = 6.905696e-7
-                [fit.Fine-1.RA1.mom.200]
-                    nstates = 2
-                    tag     = 'Fine-1_RA1_200'
-                    trange  = [3,13]
-                    svd     = 7.584726e-7          
-                [fit.Fine-1.RA1.mom.300]
-                    nstates = 2
-                    tag     = 'Fine-1_RA1_300'
-                    trange  = [3,13]
-                    svd     = 6.330946e-7          
-                [fit.Fine-1.RA1.mom.400]
-                    nstates = 2
-                    tag     = 'Fine-1_RA1_400'
-                    trange  = [3,13]
-                    svd     = 8.191559e-8
+[fit.Fine-1.XV]
+smlist = [ "1S", "RW",]
 
-        [fit.Fine-1.ZRA1]
-            smlist = ['1S','RW']
-            [fit.Fine-1.ZRA1.mom]
-                [fit.Fine-1.ZRA1.mom.000]
-                    nstates = 1
-                    tag     = 'Fine-1_ZRA1_000'
-                    trange  = [3,13]
+[fit.Coarse-2.RA1.mom.100]
+nstates = 1
+tag = "Coarse-2_RA1_100"
+trange = [ 1, 11,]
 
-        [fit.Fine-1.R0]
-            smlist = ['1S','RW']
-            [fit.Fine-1.R0.mom]
-                [fit.Fine-1.R0.mom.100]
-                    nstates = 1
-                    tag     = 'Fine-1_R0_100'
-                    trange  = [3,13]
-                    svd     = 0.0012
-                [fit.Fine-1.R0.mom.200]
-                    nstates = 1
-                    tag     = 'Fine-1_R0_200'
-                    trange  = [3,13]
-                    svd     = 0.0009            
-                [fit.Fine-1.R0.mom.300]
-                    nstates = 1
-                    tag     = 'Fine-1_R0_300'
-                    trange  = [3,13]
-                    svd     = 0.0008
-                [fit.Fine-1.R0.mom.400]
-                    nstates = 1
-                    tag     = 'Fine-1_R0_400'
-                    trange  = [3,13]
-                    svd     = 0.0009
+[fit.Coarse-2.RA1.mom.200]
+nstates = 1
+tag = "Coarse-2_RA1_200"
+trange = [ 1, 11,]
 
-        [fit.Fine-1.R1]
-            smlist = ['1S','RW']
-            [fit.Fine-1.R1.mom]
-                [fit.Fine-1.R1.mom.100]
-                    nstates = 1
-                    tag     = 'Fine-1_R1_100'
-                    trange  = [3,13]
-                    svd     = 0.0002
-                [fit.Fine-1.R1.mom.200]
-                    nstates = 1
-                    tag     = 'Fine-1_R1_200'
-                    trange  = [3,13]
-                    svd     = 0.0002            
-                [fit.Fine-1.R1.mom.300]
-                    nstates = 1
-                    tag     = 'Fine-1_R1_300'
-                    trange  = [3,13]
-                    svd     = 0.0003           
-                [fit.Fine-1.R1.mom.400]
-                    nstates = 1
-                    tag     = 'Fine-1_R1_400'
-                    trange  = [3,13]
-                    svd     = 0.0004
+[fit.Coarse-2.RA1.mom.300]
+nstates = 1
+tag = "Coarse-2_RA1_300"
+trange = [ 1, 11,]
 
-        [fit.Fine-1.XV]
-            smlist = ['1S','RW']
-            [fit.Fine-1.XV.mom]
-                [fit.Fine-1.XV.mom.100]
-                    nstates = 1
-                    tag     = 'Fine-1_XV_100'
-                    trange  = [3,13]
-                    svd     = 0.0033
-                [fit.Fine-1.XV.mom.200]
-                    nstates = 1
-                    tag     = 'Fine-1_XV_200'
-                    trange  = [3,13]
-                    svd     = 0.0046            
-                [fit.Fine-1.XV.mom.300]
-                    nstates = 1
-                    tag     = 'Fine-1_XV_300'
-                    trange  = [3,13]
-                    svd     = 0.0028            
-                [fit.Fine-1.XV.mom.400]
-                    nstates = 1
-                    tag     = 'Fine-1_XV_400'
-                    trange  = [3,13]
-                    svd     = 0.0020
+[fit.Coarse-2.ZRA1.mom.000]
+nstates = 1
+tag = "Coarse-2_ZRA1_000"
+trange = [ 1, 11,]
 
+[fit.Coarse-2.XFSTPAR.mom.100]
+nstates = 1
+tag = "Coarse-2_XFSTPAR_100"
+trange = [ 1, 11,]
 
+[fit.Coarse-2.XFSTPAR.mom.200]
+nstates = 1
+tag = "Coarse-2_XFSTPAR_200"
+trange = [ 1, 11,]
 
-    [fit.Fine-Phys]
-        [fit.Fine-Phys.xfstpar]
-            smlist = ['1S','RW']
-            [fit.Fine-Phys.xfstpar.mom]
-                [fit.Fine-Phys.xfstpar.mom.100]
-                    nstates = 1
-                    tag     = 'Fine-Phys_xfstpar_100'
-                    trange  = [3,13]
-                    svd     = 0.0019
-                [fit.Fine-Phys.xfstpar.mom.200]
-                    nstates = 1
-                    tag     = 'Fine-Phys_xfstpar_200'
-                    trange  = [3,13]
-                    svd     = 0.0023            
-                [fit.Fine-Phys.xfstpar.mom.300]
-                    nstates = 1
-                    tag     = 'Fine-Phys_xfstpar_300'
-                    trange  = [3,13]
-                    svd     = 0.0029
-                [fit.Fine-Phys.xfstpar.mom.400]
-                    nstates = 1
-                    tag     = 'Fine-Phys_xfstpar_400'
-                    trange  = [3,13]
-                    svd     = 0.0034
+[fit.Coarse-2.XFSTPAR.mom.300]
+nstates = 1
+tag = "Coarse-2_XFSTPAR_300"
+trange = [ 1, 11,]
 
-        [fit.Fine-Phys.ZRA1]
-            smlist = ['1S','RW']
-            [fit.Fine-Phys.ZRA1.mom]
-                [fit.Fine-Phys.ZRA1.mom.000]
-                    nstates = 1
-                    tag     = 'Fine-Phys_ZRA1_000'
-                    trange  = [3,13]
+[fit.Coarse-2.R0.mom.100]
+nstates = 1
+tag = "Coarse-2_R0_100"
+trange = [ 1, 11,]
+
+[fit.Coarse-2.R0.mom.200]
+nstates = 1
+tag = "Coarse-2_R0_200"
+trange = [ 1, 11,]
+
+[fit.Coarse-2.R0.mom.300]
+nstates = 1
+tag = "Coarse-2_R0_300"
+trange = [ 1, 11,]
+
+[fit.Coarse-2.R1.mom.100]
+nstates = 1
+tag = "Coarse-2_R1_100"
+trange = [ 1, 11,]
+
+[fit.Coarse-2.R1.mom.200]
+nstates = 1
+tag = "Coarse-2_R1_200"
+trange = [ 1, 11,]
+
+[fit.Coarse-2.R1.mom.300]
+nstates = 1
+tag = "Coarse-2_R1_300"
+trange = [ 1, 11,]
+
+[fit.Coarse-2.XV.mom.100]
+nstates = 1
+tag = "Coarse-2_XV_100"
+trange = [ 1, 11,]
+
+[fit.Coarse-2.XV.mom.200]
+nstates = 1
+tag = "Coarse-2_XV_200"
+trange = [ 1, 11,]
+
+[fit.Coarse-2.XV.mom.300]
+nstates = 1
+tag = "Coarse-2_XV_300"
+trange = [ 1, 11,]
+
+[fit.Coarse-1.RA1.mom.100]
+nstates = 1
+tag = "Coarse-1_RA1_100"
+trange = [ 1, 11,]
+
+[fit.Coarse-1.RA1.mom.200]
+nstates = 1
+tag = "Coarse-1_RA1_200"
+trange = [ 1, 11,]
+
+[fit.Coarse-1.RA1.mom.300]
+nstates = 1
+tag = "Coarse-1_RA1_300"
+trange = [ 1, 11,]
+
+[fit.Coarse-1.ZRA1.mom.000]
+nstates = 1
+tag = "Coarse-1_ZRA1_000"
+trange = [ 1, 11,]
+
+[fit.Coarse-1.XFSTPAR.mom.100]
+nstates = 1
+tag = "Coarse-1_XFSTPAR_100"
+trange = [ 1, 11,]
+
+[fit.Coarse-1.XFSTPAR.mom.200]
+nstates = 1
+tag = "Coarse-1_XFSTPAR_200"
+trange = [ 1, 11,]
+
+[fit.Coarse-1.XFSTPAR.mom.300]
+nstates = 1
+tag = "Coarse-1_XFSTPAR_300"
+trange = [ 1, 11,]
+
+[fit.Coarse-1.R0.mom.100]
+nstates = 1
+tag = "Coarse-1_R0_100"
+trange = [ 1, 11,]
+
+[fit.Coarse-1.R0.mom.200]
+nstates = 1
+tag = "Coarse-1_R0_200"
+trange = [ 1, 11,]
+
+[fit.Coarse-1.R0.mom.300]
+nstates = 1
+tag = "Coarse-1_R0_300"
+trange = [ 1, 11,]
+
+[fit.Coarse-1.R1.mom.100]
+nstates = 1
+tag = "Coarse-1_R1_100"
+trange = [ 1, 11,]
+
+[fit.Coarse-1.R1.mom.200]
+nstates = 1
+tag = "Coarse-1_R1_200"
+trange = [ 1, 11,]
+
+[fit.Coarse-1.R1.mom.300]
+nstates = 1
+tag = "Coarse-1_R1_300"
+trange = [ 1, 11,]
+
+[fit.Coarse-1.XV.mom.100]
+nstates = 1
+tag = "Coarse-1_XV_100"
+trange = [ 1, 11,]
+
+[fit.Coarse-1.XV.mom.200]
+nstates = 1
+tag = "Coarse-1_XV_200"
+trange = [ 1, 11,]
+
+[fit.Coarse-1.XV.mom.300]
+nstates = 1
+tag = "Coarse-1_XV_300"
+trange = [ 1, 11,]
+
+[fit.Coarse-Phys.RA1.mom.100]
+nstates = 1
+tag = "Coarse-Phys_RA1_100"
+trange = [ 1, 11,]
+
+[fit.Coarse-Phys.RA1.mom.200]
+nstates = 1
+tag = "Coarse-Phys_RA1_200"
+trange = [ 1, 11,]
+
+[fit.Coarse-Phys.RA1.mom.300]
+nstates = 1
+tag = "Coarse-Phys_RA1_300"
+trange = [ 1, 11,]
+
+[fit.Coarse-Phys.RA1.mom.400]
+nstates = 1
+tag = "Coarse-Phys_RA1_400"
+trange = [ 1, 11,]
+
+[fit.Coarse-Phys.ZRA1.mom.000]
+nstates = 1
+tag = "Coarse-Phys_ZRA1_000"
+trange = [ 1, 11,]
+
+[fit.Coarse-Phys.XFSTPAR.mom.100]
+nstates = 1
+tag = "Coarse-Phys_XFSTPAR_100"
+trange = [ 1, 11,]
+
+[fit.Coarse-Phys.XFSTPAR.mom.200]
+nstates = 1
+tag = "Coarse-Phys_XFSTPAR_200"
+trange = [ 1, 11,]
+
+[fit.Coarse-Phys.XFSTPAR.mom.300]
+nstates = 1
+tag = "Coarse-Phys_XFSTPAR_300"
+trange = [ 1, 11,]
+
+[fit.Coarse-Phys.XFSTPAR.mom.400]
+nstates = 1
+tag = "Coarse-Phys_XFSTPAR_400"
+trange = [ 1, 11,]
+
+[fit.Coarse-Phys.R0.mom.100]
+nstates = 1
+tag = "Coarse-Phys_R0_100"
+trange = [ 1, 11,]
+
+[fit.Coarse-Phys.R0.mom.200]
+nstates = 1
+tag = "Coarse-Phys_R0_200"
+trange = [ 1, 11,]
+
+[fit.Coarse-Phys.R0.mom.300]
+nstates = 1
+tag = "Coarse-Phys_R0_300"
+trange = [ 1, 11,]
+
+[fit.Coarse-Phys.R0.mom.400]
+nstates = 1
+tag = "Coarse-Phys_R0_400"
+trange = [ 1, 11,]
+
+[fit.Coarse-Phys.R1.mom.100]
+nstates = 1
+tag = "Coarse-Phys_R1_100"
+trange = [ 1, 11,]
+
+[fit.Coarse-Phys.R1.mom.200]
+nstates = 1
+tag = "Coarse-Phys_R1_200"
+trange = [ 1, 11,]
+
+[fit.Coarse-Phys.R1.mom.300]
+nstates = 1
+tag = "Coarse-Phys_R1_300"
+trange = [ 1, 11,]
+
+[fit.Coarse-Phys.R1.mom.400]
+nstates = 1
+tag = "Coarse-Phys_R1_400"
+trange = [ 1, 11,]
+
+[fit.Coarse-Phys.XV.mom.100]
+nstates = 1
+tag = "Coarse-Phys_XV_100"
+trange = [ 1, 11,]
+
+[fit.Coarse-Phys.XV.mom.200]
+nstates = 1
+tag = "Coarse-Phys_XV_200"
+trange = [ 1, 11,]
+
+[fit.Coarse-Phys.XV.mom.300]
+nstates = 1
+tag = "Coarse-Phys_XV_300"
+trange = [ 1, 11,]
+
+[fit.Coarse-Phys.XV.mom.400]
+nstates = 1
+tag = "Coarse-Phys_XV_400"
+trange = [ 1, 11,]
+
+[fit.Fine-1.RA1.mom.100]
+nstates = 1
+tag = "Fine-1_RA1_100"
+trange = [ 1, 16,]
+
+[fit.Fine-1.RA1.mom.200]
+nstates = 1
+tag = "Fine-1_RA1_200"
+trange = [ 1, 16,]
+
+[fit.Fine-1.RA1.mom.300]
+nstates = 1
+tag = "Fine-1_RA1_300"
+trange = [ 1, 16,]
+
+[fit.Fine-1.RA1.mom.400]
+nstates = 1
+tag = "Fine-1_RA1_400"
+trange = [ 1, 16,]
+
+[fit.Fine-1.ZRA1.mom.000]
+nstates = 1
+tag = "Fine-1_ZRA1_000"
+trange = [ 1, 16,]
+
+[fit.Fine-1.XFSTPAR.mom.100]
+nstates = 1
+tag = "Fine-1_XFSTPAR_100"
+trange = [ 1, 16,]
+
+[fit.Fine-1.XFSTPAR.mom.200]
+nstates = 1
+tag = "Fine-1_XFSTPAR_200"
+trange = [ 1, 16,]
+
+[fit.Fine-1.XFSTPAR.mom.300]
+nstates = 1
+tag = "Fine-1_XFSTPAR_300"
+trange = [ 1, 16,]
+
+[fit.Fine-1.XFSTPAR.mom.400]
+nstates = 1
+tag = "Fine-1_XFSTPAR_400"
+trange = [ 1, 16,]
+
+[fit.Fine-1.R0.mom.100]
+nstates = 1
+tag = "Fine-1_R0_100"
+trange = [ 1, 16,]
+
+[fit.Fine-1.R0.mom.200]
+nstates = 1
+tag = "Fine-1_R0_200"
+trange = [ 1, 16,]
+
+[fit.Fine-1.R0.mom.300]
+nstates = 1
+tag = "Fine-1_R0_300"
+trange = [ 1, 16,]
+
+[fit.Fine-1.R0.mom.400]
+nstates = 1
+tag = "Fine-1_R0_400"
+trange = [ 1, 16,]
+
+[fit.Fine-1.R1.mom.100]
+nstates = 1
+tag = "Fine-1_R1_100"
+trange = [ 1, 16,]
+
+[fit.Fine-1.R1.mom.200]
+nstates = 1
+tag = "Fine-1_R1_200"
+trange = [ 1, 16,]
+
+[fit.Fine-1.R1.mom.300]
+nstates = 1
+tag = "Fine-1_R1_300"
+trange = [ 1, 16,]
+
+[fit.Fine-1.R1.mom.400]
+nstates = 1
+tag = "Fine-1_R1_400"
+trange = [ 1, 16,]
+
+[fit.Fine-1.XV.mom.100]
+nstates = 1
+tag = "Fine-1_XV_100"
+trange = [ 1, 16,]
+
+[fit.Fine-1.XV.mom.200]
+nstates = 1
+tag = "Fine-1_XV_200"
+trange = [ 1, 16,]
+
+[fit.Fine-1.XV.mom.300]
+nstates = 1
+tag = "Fine-1_XV_300"
+trange = [ 1, 16,]
+
+[fit.Fine-1.XV.mom.400]
+nstates = 1
+tag = "Fine-1_XV_400"
+trange = [ 1, 16,]

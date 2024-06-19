@@ -24,13 +24,13 @@ tmin1 = 0.30
 
 def main():
     ens_list = [
-        'MediumCoarse',
+        # 'MediumCoarse',
         'Coarse-2',
         'Coarse-1',
         'Coarse-Phys',
         'Fine-1',
-        'Fine-Phys',
-        'SuperFine',
+        # 'Fine-Phys',
+        # 'SuperFine',
     ]
     binSizes  = {
         'MediumCoarse': 13,
@@ -53,9 +53,10 @@ def main():
 
 
 
-    mes = 'D'
+    mes = 'Dst'
     ratio_list = {
-        'D': ['xf','r+','r-','q+']
+        'D': ['xf','r+','r-','q+'],
+        'Dst': ['RA1','ZRA1','XFSTPAR','R0','R1','XV']
     }
 
     data_dir = '/Users/pietro/code/data_analysis/BtoD/Alex/'
@@ -74,9 +75,9 @@ def main():
             config['fit'][ens][ratio] = {'smlist':smlist, 'mom': {}}
 
             for mom in mom_list[ens]:
-                if mom=='000' and ratio!='RPLUS':
+                if mom=='000' and ratio not in ['RPLUS','ZRA1']:
                     continue
-                elif mom!='000' and ratio=='RPLUS':
+                elif mom!='000' and ratio in ['RPLUS','ZRA1']:
                     continue
                         
                 config['fit'][ens][ratio]['mom'][mom] = {}

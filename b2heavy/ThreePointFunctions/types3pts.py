@@ -52,32 +52,6 @@ def RatioSpecs(ratio, mData):
                 source = 'D',
                 sink   = 'D'
             )  
-        
-        case 'XF2':
-            hStr   = cStr
-            lStr   = cStr
-            qStr   = mStr
-            nNames = [['P5_V2_P5_']]
-            nFacs  = [[1.]]
-            dNames = [['P5_V4_P5_']]
-            
-            specs  = dict(
-                source = 'D',
-                sink   = 'D'
-            )  
-        
-        case 'XF3':
-            hStr   = cStr
-            lStr   = cStr
-            qStr   = mStr
-            nNames = [['P5_V3_P5_']]
-            nFacs  = [[1.]]
-            dNames = [['P5_V4_P5_']]
-            
-            specs  = dict(
-                source = 'D',
-                sink   = 'D'
-            )  
 
         case 'QPLUS':
             hStr   = bStr
@@ -98,32 +72,6 @@ def RatioSpecs(ratio, mData):
             qStr   = mStr
             nNames = [['P5_V1_P5_']]
             nFacs  = [[1.]]
-            dNames = [['P5_V4_P5_']]
-
-            specs = dict(
-                source = 'B',
-                sink   = 'D' 
-            )
-
-        case 'RMINUS2':
-            hStr   = bStr
-            lStr   = cStr
-            qStr   = mStr
-            nNames = [['P5_V2_P5_']]
-            nFacs  = [[1.]]
-            dNames = [['P5_V4_P5_']]
-
-            specs = dict(
-                source = 'B',
-                sink   = 'D' 
-            )
-
-        case 'RMINUS3':
-            hStr   = bStr
-            lStr   = cStr
-            qStr   = mStr
-            nNames = [['P5_V3_P5_']]
-            nFacs  = [[1.,1.,1.]]
             dNames = [['P5_V4_P5_']]
 
             specs = dict(
@@ -845,19 +793,23 @@ class Ratio:
 
 def main():
     ens = 'Coarse-1'
-    r   = 'QPLUS'
+    r   = 'RA1'
     mom = '300'
     frm = '/Users/pietro/code/data_analysis/BtoD/Alex'
     readfrom = '/Users/pietro/code/data_analysis/data/QCDNf2p1stag/B2heavy/lattice24'
 
     req = ratio_prerequisites(ens,r,mom,readfrom=readfrom,jk=False)
-    # breakpoint()
-    
-    io = RatioIO(ens,r,mom,PathToDataDir=frm)
-    ra1 = Ratio(io,jkBin=11,smearing=['1S','RW'],**req)
 
-    fig, ax = plt.subplots(1,1)
-    ra1.plot(ax)
+    p200 = ratio_prerequisites(ens,r,'200',readfrom=readfrom,jk=False)
+    p300 = ratio_prerequisites(ens,r,'300',readfrom=readfrom,jk=False)
+    breakpoint()
 
-    ax.legend()
-    plt.show()
+
+    # io = RatioIO(ens,r,mom,PathToDataDir=frm)
+    # ra1 = Ratio(io,jkBin=11,smearing=['1S','RW'],**req)
+
+    # fig, ax = plt.subplots(1,1)
+    # ra1.plot(ax)
+
+    # ax.legend()
+    # plt.show()

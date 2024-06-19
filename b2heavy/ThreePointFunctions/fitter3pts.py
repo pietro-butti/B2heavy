@@ -133,7 +133,7 @@ class RatioFitter(Ratio):
         # Prepare the model
         def _model(xdata,pdict):
             return np.concatenate([
-                ModelRatio(self.Tb,self.same_sink,sm,Nstates)(xdata,pdict)
+                ModelRatio(self.Ta,self.same_sink,sm,Nstates)(xdata,pdict)
                 for sm in self.smr
             ])
 

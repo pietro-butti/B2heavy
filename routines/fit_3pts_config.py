@@ -162,7 +162,6 @@ def main():
                 trange   = tuple(config['fit'][ens][ratio]['mom'][mom]['trange']) 
                 # svd      = config['fit'][ens][ratio]['mom'][mom]['svd']
 
-
                 #  =======================================================================================
                 SAVETO = DEFAULT_ANALYSIS_ROOT if args.saveto=='default' else args.saveto
                 saveto = None
