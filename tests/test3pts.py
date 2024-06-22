@@ -24,13 +24,13 @@ tmin1 = 0.30
 
 def main():
     ens_list = [
-        # 'MediumCoarse',
+        'MediumCoarse',
         'Coarse-2',
         'Coarse-1',
         'Coarse-Phys',
         'Fine-1',
-        # 'Fine-Phys',
-        # 'SuperFine',
+        'Fine-Phys',
+        'SuperFine',
     ]
     binSizes  = {
         'MediumCoarse': 13,
@@ -53,14 +53,15 @@ def main():
 
 
 
-    mes = 'Dst'
+    mes = 'D'
     ratio_list = {
-        'D': ['xf','r+','r-','q+'],
-        'Dst': ['RA1','ZRA1','XFSTPAR','R0','R1','XV']
+        'D'   : ['xf','r+','r-','q+'],
+        'Dst' : ['RA1','ZRA1','XFSTPAR','R0','R1','XV'],
+        'Dsst': ['RA1S','ZRA1S','XFSSTPAR','R0S','R1S','XVS']
     }
 
     data_dir = '/Users/pietro/code/data_analysis/BtoD/Alex/'
-    frm = '/Users/pietro/code/data_analysis/data/QCDNf2p1stag/B2heavy/report'
+    frm = '/Users/pietro/Desktop/lattice24/0.25/corr2_3'
 
     smlist   = ['1S','RW'] 
     # smlist   = ['1S'] 
@@ -104,7 +105,7 @@ def main():
                 tmax = robj.Ta - tmin
 
                 config['fit'][ens][ratio]['mom'][mom] = {}
-                config['fit'][ens][ratio]['mom'][mom]['nstates']    = 1
+                config['fit'][ens][ratio]['mom'][mom]['nstates']    = 2
                 config['fit'][ens][ratio]['mom'][mom]['tag']        = f'{ens}_{ratio}_{mom}' # 'Coarse-Phys_B_211'
                 config['fit'][ens][ratio]['mom'][mom]['trange']     = [tmin,tmax]
 

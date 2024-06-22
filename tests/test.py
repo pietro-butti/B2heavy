@@ -2,6 +2,8 @@ import sys
 import argparse
 
 from b2heavy.TwoPointFunctions import fitter, types2pts
+from b2heavy.TwoPointFunctions import fitter_old
+
 from b2heavy.ThreePointFunctions import types3pts, fitter3pts
 from b2heavy.ThreePointFunctions import types3pts
 from b2heavy.ThreePointFunctions import corr3pts
@@ -10,6 +12,7 @@ from b2heavy.ThreePointFunctions import corr3pts
 if __name__ == "__main__":
     prs = argparse.ArgumentParser()
     prs.add_argument('-f','--fit' , action='store_true')
+    prs.add_argument('-falt' , action='store_true')
     prs.add_argument('-t','--type', action='store_true')
     prs.add_argument('-r','--ratio', action='store_true')
     prs.add_argument('-c3', action='store_true')
@@ -19,7 +22,8 @@ if __name__ == "__main__":
     
     args = prs.parse_args()
     if args.fit:
-        fitter.main(args.do)
+        # fitter.main(args.do)
+        fitter.main()
 
     elif args.type:
         # types2pts.eff_coeffs(args.do)
@@ -36,5 +40,3 @@ if __name__ == "__main__":
 
     elif args.c3:
         corr3pts.main()
-
-

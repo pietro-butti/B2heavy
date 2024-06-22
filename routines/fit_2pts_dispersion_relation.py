@@ -38,7 +38,7 @@ from b2heavy import FnalHISQMetadata
 from b2heavy.FnalHISQMetadata import *
 
 
-def extract_single_energy(tag,path=None,N=0,jk=False,key='E'):
+def extract_single_energy(tag,path=None,N=0,jk=False,key='dE'):
     ret = read_config_fit(tag,jk=jk,path=path)
 
     if not jk:
@@ -49,7 +49,11 @@ def extract_single_energy(tag,path=None,N=0,jk=False,key='E'):
 def mom_to_p2(mom,L=2*np.pi):
     return sum([(2*np.pi/L*float(px))**2 for px in mom])
 
-def extract_energies(ensemble,meson,momlist=None,jk=False,readfrom='.',tag='fit2pt_config',key='E',sort=True):
+def mom_to_pvec(mom,L=2*np.pi):
+    return [(2*np.pi/L*float(px))**2 for px in mom]
+
+
+def extract_energies(ensemble,meson,momlist=None,jk=False,readfrom='.',tag='fit2pt_config',key='dE',sort=True):
     if not os.path.exists(readfrom):
         raise NameError(f'{readfrom} is not an existing location')
 
@@ -109,7 +113,7 @@ def dispersion_relation_lsqfit(pveclist,d):
 
     return np.array(res)
 
-def disprel_priors(mp):
+def disprel_priors(mp,error=1.):
     p = {'aInv': 1/mp['aSpc']}
 
     lbQcd = 0.6/p['aInv']
@@ -142,7 +146,7 @@ def disprel_priors(mp):
     p['A4s']  = 0.25*np.sqrt((y4s*g4(m0D)*als(mp['aSpc']))**2 + (z4s*h4(m0D)*als(mp['aSpc']))**2 + (lbQcd*l4(m0D))**2)
 
 
-    pr = {'M1': gv.gvar(0.5,0.5)}
+    pr = {'M1': gv.gvar(0.5,error)}
     pr['M2'] = pr['M1']/np.sqrt(p['c2'])
     pr['M4'] = (pr['M1']/(1/pr['M2']**2 - 4*p['A4'])) ** (1/3)
     pr['w4'] = 3*p['A4p']/pr['M1']
@@ -152,7 +156,7 @@ def disprel_priors(mp):
 
 
 
-def fit_disp_rel(e0:dict, Lvol=1., priors=None):
+def fit_disp_rel(e0:dict, Lvol=1., priors=None, verbose=True):
     pv = [2*np.pi/Lvol*np.array([float(px) for px in m]) for m in e0]
 
     psort = list(e0.keys())
@@ -172,6 +176,9 @@ def fit_disp_rel(e0:dict, Lvol=1., priors=None):
         fcn   = dispersion_relation_lsqfit,
         prior = priors
     )
+
+    if verbose:
+        print(fit)
 
     return fit
 
@@ -204,6 +211,7 @@ def fit_disp_rel_jk(fit:lsqfit.nonlinear_fit, e0):
 
 
 def plot_disp_rel(ax,fit,popt,Lvol,**kwargs):
+    # breakpoint()
     p2 = np.array([sum(np.array(p)**2) for p in fit.x])
     ax.errorbar(p2,gv.mean(fit.y),gv.sdev(fit.y),**kwargs)
 
@@ -217,32 +225,16 @@ def plot_disp_rel(ax,fit,popt,Lvol,**kwargs):
     ax.set_xlim(xmax=max(p2)+dp)
 
     de2 = abs((fit.y[-1]-fit.y[-2]).mean)
-    ax.set_ylim(ymax=max(gv.mean(fit.y))+de2)
-
+    ax.set_ylim(ymax=max(gv.mean(fit.y))+de2, ymin = min(gv.mean(fit.y))-de2)
 
     return
-
-
-
-# def plot_discretization_errors(ax,mom,p2,E0,pars,alphas,L=1):
-#     xplot = p2
-
-#     p2M2 = p2 + pars[0]
-#     yplot = E0**2/p2M2
-
-#     ax.errorbar(xplot,gv.mean(yplot),gv.sdev(yplot),fmt='o', ecolor='C0', mfc='w', capsize=2.5)
-
-#     ax.axhline(1.,color='gray',alpha=0.5,linestyle=':')
-
-#     xcone = np.arange(0,max(xplot),0.01)
-#     ax.fill_between(xcone, alphas*xcone+1,-alphas*xcone+1,alpha=0.1)
 
 
 prs = argparse.ArgumentParser(usage=usage)
 prs.add_argument('-c','--config'  , type=str,  default='./2pts_fit_config.toml')
 prs.add_argument('-e','--ensemble', type=str)
 prs.add_argument('-m','--meson', type=str)
-prs.add_argument('-mm','--momlist', type=str, nargs='+', default=[])
+prs.add_argument('-mm','--momlist', type=str, nargs='+', default=None)
 prs.add_argument('--jk', action='store_true')
 prs.add_argument('--jkfit', action='store_true')
 prs.add_argument('--readfrom', type=str, default='./')
@@ -278,19 +270,22 @@ def main():
         raise NameError(f'{saveto} is not an existing location')
     saveplot = f'{DEFAULT_ANALYSIS_ROOT}' if args.saveto=='default' else args.saveto
 
-
-
-
     tag = f'{ens}_{mes}'
 
-    # priors = dict(
-    #     M1 = gv.gvar(0.5,1.5),
-    #     M2 = gv.gvar(0.5,1.5),
-    #     M4 = gv.gvar(0.5,1.5),
-    #     w4 = gv.gvar(0.5,1.5)
-    # )
-    priors = disprel_priors(mdata)
-    es = extract_energies(ens,mes,jk=args.jk,readfrom=readfrom,sort=True)
+
+    es = extract_energies(ens,mes,jk=args.jk,readfrom=readfrom,sort=True,momlist=args.momlist)
+
+    # priors = disprel_priors(mdata)
+    # priors = gv.gvar(dict(M1='0.8(5.)',M2='0.8(5.)',M4='0.8(5.)',w4='0.8(5.)'))
+    priors = dict(
+        M1 = gv.gvar(0.5,1.5),
+        M2 = gv.gvar(0.5,1.5),
+        M4 = gv.gvar(0.5,1.5),
+        w4 = gv.gvar(0.,2.5)
+    )
+
+
+
     fit = fit_disp_rel(es, Lvol=Lvol, priors=priors)
     if args.jkfit:
         popt = fit_disp_rel_jk(fit,es)        
@@ -357,61 +352,61 @@ def main():
         ax[0].grid(alpha=0.2)
 
 
-    #     # Discr. errors on coefficients
-    #     Z1S = []
-    #     Zd  = []
-    #     for p in psort:
-    #         fname = f'fit2pt_config_{ens}_{mes}_'
-    #         f = os.path.join(readfrom,f'{fname}{p}')
-    #         collinear = p.endswith('00') and not p.startswith('0')
+        # # Discr. errors on coefficients
+        # Z1S = []
+        # Zd  = []
+        # for p in psort:
+        #     fname = f'fit2pt_config_{ens}_{mes}_'
+        #     f = os.path.join(readfrom,f'{fname}{p}')
+        #     collinear = p.endswith('00') and not p.startswith('0')
 
-    #         k1s_1  = 'Z_1S_Par' if (collinear and mes=='Dst') else 'Z_1S_Unpol'      
-    #         z1s_1 = extract_single_energy(f,N=0,jk=JK,key=k1s_1)
-    #         z1s_1 = np.exp(z1s_1)*np.sqrt(2*E[p])
+        #     k1s_1  = 'Z_1S_Par' if (collinear and mes=='Dst') else 'Z_1S_Unpol'      
+        #     z1s_1 = extract_single_energy(f,N=0,jk=JK,key=k1s_1)
+        #     z1s_1 = np.exp(z1s_1)*np.sqrt(2*E[p])
 
-    #         k1s_2  = 'Z_1S_Bot' if (collinear and mes=='Dst') else 'Z_1S_Unpol'      
-    #         z1s_2 = extract_single_energy(f,N=0,jk=JK,key=k1s_2)
-    #         z1s_2 = np.exp(z1s_2)*np.sqrt(2*E[p])
+        #     k1s_2  = 'Z_1S_Bot' if (collinear and mes=='Dst') else 'Z_1S_Unpol'      
+        #     z1s_2 = extract_single_energy(f,N=0,jk=JK,key=k1s_2)
+        #     z1s_2 = np.exp(z1s_2)*np.sqrt(2*E[p])
 
-    #         Z1S.append((z1s_1+z1s_2)/2)
-
-
-    #         kd_1  = 'Z_d_Par' if (collinear and mes=='Dst') else 'Z_d_Unpol'      
-    #         zd_1 = extract_single_energy(f,N=0,jk=JK,key=kd_1)
-    #         zd_1 = np.exp(zd_1)*np.sqrt(2*E[p])
-
-    #         kd_2  = 'Z_d_Bot' if (collinear and mes=='Dst') else 'Z_d_Unpol'      
-    #         zd_2 = extract_single_energy(f,N=0,jk=JK,key=kd_2)
-    #         zd_2 = np.exp(zd_2)*np.sqrt(2*E[p])
-
-    #         Zd.append((zd_1+zd_2)/2) 
-
-    #     Z1S = np.array(Z1S)
-    #     Zd  = np.array(Zd)
-
-    #     Z1S = Z1S/Z1S[0]; Z1S[0] = np.ones_like(Z1S[0]) if JK else gv.gvar(1.,0)
-    #     Zd  = Zd/Zd[0];   Zd [0] = np.ones_like(Z1S[0]) if JK else gv.gvar(1.,0)
+        #     Z1S.append((z1s_1+z1s_2)/2)
 
 
-    #     if JK:
-    #         Z1S = gv.gvar( Z1S.mean(axis=1), np.cov(Z1S) * Z1S.shape[-1] )
-    #         Zd  = gv.gvar( Zd.mean(axis=1) , np.cov(Zd)  * Zd.shape[-1]  )
+        #     kd_1  = 'Z_d_Par' if (collinear and mes=='Dst') else 'Z_d_Unpol'      
+        #     zd_1 = extract_single_energy(f,N=0,jk=JK,key=kd_1)
+        #     zd_1 = np.exp(zd_1)*np.sqrt(2*E[p])
+
+        #     kd_2  = 'Z_d_Bot' if (collinear and mes=='Dst') else 'Z_d_Unpol'      
+        #     zd_2 = extract_single_energy(f,N=0,jk=JK,key=kd_2)
+        #     zd_2 = np.exp(zd_2)*np.sqrt(2*E[p])
+
+        #     Zd.append((zd_1+zd_2)/2) 
+
+        # Z1S = np.array(Z1S)
+        # Zd  = np.array(Zd)
+
+        # Z1S = Z1S/Z1S[0]; Z1S[0] = np.ones_like(Z1S[0]) if JK else gv.gvar(1.,0)
+        # Zd  = Zd/Zd[0];   Zd [0] = np.ones_like(Z1S[0]) if JK else gv.gvar(1.,0)
 
 
-    #     # ax[1].errorbar(p2,gv.mean(Z1S),gv.sdev(Z1S),fmt='o', ecolor='C0', mfc='w', capsize=2.5)
-    #     ax[1].errorbar(p2,gv.mean(Zd ),gv.sdev(Zd ),fmt='o', ecolor='C0', mfc='w', capsize=2.5)
-    #     ax[1].axhline(1.,color='gray',alpha=0.5,linestyle=':')
+        # if JK:
+        #     Z1S = gv.gvar( Z1S.mean(axis=1), np.cov(Z1S) * Z1S.shape[-1] )
+        #     Zd  = gv.gvar( Zd.mean(axis=1) , np.cov(Zd)  * Zd.shape[-1]  )
 
-    #     endp = max(p2)+p2[1]
-    #     xcone = np.arange(0,endp,0.01)
-    #     ax[1].fill_between(xcone, alphas*xcone+1,-alphas*xcone+1,alpha=0.1)
 
-    #     ax[1].set_xlim(xmin=-0.01,xmax=endp-0.01)
+        # # ax[1].errorbar(p2,gv.mean(Z1S),gv.sdev(Z1S),fmt='o', ecolor='C0', mfc='w', capsize=2.5)
+        # ax[1].errorbar(p2,gv.mean(Zd ),gv.sdev(Zd ),fmt='o', ecolor='C0', mfc='w', capsize=2.5)
+        # ax[1].axhline(1.,color='gray',alpha=0.5,linestyle=':')
 
-    #     ax[1].set_ylabel(r'$\frac{Z(\mathbf{p})}{Z(0)}$')
-    #     ax[1].set_xlabel(r'$a^2\mathbf{p}^2$')
+        # endp = max(p2)+p2[1]
+        # xcone = np.arange(0,endp,0.01)
+        # ax[1].fill_between(xcone, alphas*xcone+1,-alphas*xcone+1,alpha=0.1)
 
-    #     ax[1].grid(alpha=0.2)
+        # ax[1].set_xlim(xmin=-0.01,xmax=endp-0.01)
+
+        # ax[1].set_ylabel(r'$\frac{Z(\mathbf{p})}{Z(0)}$')
+        # ax[1].set_xlabel(r'$a^2\mathbf{p}^2$')
+
+        # ax[1].grid(alpha=0.2)
 
 
 

@@ -4,6 +4,7 @@ python 2pts_fit_config.py --config [file location of the toml config file]
                    --meson    [list of meson analyzed]                        
                    --mom      [list of momenta considered]                    
                    --jkfit    [repeat same fit inside each bin. Default: false]               
+                   --boost
                    --saveto   [*where* do you want to save files.]             
                    --logto    [Log file name]                                 
                    --override [do you want to override pre-existing analysis?]
@@ -13,6 +14,7 @@ python 2pts_fit_config.py --config [file location of the toml config file]
                    --svd
                    --scale         [rescale the covariance matrix with the diagonal]
                    --shrink        [shrink covariance matrix]
+
                    
                    --no_priors_chi [don't consider priors in the calculation of chi2]
 
@@ -57,6 +59,7 @@ def fit_2pts_single_corr(
     meff       = True, 
     trange_eff = None, 
     jkfit      = False,
+    boost      = False,
     wpriors    = False,
     **cov_specs
 ):
@@ -92,6 +95,7 @@ def fit_2pts_single_corr(
             trange  = trange,
             priors  = pr,
             jkfit   = True,
+            boost   = boost,
             verbose = False,
             **cov_specs
         )
@@ -149,6 +153,7 @@ prs.add_argument('-m','--meson'   , type=str,  nargs='+',  default=None)
 prs.add_argument('-mm','--mom'    , type=str,  nargs='+',  default=None)
 prs.add_argument('--saveto'       , type=str,  default=None)
 prs.add_argument('--jkfit'        , action='store_true')
+prs.add_argument('--boost'        , action='store_true')
 prs.add_argument('--override'     , action='store_true')
 prs.add_argument('--logto'        , type=str, default=None)
 prs.add_argument('--debug'        , action='store_true')
@@ -158,6 +163,7 @@ prs.add_argument('--scale'        , action='store_true')
 prs.add_argument('--shrink'       , action='store_true')
 prs.add_argument('--svd'          , type=float, default=None)
 prs.add_argument('--no_priors_chi', action='store_true')
+prs.add_argument('--noeff'        , action='store_false')
 prs.add_argument('--verbose'      , action='store_true')
 prs.add_argument('--plot_eff'     , action='store_true')
 prs.add_argument('--plot_fit'     , action='store_true')
@@ -226,13 +232,13 @@ def main():
                                     'chi2red'      : round(fit[0]['chi2red'],3),
                                     'pexp'         : fit[0]['pexp'],
                                     'pstd'         : fit[0]['pstd'],
-                                    'E0'           : fit[1]['E'][0],
-                                    'Z_1S_Unpol'   : fit[1]['Z_1S_Unpol'][0] if 'Z_1S_Unpol' in fit[1] else " ",
-                                    'Z_1S_Par'     : fit[1]['Z_1S_Par'  ][0] if 'Z_1S_Par'   in fit[1] else " ",
-                                    'Z_1S_Bot'     : fit[1]['Z_1S_Bot'  ][0] if 'Z_1S_Bot'   in fit[1] else " ",
-                                    'Z_d_Unpol'    : fit[1]['Z_d_Unpol' ][0] if 'Z_d_Unpol'  in fit[1] else " ",
-                                    'Z_d_Par'      : fit[1]['Z_d_Par'   ][0] if 'Z_d_Par'    in fit[1] else " ",
-                                    'Z_d_Bot'      : fit[1]['Z_d_Bot'   ][0] if 'Z_d_Bot'    in fit[1] else " ",
+                                    'E0'           : fit[1]['dE'][0],
+                                    'Z_1S_Unpol'   : fit[1]['Z.1S.Unpol'][0] if 'Z.1S.Unpol' in fit[1] else " ",
+                                    'Z_1S_Par'     : fit[1]['Z.1S.Par'  ][0] if 'Z.1S.Par'   in fit[1] else " ",
+                                    'Z_1S_Bot'     : fit[1]['Z.1S.Bot'  ][0] if 'Z.1S.Bot'   in fit[1] else " ",
+                                    'Z_d_Unpol'    : fit[1]['Z.d.Unpol' ][0] if 'Z.d.Unpol'  in fit[1] else " ",
+                                    'Z_d_Par'      : fit[1]['Z.d.Par'   ][0] if 'Z.d.Par'    in fit[1] else " ",
+                                    'Z_d_Bot'      : fit[1]['Z.d.Bot'   ][0] if 'Z.d.Bot'    in fit[1] else " ",
                                 })
 
                                 continue
@@ -256,9 +262,10 @@ def main():
                     nstates, 
                     trange, 
                     saveto     = saveto, 
-                    meff       = True, 
+                    meff       = args.noeff, 
                     trange_eff = trange_eff, 
                     jkfit      = JKFIT,
+                    boost      = args.boost,
                     wpriors    = False if args.no_priors_chi else True,
                     **cov_specs
                 )
@@ -271,7 +278,7 @@ def main():
                     'tmax'         : trange[1],
                     'svd'          : cov_specs['cutsvd'],
                     'trange_eff'   : trange_eff,
-                    'E0'           : stag.fits[nstates,trange].p['E'][0],
+                    'E0'           : stag.fits[nstates,trange].p['dE'][0],
                     'chiaug/chiexp': fitres['chi2aug']/fitres['chiexp'],
                     'chi2red'      : fitres['chi2red'],
                     'pexp'         : fitres['pexp'],

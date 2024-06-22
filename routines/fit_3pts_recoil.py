@@ -39,6 +39,7 @@ from fit_2pts_dispersion_relation import mom_to_p2
 prs = argparse.ArgumentParser(usage=usage)
 prs.add_argument('-c','--config'  , type=str,  default='./3pts_fit_config.toml')
 prs.add_argument('-e','--ensemble', type=str, nargs='+', default=None)
+prs.add_argument('--meson', type=str)
 prs.add_argument('-mm','--momlist', type=str, nargs='+', default=[])
 prs.add_argument('--jkfit', action='store_true')
 prs.add_argument('--readfrom', type=str, default='./')
@@ -68,13 +69,21 @@ def main():
     ENSEMBLE_LIST = args.ensemble if args.ensemble is not None else config['ensemble']['list']
     MOM_LIST      = args.momlist  if args.momlist  is not None else []
 
+    if args.meson=='Dst':
+        ratio = 'xfstpar'
+    elif args.meson=='D':
+        ratio = 'xf'
+    else:
+        raise ValueError('ONLY D or Dst')
+
+
     wrecoil = []
     for ens in ENSEMBLE_LIST:
         lvol = FnalHISQMetadata.params(ens)['L']
         
         # Extract values of M1 and M2 from dispersion relation
         try:
-            file = os.path.join(readfrom,f'fit2pts_dispersion_relation_{ens}_Dst.pickle')
+            file = os.path.join(readfrom,f'fit2pts_dispersion_relation_{ens}_{args.meson}.pickle')
             with open(file,'rb') as f:
                 aux = gv.load(f)
             m1,m2 = aux['M1'], aux['M2']
@@ -84,8 +93,7 @@ def main():
             continue
 
 
-
-        for mom in (MOM_LIST if MOM_LIST else config['fit'][ens]['xfstpar']['mom'].keys()):
+        for mom in (MOM_LIST if MOM_LIST else config['fit'][ens][ratio.upper()]['mom'].keys()):
             # Compute recoil parameter from dispersion relation
             w1 = np.sqrt(1+mom_to_p2(mom,L=lvol)/m1**2)
             w2 = np.sqrt(1+mom_to_p2(mom,L=lvol)/m2**2)
@@ -94,12 +102,12 @@ def main():
             # Compute recoil parameter from ratio
             try:
                 res = read_config_fit(
-                    f'fit3pt_config_{ens}_xfstpar_{mom}',
+                    f'fit3pt_config_{ens}_{ratio}_{mom}',
                     path=readfrom,
                     jk = args.jkfit
                 )
             except FileNotFoundError:
-                print(f'XFSTPAR not calculated for ({ens},{mom})...')
+                print(f'{ratio} not calculated for ({ens},{mom})...')
                 continue   
             
             if not args.jkfit:

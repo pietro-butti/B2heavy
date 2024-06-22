@@ -47,6 +47,8 @@ from b2heavy.TwoPointFunctions.utils     import correlation_diagnostics
 from b2heavy.TwoPointFunctions.types2pts import CorrelatorIO, plot_effective_coeffs, find_eps_cut
 from b2heavy.TwoPointFunctions.fitter    import StagFitter
 
+from b2heavy.FnalHISQMetadata            import params
+
 from b2heavy.ThreePointFunctions.utils import read_config_fit, dump_fit_object
 import fit_2pts_utils as utils
 
@@ -70,6 +72,9 @@ def stability_test_fit(ens,meson,mom,data_dir,binsize,smslist,nexcrange,tminrang
     for nstates in nexcrange:
         for tmin in tminrange:
             for tmax in tmaxrange:
+                if np.floor(tmax)==tmax:
+                    tmax = int(tmax)
+                
                 trange = (tmin,tmax)
 
                 if find_epsilon:
@@ -110,35 +115,35 @@ def stability_test_fit(ens,meson,mom,data_dir,binsize,smslist,nexcrange,tminrang
     return aux
 
 
-def read_results_stability_test(dumped, Nt=30, show=True, obs='E', n_states=0):
+def read_results_stability_test(dumped, Nt=30, show=True, obs='dE', n_states=0):
     if type(dumped) is str: 
         with open(dumped,'rb') as f:
-            d = pickle.load(f)
+            dd = pickle.load(f)
     else:
-        d = dumped
+        dd = dumped
 
     # Calculate weight normalization
-    sumw = sum([np.exp(-(d[k]['chi2aug']-2*d[k]['chiexp'])/2) for k in d])
+    sumw = sum([np.exp(-(dd[k]['chi2aug']-2*dd[k]['chiexp'])/2) for k in dd])
 
     # How many polarization are there?
-    ls = [[k.split('_')[-1] for k in d[fk]['p'] if k.startswith('Z')] for fk in d]
+    ls = [[k.split('.')[-1] for k in dd[fk]['p'] if k.startswith('Z') and not k.endswith('o')] for fk in dd]
     ls = np.unique(np.concatenate(ls))
     unpol = True if len(ls)==1 else False
-    Zs = ['Z_1S_Unpol','Z_d_Unpol'] if unpol else ['Z_1S_Par','Z_1S_Bot','Z_d_Par','Z_d_Bot']
+    Zs = ['Z.1S.Unpol','Z.d.Unpol'] if unpol else ['Z.1S.Par','Z.1S.Bot','Z.d.Par','Z.d.Bot']
 
     df = []
-    for k in d:
+    for k in dd:
         nexc,(tmin,tmax) = k
 
-        e0 = d[k]['p'][obs][n_states]
+        e0 = dd[k]['p'][obs][n_states]
 
-        chiexp  = d[k]['chiexp']
-        chi2aug = d[k]['chi2aug']
+        chiexp  = dd[k]['chiexp']
+        chi2aug = dd[k]['chi2aug']
 
         tic = chi2aug - 2*chiexp
 
-        ncut  = 30 - (tmax-tmin) # FIXME
-        npars = len(np.concatenate([v for k,v in d[k]['p'].items()]))
+        ncut  = Nt - (tmax-tmin)
+        npars = len(np.concatenate([v for k,v in dd[k]['p'].items()]))
         aic = chi2aug + 2*ncut + 2*npars
 
         tmp = {
@@ -150,12 +155,12 @@ def read_results_stability_test(dumped, Nt=30, show=True, obs='E', n_states=0):
                 'aug/exp': chi2aug/chiexp,
                 'TIC': np.exp(-tic/2)/sumw,
                 'AIC': np.exp(-aic/2),
-                'pexp': d[k]['pexp'],
-                'pstd': d[k]['pstd'],
+                'pexp': dd[k]['pexp'],
+                'pstd': dd[k]['pstd'],
             }
 
         for zk in Zs:
-            z = np.exp(d[k]['p'][zk][0]) * np.sqrt(2*e0)
+            z = np.exp(dd[k]['p'][zk][0])**2 * (2*e0)
             tmp[zk] = z
 
         df.append(tmp)
@@ -171,7 +176,7 @@ def read_results_stability_test(dumped, Nt=30, show=True, obs='E', n_states=0):
     return df
 
 
-def stability_test_plot(ax, df, IC='TIC', label_mod_av='mod. av.', obs='E0'):
+def stability_test_plot(ax, df, IC='TIC', label_mod_av='mod. av.', obs='E0', afm=1.):
     Nstates = np.unique([n for n,tr in df.index])
 
     # Plot observable
@@ -183,7 +188,7 @@ def stability_test_plot(ax, df, IC='TIC', label_mod_av='mod. av.', obs='E0'):
         yplot = gv.mean(df[df.index.isin(idx)][obs].values)
         yerr  = gv.sdev(df[df.index.isin(idx)][obs].values)
 
-        ax.errorbar(xplot+(-0.1 + 0.1*(nexc-1)), yplot, yerr=yerr, fmt='o' ,color=f'C{nexc-1}', capsize=2)
+        ax.errorbar((xplot+(-0.1 + 0.1*(nexc-1)))*(afm), yplot, yerr=yerr, fmt='o' ,color=f'C{nexc-1}', capsize=2)
         # ax.scatter( xplot+(-0.1 + 0.1*(nexc-1)), yplot, marker='o', facecolors='w', edgecolors=f'C{nexc-1}')
         ax.errorbar([], [], yerr=[], fmt='o' ,color=f'C{nexc-1}', capsize=2, label=f'{nexc}+{nexc}')
 
@@ -205,7 +210,7 @@ def stability_test_plot(ax, df, IC='TIC', label_mod_av='mod. av.', obs='E0'):
     return
 
 
-def stability_test_plot_AIC(ax, df, IC='TIC', pkey='pstd', legend=True, **kwargs):
+def stability_test_plot_AIC(ax, df, IC='TIC', pkey='pstd', legend=True, afm=1., **kwargs):
     Nstates = np.unique([n for n,tr in df.index])
 
     ax2 = ax.twinx()
@@ -216,12 +221,12 @@ def stability_test_plot_AIC(ax, df, IC='TIC', pkey='pstd', legend=True, **kwargs
 
         # IC
         yplot1 = df[df.index.isin(idx)][IC]
-        ax.plot(xplot, yplot1, color=f'C{nexc-1}', alpha=0.35)
+        ax.plot(np.array(xplot)*afm, yplot1, color=f'C{nexc-1}', alpha=0.35)
         
         # pvalue
         yplot2 = df[df.index.isin(idx)][pkey]
-        ax2.scatter(xplot, yplot2, color=f'C{nexc-1}')
-        ax2.plot(xplot, yplot2, color=f'C{nexc-1}',alpha=0.1,linestyle="--")
+        ax2.scatter(np.array(xplot)*afm, yplot2, color=f'C{nexc-1}')
+        ax2.plot(np.array(xplot)*afm, yplot2, color=f'C{nexc-1}',alpha=0.1,linestyle="--")
 
     if legend:
         ax.scatter([], [], color='gray', label=pkey)
@@ -265,7 +270,7 @@ prs.add_argument('-mm','--mom'    , type=str)
 prs.add_argument('--prior_trange' , type=int, nargs='+')
 prs.add_argument('--Nstates'      , type=int, nargs='+')
 prs.add_argument('--tmins'        , type=int, nargs='+')
-prs.add_argument('--tmaxs'        , type=int, nargs='+')
+prs.add_argument('--tmaxs'        , type=float, nargs='+')
 prs.add_argument('--obs'          , type=str, default='E0')
 
 prs.add_argument('--shrink', action='store_true')
@@ -305,7 +310,7 @@ def main():
     # READFROM = f'{DEFAULT_ANALYSIS_ROOT}/fit2pt_stability_test_{tag}.pickle' if args.readfrom=='default' else args.readfrom
     READFROM = DEFAULT_ANALYSIS_ROOT if args.readfrom == 'default' else args.readfrom
     SAVETO   = DEFAULT_ANALYSIS_ROOT if args.saveto   == 'default' else args.saveto
-    
+
     fits = None
     if args.readfrom is not None and not args.override: 
         try:
@@ -379,19 +384,22 @@ def main():
         if not args.plot_AIC:
             f, ax = plt.subplots(1, 1)
         else:
-            f, (ax, a1, a2) = plt.subplots(3, 1, gridspec_kw={'height_ratios': [3, 1, 1]}, figsize=(6,6), sharex=True)
+            # f, (ax, a1, a2) = plt.subplots(3, 1, gridspec_kw={'height_ratios': [3, 1, 1]}, figsize=(6,6), sharex=True)
+            f, (ax, a1) = plt.subplots(2, 1, gridspec_kw={'height_ratios': [2, 1]}, figsize=(6,6), sharex=True)
 
 
-        stability_test_plot(ax,df, obs=args.obs)
+        alat = params(ens)['aSpc'].mean
+
+        stability_test_plot(ax,df, obs=args.obs, afm=1)
         ax.set_ylim(ymax=args.plot_ymax,ymin=args.plot_ymin)
         ax.set_title(tag)
         ax.grid(alpha=0.2)
 
         ax.axvline(config['fit'][ens][mes]['mom'][mom]['trange'][0],color='gray',alpha=0.6,linestyle=":")
 
-        ax.set_ylabel(r'$E_0$' if args.obs=='E' else '')
+        ax.set_ylabel(r'$E_0$' if args.obs=='dE' else '')
         ax.legend()
-        ax.set_xlabel(r'$t_{min}/a$')
+        # ax.set_xlabel(r'$t_{min}/a$')
 
 
         if args.plot_AIC:
@@ -400,10 +408,21 @@ def main():
             a1.set_ylabel(r'$w$')
             twin_ax.set_ylabel(r'$p$-value')
 
-            twin_ax = stability_test_plot_AIC(a2,df,IC='AIC',pkey='pexp', legend=True)
-            a2.grid(alpha=0.2)
-            a2.set_ylabel(r'$w$')
-            twin_ax.set_ylabel(r'$p$-value')
+            a1.set_xlabel(r'$t_{min}$ [fm]')
+
+            xtk = np.array(a1.get_xticks())
+            ntk = [f'{x:.2f}' for x in xtk*alat]
+            a1.set_xticks(xtk, labels=ntk)
+
+            # breakpoint()
+
+        else:
+            ax.set_xlabel(r'$t_{min}$ [fm]')
+
+            # twin_ax = stability_test_plot_AIC(a2,df,IC='AIC',pkey='pexp', legend=True)
+            # a2.grid(alpha=0.2)
+            # a2.set_ylabel(r'$w$')
+            # twin_ax.set_ylabel(r'$p$-value')
 
         plt.tight_layout()
         saveplot = f'{SAVETO}/fit2pt_stability_test_{tag}.pdf' if args.saveto=='default' else f'{args.saveto}/fit2pt_stability_test_{tag}.pdf'

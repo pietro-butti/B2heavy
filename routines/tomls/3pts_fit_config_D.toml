@@ -7,7 +7,7 @@ title = '3pts fits'
     list = ['MediumCoarse','Coarse-2','Coarse-Phys','Coarse-1','Fine-1','Fine-Phys','SuperFine']
 
 [ratio]
-    list = ['XF','RPLUS','RMINUS','QPLUS']
+    list = ['xf','RPLUS','RMINUS','QPLUS']
 
 [momenta]
     list = ['000','100','200','300','400']
@@ -20,51 +20,51 @@ title = '3pts fits'
         name     = 'MediumCoarse'
         data_dir = "/Users/pietro/code/data_analysis/BtoD/Alex"
         binsize  = 13
-        mom_list = ['000','100','200','300','400','110','211','222']
+        mom_list = ['000','100','200','300']
         Nt       = 48
-
-    [data.Coarse-1]
-        name     = 'Coarse-1'
-        data_dir = "/Users/pietro/code/data_analysis/BtoD/Alex"
-        binsize  = 11
-        mom_list = ['000','100','200','300','110','211']
-        Nt       = 64
 
     [data.Coarse-2]
         name     = 'Coarse-2'
         data_dir = "/Users/pietro/code/data_analysis/BtoD/Alex"
         binsize  = 16
-        mom_list = ['000','100','200','300','110','211']
+        mom_list = ['000','100','200','300']
+        Nt       = 64
+
+    [data.Coarse-1]
+        name     = 'Coarse-1'
+        data_dir = "/Users/pietro/code/data_analysis/BtoD/Alex"
+        binsize  = 11
+        mom_list = ['000','100','200','300']
         Nt       = 64
     
     [data.Coarse-Phys]
         name     = 'Coarse-Phys'
         data_dir = "/Users/pietro/code/data_analysis/BtoD/Alex"
         binsize  = 19
-        mom_list = ['000','100','200','300','400','110','211','222']
+        mom_list = ['000','100','200','300','400']
         Nt       = 64
     
     [data.Fine-1]
         name     = 'Fine-1'
         data_dir = "/Users/pietro/code/data_analysis/BtoD/Alex"
         binsize  = 16
-        mom_list = ['000','100','200','300','400','110','211','222']
+        mom_list = ['000','100','200','300','400']
         Nt       = 96
     
     [data.Fine-Phys]
         name     = 'Fine-Phys'
         data_dir = "/Users/pietro/code/data_analysis/BtoD/Alex"
         binsize  = 16
-        mom_list = ['000','100','200','300','400','110','211','222']
+        mom_list = ['000','100','200','300','400']
         Nt       = 96
     
+
     [data.SuperFine]
         name = "SuperFine"
         data_dir = "/Users/pietro/code/data_analysis/BtoD/Alex"
         binsize = 22
-        mom_list = [ "000", "100", "200", "300", "400", "110", "211", "222",]
+        mom_list = ['000','100','200','300','400']
         Nt = 192
-
 
 
 
@@ -75,10 +75,6 @@ title = '3pts fits'
 #              'Fine-1':      16,
 #              'Fine-Phys':   16,
 #              'SuperFine':   22}#22}
-
-
-
-
 
 [fit.MediumCoarse.XF]
 smlist = [ "1S", "RW",]
@@ -165,426 +161,426 @@ smlist = [ "1S", "RW",]
 smlist = [ "1S", "RW",]
 
 [fit.MediumCoarse.XF.mom.100]
-nstates = 2
+nstates = 1
 tag = "MediumCoarse_XF_100"
 trange = [ 1, 9,]
 
 [fit.MediumCoarse.XF.mom.200]
-nstates = 2
+nstates = 1
 tag = "MediumCoarse_XF_200"
 trange = [ 1, 9,]
 
 [fit.MediumCoarse.XF.mom.300]
-nstates = 2
+nstates = 1
 tag = "MediumCoarse_XF_300"
 trange = [ 1, 9,]
 
 [fit.MediumCoarse.XF.mom.400]
-nstates = 2
+nstates = 1
 tag = "MediumCoarse_XF_400"
 trange = [ 1, 9,]
 
 [fit.MediumCoarse.RPLUS.mom.000]
-nstates = 2
+nstates = 1
 tag = "MediumCoarse_RPLUS_000"
 trange = [ 1, 9,]
 
 [fit.MediumCoarse.RMINUS.mom.100]
-nstates = 2
+nstates = 1
 tag = "MediumCoarse_RMINUS_100"
 trange = [ 1, 9,]
 
 [fit.MediumCoarse.RMINUS.mom.200]
-nstates = 2
+nstates = 1
 tag = "MediumCoarse_RMINUS_200"
 trange = [ 1, 9,]
 
 [fit.MediumCoarse.RMINUS.mom.300]
-nstates = 2
+nstates = 1
 tag = "MediumCoarse_RMINUS_300"
 trange = [ 1, 9,]
 
 [fit.MediumCoarse.RMINUS.mom.400]
-nstates = 2
+nstates = 1
 tag = "MediumCoarse_RMINUS_400"
 trange = [ 1, 9,]
 
 [fit.MediumCoarse.QPLUS.mom.100]
-nstates = 2
+nstates = 1
 tag = "MediumCoarse_QPLUS_100"
 trange = [ 1, 9,]
 
 [fit.MediumCoarse.QPLUS.mom.200]
-nstates = 2
+nstates = 1
 tag = "MediumCoarse_QPLUS_200"
 trange = [ 1, 9,]
 
 [fit.MediumCoarse.QPLUS.mom.300]
-nstates = 2
+nstates = 1
 tag = "MediumCoarse_QPLUS_300"
 trange = [ 1, 9,]
 
 [fit.MediumCoarse.QPLUS.mom.400]
-nstates = 2
+nstates = 1
 tag = "MediumCoarse_QPLUS_400"
 trange = [ 1, 9,]
 
 [fit.Coarse-2.XF.mom.100]
-nstates = 2
+nstates = 1
 tag = "Coarse-2_XF_100"
 trange = [ 1, 11,]
 
 [fit.Coarse-2.XF.mom.200]
-nstates = 2
+nstates = 1
 tag = "Coarse-2_XF_200"
 trange = [ 1, 11,]
 
 [fit.Coarse-2.XF.mom.300]
-nstates = 2
+nstates = 1
 tag = "Coarse-2_XF_300"
 trange = [ 1, 11,]
 
 [fit.Coarse-2.RPLUS.mom.000]
-nstates = 2
+nstates = 1
 tag = "Coarse-2_RPLUS_000"
 trange = [ 1, 11,]
 
 [fit.Coarse-2.RMINUS.mom.100]
-nstates = 2
+nstates = 1
 tag = "Coarse-2_RMINUS_100"
 trange = [ 1, 11,]
 
 [fit.Coarse-2.RMINUS.mom.200]
-nstates = 2
+nstates = 1
 tag = "Coarse-2_RMINUS_200"
 trange = [ 1, 11,]
 
 [fit.Coarse-2.RMINUS.mom.300]
-nstates = 2
+nstates = 1
 tag = "Coarse-2_RMINUS_300"
 trange = [ 1, 11,]
 
 [fit.Coarse-2.QPLUS.mom.100]
-nstates = 2
+nstates = 1
 tag = "Coarse-2_QPLUS_100"
 trange = [ 1, 11,]
 
 [fit.Coarse-2.QPLUS.mom.200]
-nstates = 2
+nstates = 1
 tag = "Coarse-2_QPLUS_200"
 trange = [ 1, 11,]
 
 [fit.Coarse-2.QPLUS.mom.300]
-nstates = 2
+nstates = 1
 tag = "Coarse-2_QPLUS_300"
 trange = [ 1, 11,]
 
 [fit.Coarse-1.XF.mom.100]
-nstates = 2
+nstates = 1
 tag = "Coarse-1_XF_100"
 trange = [ 1, 11,]
 
 [fit.Coarse-1.XF.mom.200]
-nstates = 2
+nstates = 1
 tag = "Coarse-1_XF_200"
 trange = [ 1, 11,]
 
 [fit.Coarse-1.XF.mom.300]
-nstates = 2
+nstates = 1
 tag = "Coarse-1_XF_300"
 trange = [ 1, 11,]
 
 [fit.Coarse-1.RPLUS.mom.000]
-nstates = 2
+nstates = 1
 tag = "Coarse-1_RPLUS_000"
 trange = [ 1, 11,]
 
 [fit.Coarse-1.RMINUS.mom.100]
-nstates = 2
+nstates = 1
 tag = "Coarse-1_RMINUS_100"
 trange = [ 1, 11,]
 
 [fit.Coarse-1.RMINUS.mom.200]
-nstates = 2
+nstates = 1
 tag = "Coarse-1_RMINUS_200"
 trange = [ 1, 11,]
 
 [fit.Coarse-1.RMINUS.mom.300]
-nstates = 2
+nstates = 1
 tag = "Coarse-1_RMINUS_300"
 trange = [ 1, 11,]
 
 [fit.Coarse-1.QPLUS.mom.100]
-nstates = 2
+nstates = 1
 tag = "Coarse-1_QPLUS_100"
 trange = [ 1, 11,]
 
 [fit.Coarse-1.QPLUS.mom.200]
-nstates = 2
+nstates = 1
 tag = "Coarse-1_QPLUS_200"
 trange = [ 1, 11,]
 
 [fit.Coarse-1.QPLUS.mom.300]
-nstates = 2
+nstates = 1
 tag = "Coarse-1_QPLUS_300"
 trange = [ 1, 11,]
 
 [fit.Coarse-Phys.XF.mom.100]
-nstates = 2
+nstates = 1
 tag = "Coarse-Phys_XF_100"
 trange = [ 1, 11,]
 
 [fit.Coarse-Phys.XF.mom.200]
-nstates = 2
+nstates = 1
 tag = "Coarse-Phys_XF_200"
 trange = [ 1, 11,]
 
 [fit.Coarse-Phys.XF.mom.300]
-nstates = 2
+nstates = 1
 tag = "Coarse-Phys_XF_300"
 trange = [ 1, 11,]
 
 [fit.Coarse-Phys.XF.mom.400]
-nstates = 2
+nstates = 1
 tag = "Coarse-Phys_XF_400"
 trange = [ 1, 11,]
 
 [fit.Coarse-Phys.RPLUS.mom.000]
-nstates = 2
+nstates = 1
 tag = "Coarse-Phys_RPLUS_000"
 trange = [ 1, 11,]
 
 [fit.Coarse-Phys.RMINUS.mom.100]
-nstates = 2
+nstates = 1
 tag = "Coarse-Phys_RMINUS_100"
 trange = [ 1, 11,]
 
 [fit.Coarse-Phys.RMINUS.mom.200]
-nstates = 2
+nstates = 1
 tag = "Coarse-Phys_RMINUS_200"
 trange = [ 1, 11,]
 
 [fit.Coarse-Phys.RMINUS.mom.300]
-nstates = 2
+nstates = 1
 tag = "Coarse-Phys_RMINUS_300"
 trange = [ 1, 11,]
 
 [fit.Coarse-Phys.RMINUS.mom.400]
-nstates = 2
+nstates = 1
 tag = "Coarse-Phys_RMINUS_400"
 trange = [ 1, 11,]
 
 [fit.Coarse-Phys.QPLUS.mom.100]
-nstates = 2
+nstates = 1
 tag = "Coarse-Phys_QPLUS_100"
 trange = [ 1, 11,]
 
 [fit.Coarse-Phys.QPLUS.mom.200]
-nstates = 2
+nstates = 1
 tag = "Coarse-Phys_QPLUS_200"
 trange = [ 1, 11,]
 
 [fit.Coarse-Phys.QPLUS.mom.300]
-nstates = 2
+nstates = 1
 tag = "Coarse-Phys_QPLUS_300"
 trange = [ 1, 11,]
 
 [fit.Coarse-Phys.QPLUS.mom.400]
-nstates = 2
+nstates = 1
 tag = "Coarse-Phys_QPLUS_400"
 trange = [ 1, 11,]
 
 [fit.Fine-1.XF.mom.100]
-nstates = 2
+nstates = 1
 tag = "Fine-1_XF_100"
 trange = [ 1, 16,]
 
 [fit.Fine-1.XF.mom.200]
-nstates = 2
+nstates = 1
 tag = "Fine-1_XF_200"
 trange = [ 1, 16,]
 
 [fit.Fine-1.XF.mom.300]
-nstates = 2
+nstates = 1
 tag = "Fine-1_XF_300"
 trange = [ 1, 16,]
 
 [fit.Fine-1.XF.mom.400]
-nstates = 2
+nstates = 1
 tag = "Fine-1_XF_400"
 trange = [ 1, 16,]
 
 [fit.Fine-1.RPLUS.mom.000]
-nstates = 2
+nstates = 1
 tag = "Fine-1_RPLUS_000"
 trange = [ 1, 16,]
 
 [fit.Fine-1.RMINUS.mom.100]
-nstates = 2
+nstates = 1
 tag = "Fine-1_RMINUS_100"
 trange = [ 1, 16,]
 
 [fit.Fine-1.RMINUS.mom.200]
-nstates = 2
+nstates = 1
 tag = "Fine-1_RMINUS_200"
 trange = [ 1, 16,]
 
 [fit.Fine-1.RMINUS.mom.300]
-nstates = 2
+nstates = 1
 tag = "Fine-1_RMINUS_300"
 trange = [ 1, 16,]
 
 [fit.Fine-1.RMINUS.mom.400]
-nstates = 2
+nstates = 1
 tag = "Fine-1_RMINUS_400"
 trange = [ 1, 16,]
 
 [fit.Fine-1.QPLUS.mom.100]
-nstates = 2
+nstates = 1
 tag = "Fine-1_QPLUS_100"
 trange = [ 1, 16,]
 
 [fit.Fine-1.QPLUS.mom.200]
-nstates = 2
+nstates = 1
 tag = "Fine-1_QPLUS_200"
 trange = [ 1, 16,]
 
 [fit.Fine-1.QPLUS.mom.300]
-nstates = 2
+nstates = 1
 tag = "Fine-1_QPLUS_300"
 trange = [ 1, 16,]
 
 [fit.Fine-1.QPLUS.mom.400]
-nstates = 2
+nstates = 1
 tag = "Fine-1_QPLUS_400"
 trange = [ 1, 16,]
 
 [fit.Fine-Phys.XF.mom.100]
-nstates = 2
+nstates = 1
 tag = "Fine-Phys_XF_100"
 trange = [ 1, 16,]
 
 [fit.Fine-Phys.XF.mom.200]
-nstates = 2
+nstates = 1
 tag = "Fine-Phys_XF_200"
 trange = [ 1, 16,]
 
 [fit.Fine-Phys.XF.mom.300]
-nstates = 2
+nstates = 1
 tag = "Fine-Phys_XF_300"
 trange = [ 1, 16,]
 
 [fit.Fine-Phys.XF.mom.400]
-nstates = 2
+nstates = 1
 tag = "Fine-Phys_XF_400"
 trange = [ 1, 16,]
 
 [fit.Fine-Phys.RPLUS.mom.000]
-nstates = 2
+nstates = 1
 tag = "Fine-Phys_RPLUS_000"
 trange = [ 1, 16,]
 
 [fit.Fine-Phys.RMINUS.mom.100]
-nstates = 2
+nstates = 1
 tag = "Fine-Phys_RMINUS_100"
 trange = [ 1, 16,]
 
 [fit.Fine-Phys.RMINUS.mom.200]
-nstates = 2
+nstates = 1
 tag = "Fine-Phys_RMINUS_200"
 trange = [ 1, 16,]
 
 [fit.Fine-Phys.RMINUS.mom.300]
-nstates = 2
+nstates = 1
 tag = "Fine-Phys_RMINUS_300"
 trange = [ 1, 16,]
 
 [fit.Fine-Phys.RMINUS.mom.400]
-nstates = 2
+nstates = 1
 tag = "Fine-Phys_RMINUS_400"
 trange = [ 1, 16,]
 
 [fit.Fine-Phys.QPLUS.mom.100]
-nstates = 2
+nstates = 1
 tag = "Fine-Phys_QPLUS_100"
 trange = [ 1, 16,]
 
 [fit.Fine-Phys.QPLUS.mom.200]
-nstates = 2
+nstates = 1
 tag = "Fine-Phys_QPLUS_200"
 trange = [ 1, 16,]
 
 [fit.Fine-Phys.QPLUS.mom.300]
-nstates = 2
+nstates = 1
 tag = "Fine-Phys_QPLUS_300"
 trange = [ 1, 16,]
 
 [fit.Fine-Phys.QPLUS.mom.400]
-nstates = 2
+nstates = 1
 tag = "Fine-Phys_QPLUS_400"
 trange = [ 1, 16,]
 
 [fit.SuperFine.XF.mom.100]
-nstates = 2
+nstates = 1
 tag = "SuperFine_XF_100"
 trange = [ 2, 22,]
 
 [fit.SuperFine.XF.mom.200]
-nstates = 2
+nstates = 1
 tag = "SuperFine_XF_200"
 trange = [ 2, 22,]
 
 [fit.SuperFine.XF.mom.300]
-nstates = 2
+nstates = 1
 tag = "SuperFine_XF_300"
 trange = [ 2, 22,]
 
 [fit.SuperFine.XF.mom.400]
-nstates = 2
+nstates = 1
 tag = "SuperFine_XF_400"
 trange = [ 2, 22,]
 
 [fit.SuperFine.RPLUS.mom.000]
-nstates = 2
+nstates = 1
 tag = "SuperFine_RPLUS_000"
 trange = [ 2, 22,]
 
 [fit.SuperFine.RMINUS.mom.100]
-nstates = 2
+nstates = 1
 tag = "SuperFine_RMINUS_100"
 trange = [ 2, 22,]
 
 [fit.SuperFine.RMINUS.mom.200]
-nstates = 2
+nstates = 1
 tag = "SuperFine_RMINUS_200"
 trange = [ 2, 22,]
 
 [fit.SuperFine.RMINUS.mom.300]
-nstates = 2
+nstates = 1
 tag = "SuperFine_RMINUS_300"
 trange = [ 2, 22,]
 
 [fit.SuperFine.RMINUS.mom.400]
-nstates = 2
+nstates = 1
 tag = "SuperFine_RMINUS_400"
 trange = [ 2, 22,]
 
 [fit.SuperFine.QPLUS.mom.100]
-nstates = 2
+nstates = 1
 tag = "SuperFine_QPLUS_100"
 trange = [ 2, 22,]
 
 [fit.SuperFine.QPLUS.mom.200]
-nstates = 2
+nstates = 1
 tag = "SuperFine_QPLUS_200"
 trange = [ 2, 22,]
 
 [fit.SuperFine.QPLUS.mom.300]
-nstates = 2
+nstates = 1
 tag = "SuperFine_QPLUS_300"
 trange = [ 2, 22,]
 
 [fit.SuperFine.QPLUS.mom.400]
-nstates = 2
+nstates = 1
 tag = "SuperFine_QPLUS_400"
 trange = [ 2, 22,]

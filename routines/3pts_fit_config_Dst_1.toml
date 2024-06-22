@@ -7,7 +7,7 @@ title = '3pts fits'
     list = ['Coarse-2','Coarse-Phys','Coarse-1','Fine-1']
 
 [ratio]
-    list = ['xfstpar', 'XV', 'R0', 'R1', 'RA1', 'ZRA1']
+    list = ['XFSTPAR', 'XV', 'R0', 'R1', 'RA1', 'ZRA1']
 
 [momenta]
     list = ['000','100','200','300','400']
@@ -59,12 +59,11 @@ title = '3pts fits'
 #              'Fine-1':      16,
 #              'Fine-Phys':   16,
 #              'SuperFine':   22}#22}
-
 [fit.Coarse-2.RA1]
-smlist = [ "1S", ]
+smlist = [ "1S"]
 
 [fit.Coarse-2.ZRA1]
-smlist = [ "1S", ]
+smlist = [ "1S"]
 
 [fit.Coarse-2.XFSTPAR]
 smlist = [ "1S", "RW",]
@@ -79,10 +78,10 @@ smlist = [ "1S", "RW",]
 smlist = [ "1S", "RW",]
 
 [fit.Coarse-1.RA1]
-smlist = [ "1S", ]
+smlist = [ "1S"]
 
 [fit.Coarse-1.ZRA1]
-smlist = [ "1S", ]
+smlist = [ "1S"]
 
 [fit.Coarse-1.XFSTPAR]
 smlist = [ "1S", "RW",]
@@ -97,10 +96,10 @@ smlist = [ "1S", "RW",]
 smlist = [ "1S", "RW",]
 
 [fit.Coarse-Phys.RA1]
-smlist = [ "1S", ]
+smlist = [ "1S"]
 
 [fit.Coarse-Phys.ZRA1]
-smlist = [ "1S", ]
+smlist = [ "1S"]
 
 [fit.Coarse-Phys.XFSTPAR]
 smlist = [ "1S", "RW",]
@@ -115,10 +114,10 @@ smlist = [ "1S", "RW",]
 smlist = [ "1S", "RW",]
 
 [fit.Fine-1.RA1]
-smlist = [ "1S", ]
+smlist = [ "1S"]
 
 [fit.Fine-1.ZRA1]
-smlist = [ "1S", ]
+smlist = [ "1S"]
 
 [fit.Fine-1.XFSTPAR]
 smlist = [ "1S", "RW",]

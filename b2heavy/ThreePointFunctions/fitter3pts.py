@@ -42,20 +42,17 @@ def ModelRatio(T,same_sink,sm,Nexc):
 
 
 def phys_energy_priors(ens, mes, mom, nstates, readfrom=None, error=1.0):
-    fit,p = read_config_fit(
+    fit,pars = read_config_fit(
         tag  = f'fit2pt_config_{ens}_{mes}_{mom}',
-        path = readfrom
+        path = readfrom,
+        jk= False
     )
 
     # Check length
     dE = []
     for n in range(nstates):
         try:
-            pr = gv.gvar(
-                p['E'][2*n+2].mean,
-                # p['E'][2*n+2].sdev*3
-                error
-            )
+            pr = gv.gvar(pars['dE'][n].mean,error)
         except IndexError:
             pr = gv.gvar('-1.5(1.0)')
 
@@ -198,11 +195,13 @@ class RatioFitter(Ratio):
         return fitjk if jkfit else fit
 
 
-    def plot_fit(self,ax,Nstates,trange,color='C0',color_res='crimson',alpha=1.):
+    def plot_fit(self,ax,Nstates,trange,color='C0',color_res='crimson',alpha=1.,minus=False):
         fit = self.fits[Nstates,trange]
         x,y = self.format()
 
         mrk = ['o','^']
+
+        FACTOR = -1. if minus else 1.
 
         for i,sm in enumerate(self.smr):
             model = ModelRatio(self.Tb,self.same_sink,sm,Nstates)
@@ -212,24 +211,25 @@ class RatioFitter(Ratio):
             off = (-1)**i*0.05
             # Plot fit points 
             xin = x[iin]
-            yin = y[sm][iin]
+            yin = y[sm][iin] * FACTOR
             ax.errorbar(xin+off,gv.mean(yin),gv.sdev(yin),fmt=mrk[i%2], ecolor=color, mfc='w', color=color, capsize=2.5,alpha=alpha)
             
             # Plot other points
             xout = x[~iin]
-            yout = y[sm][~iin]
+            yout = y[sm][~iin] * FACTOR
             ax.errorbar(xout+off,gv.mean(yout),gv.sdev(yout),fmt=mrk[i%2], ecolor=color, mfc='w', color=color, capsize=2.5, alpha=alpha/5)
             
             # fit curve
             # xrange = np.arange(-1.,max(x)+1,0.01)
             xrange = np.arange(min(xin),max(xin),0.001)
-            ye = model(xrange,fit.pmean)
+            ye = model(xrange,fit.pmean) * FACTOR
             ax.plot(xrange,ye,linestyle=':',color=color)
 
             # ax.fill_between(xrange,gv.mean(ye)+gv.sdev(ye),gv.mean(ye)-gv.sdev(ye),color=color,alpha=alpha/6)
 
             # results
-            ax.axhspan(fit.p['ratio'][0].mean-fit.p['ratio'][0].sdev,fit.p['ratio'][0].mean+fit.p['ratio'][0].sdev,color=color,alpha=0.25)
+            f0 = fit.p['ratio'][0] * FACTOR
+            ax.axhspan(f0.mean-f0.sdev,f0.mean+f0.sdev,color=color,alpha=0.25)
             # ax.errorbar(-0.25,fit.p['ratio'][0].mean,fit.p['ratio'][0].sdev,color=color_res,fmt='D', capsize=2.5)
 
 

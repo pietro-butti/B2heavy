@@ -26,22 +26,29 @@ binSizes  = {
     'SuperFine'   : 22
 }
 
-tranges = { #(tmin1,tmin3,tmin2,tmax)
-    'D': (1.8,0.9,0.45,2.7),
-    'B': (1.8,0.9,0.45,2.7),
-    'Dst': (1.5,0.631,1.021,'30%')
+tranges = { #(tmin1,tmin2,tmin3,tmax)
+    # 'Dsst': (1.5,0.631,1.021,2.7),
+    # 'Bs'  : (1.5,0.631,1.021,0.25),
+    
+    'Dst' : (1.5, 1.021, 0.631, 0.25),
+    'D'   : (1.8, 0.9  , 0.45 , 2.7 ),
+
+    'Dsst': (2.1, 1.86 , 1.02 , 0.25),
+
+
+    'B'  : (1.1, 0.8  , 0.45 , 0.25),
 }
 
 
 
 
 def metapars():
-    mes      = 'Dst'
+    mes      = 'Dsst'
     tmin1 = tranges[mes][0]
-    tmin2 = tranges[mes][2]
-    tmin3 = tranges[mes][1]
+    tmin2 = tranges[mes][1]
+    tmin3 = tranges[mes][2]
 
-    Tmax = tranges[mes][3]
+    Tmax  = tranges[mes][3]
 
     # config = toml.load('../routines/2pts_fit_config.toml')
 
@@ -95,27 +102,40 @@ def metapars():
                 except:
                     continue
 
-                # choose tmax
-                tmax = stag.tmax(threshold=0.3)
-                # tmax = int(Tmax/a_fm)
-                
-                # choose tmin
+
+                # choose tmin --------------------------
                 Tmin1  = int(tmin1/a_fm)
                 Tmin2 = int(tmin2/a_fm)
-
+                # tmin = int(tmin2/a_fm)
                 tmin = int(tmin3/a_fm)
 
+                # choose tmax --------------------------
+                tmax_all = stag.tmax(threshold=0.2)
 
-                # scemo1,scemo2,ysamples = stag.format(trange=(tmin,tmax),flatten=True,alljk=True)
-                # eps = correlation_diagnostics(ysamples,verbose=False)
+                if mes=='Dst':
+                    tmax = Tmax
+                elif mes=='D':
+                    tmax = int(Tmax/a_fm)
+                elif mes=='B':
+                    tmax = Tmax
+                elif mes=='Dsst':
+                    tmax = Tmax
+
+                if tmax==(stag.Nt//2-1):
+                    tmax -= 1
+
+                if tmax_all==(stag.Nt//2-1):
+                    tmax_all -= 1
+                
+
+                # if tmax==(stag.Nt//2-1) or (
+
                 eps = 1E-12
 
-
                 config['fit'][ens][mes]['mom'][mom] = {}
-
                 config['fit'][ens][mes]['mom'][mom]['tag']        = f'{ens}_{mes}_{mom}' # 'Coarse-Phys_B_211'
                 config['fit'][ens][mes]['mom'][mom]['nstates']    = 3
-                config['fit'][ens][mes]['mom'][mom]['trange_eff'] = [Tmin1,tmax] 
+                config['fit'][ens][mes]['mom'][mom]['trange_eff'] = [Tmin1,tmax_all] 
                 config['fit'][ens][mes]['mom'][mom]['trange']     = [tmin,tmax]
                 config['fit'][ens][mes]['mom'][mom]['svd']        = 1E-12
 
@@ -126,6 +146,7 @@ def metapars():
                     'tmin(3+3)'  : tmin,
                     'tmin(2+2)'  : Tmin2,
                     'tmax'       : tmax,
+                    'tmax_all'   : tmax_all,
                     'svd'        : eps,
                 }
 
@@ -135,7 +156,7 @@ def metapars():
     print(df)
 
 
-    with open('scemo.toml','w') as f:
+    with open(f'{mes}_3.toml','w') as f:
         toml.dump(config,f)
 
 

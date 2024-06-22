@@ -36,6 +36,32 @@ def Tmax(y,errmax=0.3):
             return i
     return len(y)
 
+def PeriodicExpDecay(Nt):
+    return lambda t,E,Z: Z * ( np.exp(-E*t) + np.exp(-E*(Nt-t)) ) 
+
+def NplusN2ptModel(Nstates,Nt,sm,pol):
+    sm1,sm2 = sm.split('-')
+    mix = sm1!=sm2
+
+    def aux(t,p):
+        E0, E1 = p['E'][0], p['E'][0] + np.exp(p['E'][1])
+        Z0 = np.exp(p[f'Z_{sm1}_{pol}'][0]) * np.exp(p[f'Z_{sm2}_{pol}'][0])
+        Z1 = np.exp(p[f'Z_{sm1}_{pol}'][1]) * np.exp(p[f'Z_{sm2}_{pol}'][1])
+        ans = PeriodicExpDecay(Nt)(t,E0,Z0) + PeriodicExpDecay(Nt)(t,E1,Z1) * (-1)**(t+1)
+
+        Es = [E0,E1]
+        for i in range(2,2*Nstates):
+            Ei = Es[i-2] + np.exp(p['E'][i])
+            Z = p[f'Z_{sm if mix else sm1}_{pol}'][i-2 if mix else i]**2
+            ans += PeriodicExpDecay(Nt)(t,Ei,Z) * (-1)**(i*(t+1))
+
+            Es.append(Ei)
+        return ans
+
+    return aux
+
+
+
 
 def jkCorr(data, bsize=1):
 
@@ -209,29 +235,7 @@ def ConstantFunc(x,c):
     else:
         return c
 
-def PeriodicExpDecay(Nt):
-    return lambda t,E,Z: Z * ( np.exp(-E*t) + np.exp(-E*(Nt-t)) ) 
 
-def NplusN2ptModel(Nstates,Nt,sm,pol):
-    sm1,sm2 = sm.split('-')
-    mix = sm1!=sm2
-
-    def aux(t,p):
-        E0, E1 = p['E'][0], p['E'][0]+np.exp(p['E'][1])
-        Z0 = np.exp(p[f'Z_{sm1}_{pol}'][0]) * np.exp(p[f'Z_{sm2}_{pol}'][0])
-        Z1 = np.exp(p[f'Z_{sm1}_{pol}'][1]) * np.exp(p[f'Z_{sm2}_{pol}'][1])
-        ans = PeriodicExpDecay(Nt)(t,E0,Z0) + (-1)**(t+1)*PeriodicExpDecay(Nt)(t,E1,Z1)
-
-        Es = [E0,E1]
-        for i in range(2,2*Nstates):
-            Ei = Es[i-2] + np.exp(p['E'][i])
-            Z = p[f'Z_{sm if mix else sm1}_{pol}'][i-2 if mix else i]**2
-            ans += PeriodicExpDecay(Nt)(t,Ei,Z) * (-1)**(i*(t+1))
-
-            Es.append(Ei)
-        return ans
-
-    return aux
 
 def chi2_distribution(chi2, nConf, dof):
     """
