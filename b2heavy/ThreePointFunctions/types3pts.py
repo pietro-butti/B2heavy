@@ -148,7 +148,7 @@ def RatioSpecs(ratio, mData):
             lStr   = cStr
             qStr   = mStr
             nNames = [['P5_A1_V1_']]
-            nFacs  = [[0.5]]
+            nFacs  = [[.5]]
             dNames = [['P5_A2_V2_', 'P5_A3_V3_']]
             
             specs  = dict(
@@ -437,6 +437,7 @@ def ratio_prerequisites(ens,ratio,mom,smearing=['1S','d'],readfrom=None,jk=False
             p3 = read_config_fit(tag, path=readfrom, jk=jk)
             xf = p3['ratio'].reshape(p3['ratio'].shape[-1]) if jk else p3[-1]['ratio'][0].mean
             req['wrecoil'] = (1+xf**2)/(1-xf**2)
+            # req['wrecoil'] = req['E0']/req['m0']
         else:
             req['wrecoil'] = req['E0']/req['m0']
     else:
@@ -455,7 +456,7 @@ def ratio_correction_factor(rstr,smearing=['RW','1S'],**req):
         ff = 1.
         match ratio:
             case ratio if ratio in ['R0','R1','R0S','R1S']:
-                ff = np.sqrt(
+                ff = 1. / np.sqrt(
                     req['Zbot'][smi]/req['Zpar'][smi]
                 )
 
@@ -467,11 +468,12 @@ def ratio_correction_factor(rstr,smearing=['RW','1S'],**req):
                 ff = req['Z0'][smi] / np.sqrt( req['Z0'][smi] * req['Z0']['1S'] ) 
 
             case 'QPLUS':
-                ff = 1./(req['E0']/req['m0'] * \
-                    np.sqrt(req['Z0'][smi]/req['Zp'][smi]) )# FIXME
+                ff = 1./ (
+                    req['E0']/req['m0'] * \
+                    np.sqrt(req['Z0'][smi]/req['Zp'][smi]) 
+                )
                 
         factor[sm] = 1./ff
-        # factor[sm] = ff
 
     return factor if bool(factor) else None
 
@@ -482,7 +484,7 @@ def func(ratio):
             tmp = dict(fnum=np.sum, fden=np.mean, reflect=False)
         case ratio if ratio in ['RA1','RA1S']:
             tmp = dict(fnum=np.mean, fden=np.sum, reflect=True)
-        case ratio if ratio in ['R1','R1S']:
+        case ratio if ratio in ['XV','XVS','R1','R1S']:
             tmp = dict(fnum=np.mean, fden=np.mean, reflect=False)
         case _:
             tmp = dict(fnum=np.sum, fden=np.mean, reflect=False)
@@ -574,30 +576,28 @@ class RatioIO:
                     files.loc[sm,ts]['facs']
                 ):
                     num = np.array([
-                        jkCorr(readhdf5(name)*f, bsize=jk) 
+                        jkCorr(readhdf5(name)*f, bsize=jk)[:,:(self.Ta+1)]
                         for name,f in zip(namelst,flst)
                     ])
                     nums.append(num)
-
 
                 if reflect: # if RA1, timeslice must be reflected
                     aux = []
                     for x in nums:
                         num = np.flip(x,axis=-1)
-                        num = np.roll(num,ts+1,axis=-1)
-                        aux.append(x)
                         aux.append(num)
-                    nums = aux
+                    nums = np.concatenate((nums,aux))
 
 
                 # Here we stack 3pf for denominator
                 dens = []
                 for namelst in files.loc[sm,ts]['den']:
                     den = [
-                        jkCorr(readhdf5(name), bsize=jk) 
+                        jkCorr(readhdf5(name), bsize=jk)[:,:(self.Ta+1)]
                         for name in namelst
                     ]
                     dens.append(den)
+
 
                 nums = np.array(nums) # FIXME this works only if the double ratio is the product of 3pts with the same number of spatial component
                 dens = np.array(dens)
@@ -618,7 +618,7 @@ class RatioIO:
 
     def correct(self, raw, factor=None): # the first key of processed must be smearing, the second must be sink times
         corrected = {}
-        
+
         if factor is None:
             corrected = raw
         elif not isinstance(factor, dict):
@@ -672,9 +672,15 @@ class RatioIO:
         data = {}
         for sm in corrected:
             data[sm] = \
-                f1 * 0.5  * corrected[sm][self.Ta][:,:self.Ta+1] + \
-                f2 * 0.25 * corrected[sm][self.Tb][:,:self.Ta+1] + \
-                f2 * 0.25 * np.roll(corrected[sm][self.Tb], -1, axis=1)[:,:self.Ta+1]             
+                f1/2. *   corrected[sm][self.Ta] + \
+                f2/4. * ( 
+                    corrected[sm][self.Tb] + np.roll(corrected[sm][self.Tb], -1, axis=1)
+                )       
+
+                # f1/2. *   corrected[sm][self.Ta][:,:self.Ta+1] + \
+                # f2/4. * ( corrected[sm][self.Tb][:,:self.Ta+1] + \
+                #     np.roll(corrected[sm][self.Tb], -1, axis=1)[:,:self.Ta+1]     
+                # )        
 
         return data
 
@@ -683,18 +689,19 @@ class RatioIO:
         # import 3pf from default datafiles, compute raw ratios
         fcts = func(self.info.ratio)
         raw = self.read(
-            sms   = smearing,
-            jkBin = jkBin,
+            sms     = smearing,
+            jkBin   = jkBin,
             verbose = verbose,
             **fcts
         )
+
+        breakpoint()
 
         # correct ratio with apposite (re)normalizatio/kinematic factors
         ff = ratio_correction_factor(
             self.info.ratio,
             **reqs
         )
-
         corrected = self.correct(raw,factor=ff)
 
         # smoothen ratio 
@@ -804,13 +811,16 @@ class Ratio:
 
 
 def main():
-    ens = 'Fine-1'
-    r   = 'XF'
-    mom = '200'
+    ens = 'Coarse-1'
+    r   = 'RA1'
+    mom = '300'
     frm = '/Users/pietro/code/data_analysis/BtoD/Alex'
     readfrom = '/Users/pietro/Desktop/lattice24/0.25/corr2_3'
 
-    req = ratio_prerequisites(ens,r,mom,readfrom=readfrom,jk=True)
+    req = ratio_prerequisites(ens,r,mom,readfrom=readfrom,jk=False)
     
     io = RatioIO(ens,r,mom,PathToDataDir=frm)
-    robj = Ratio(io,jkbin=16,smearing=['1S','RW'],**req)
+    robj = Ratio(io,jkBin=11,smearing=['1S','RW'],**req)
+
+
+    breakpoint()

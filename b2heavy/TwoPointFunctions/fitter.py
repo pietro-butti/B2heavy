@@ -732,6 +732,8 @@ def main():
         # boost   = True,
         **cov_specs)
 
+    breakpoint()
+
     stag.chi2exp(Nstates,trange,dict(fit.pmean),gv.evalcov(fit.y),priors=fit.prior)
 
     # stag.fit_result(Nstates,trange,verbose=True)

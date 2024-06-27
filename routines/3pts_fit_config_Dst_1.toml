@@ -134,369 +134,369 @@ smlist = [ "1S", "RW",]
 [fit.Coarse-2.RA1.mom.100]
 nstates = 1
 tag = "Coarse-2_RA1_100"
-trange = [ 1, 11,]
+trange = [ 3, 11,]
 
 [fit.Coarse-2.RA1.mom.200]
 nstates = 1
 tag = "Coarse-2_RA1_200"
-trange = [ 1, 11,]
+trange = [ 3, 11,]
 
 [fit.Coarse-2.RA1.mom.300]
 nstates = 1
 tag = "Coarse-2_RA1_300"
-trange = [ 1, 11,]
+trange = [ 3, 11,]
 
 [fit.Coarse-2.ZRA1.mom.000]
 nstates = 1
 tag = "Coarse-2_ZRA1_000"
-trange = [ 1, 11,]
+trange = [ 3, 11,]
 
 [fit.Coarse-2.XFSTPAR.mom.100]
 nstates = 1
 tag = "Coarse-2_XFSTPAR_100"
-trange = [ 1, 11,]
+trange = [ 3, 11,]
 
 [fit.Coarse-2.XFSTPAR.mom.200]
 nstates = 1
 tag = "Coarse-2_XFSTPAR_200"
-trange = [ 1, 11,]
+trange = [ 3, 11,]
 
 [fit.Coarse-2.XFSTPAR.mom.300]
 nstates = 1
 tag = "Coarse-2_XFSTPAR_300"
-trange = [ 1, 11,]
+trange = [ 3, 11,]
 
 [fit.Coarse-2.R0.mom.100]
 nstates = 1
 tag = "Coarse-2_R0_100"
-trange = [ 1, 11,]
+trange = [ 3, 11,]
 
 [fit.Coarse-2.R0.mom.200]
 nstates = 1
 tag = "Coarse-2_R0_200"
-trange = [ 1, 11,]
+trange = [ 3, 11,]
 
 [fit.Coarse-2.R0.mom.300]
 nstates = 1
 tag = "Coarse-2_R0_300"
-trange = [ 1, 11,]
+trange = [ 3, 11,]
 
 [fit.Coarse-2.R1.mom.100]
 nstates = 1
 tag = "Coarse-2_R1_100"
-trange = [ 1, 11,]
+trange = [ 3, 11,]
 
 [fit.Coarse-2.R1.mom.200]
 nstates = 1
 tag = "Coarse-2_R1_200"
-trange = [ 1, 11,]
+trange = [ 3, 11,]
 
 [fit.Coarse-2.R1.mom.300]
 nstates = 1
 tag = "Coarse-2_R1_300"
-trange = [ 1, 11,]
+trange = [ 3, 11,]
 
 [fit.Coarse-2.XV.mom.100]
 nstates = 1
 tag = "Coarse-2_XV_100"
-trange = [ 1, 11,]
+trange = [ 3, 11,]
 
 [fit.Coarse-2.XV.mom.200]
 nstates = 1
 tag = "Coarse-2_XV_200"
-trange = [ 1, 11,]
+trange = [ 3, 11,]
 
 [fit.Coarse-2.XV.mom.300]
 nstates = 1
 tag = "Coarse-2_XV_300"
-trange = [ 1, 11,]
+trange = [ 3, 11,]
 
 [fit.Coarse-1.RA1.mom.100]
 nstates = 1
 tag = "Coarse-1_RA1_100"
-trange = [ 1, 11,]
+trange = [ 3, 11,]
 
 [fit.Coarse-1.RA1.mom.200]
 nstates = 1
 tag = "Coarse-1_RA1_200"
-trange = [ 1, 11,]
+trange = [ 3, 11,]
 
 [fit.Coarse-1.RA1.mom.300]
 nstates = 1
 tag = "Coarse-1_RA1_300"
-trange = [ 1, 11,]
+trange = [ 3, 11,]
 
 [fit.Coarse-1.ZRA1.mom.000]
 nstates = 1
 tag = "Coarse-1_ZRA1_000"
-trange = [ 1, 11,]
+trange = [ 3, 11,]
 
 [fit.Coarse-1.XFSTPAR.mom.100]
 nstates = 1
 tag = "Coarse-1_XFSTPAR_100"
-trange = [ 1, 11,]
+trange = [ 3, 11,]
 
 [fit.Coarse-1.XFSTPAR.mom.200]
 nstates = 1
 tag = "Coarse-1_XFSTPAR_200"
-trange = [ 1, 11,]
+trange = [ 3, 11,]
 
 [fit.Coarse-1.XFSTPAR.mom.300]
 nstates = 1
 tag = "Coarse-1_XFSTPAR_300"
-trange = [ 1, 11,]
+trange = [ 3, 11,]
 
 [fit.Coarse-1.R0.mom.100]
 nstates = 1
 tag = "Coarse-1_R0_100"
-trange = [ 1, 11,]
+trange = [ 3, 11,]
 
 [fit.Coarse-1.R0.mom.200]
 nstates = 1
 tag = "Coarse-1_R0_200"
-trange = [ 1, 11,]
+trange = [ 3, 11,]
 
 [fit.Coarse-1.R0.mom.300]
 nstates = 1
 tag = "Coarse-1_R0_300"
-trange = [ 1, 11,]
+trange = [ 3, 11,]
 
 [fit.Coarse-1.R1.mom.100]
 nstates = 1
 tag = "Coarse-1_R1_100"
-trange = [ 1, 11,]
+trange = [ 3, 11,]
 
 [fit.Coarse-1.R1.mom.200]
 nstates = 1
 tag = "Coarse-1_R1_200"
-trange = [ 1, 11,]
+trange = [ 3, 11,]
 
 [fit.Coarse-1.R1.mom.300]
 nstates = 1
 tag = "Coarse-1_R1_300"
-trange = [ 1, 11,]
+trange = [ 3, 11,]
 
 [fit.Coarse-1.XV.mom.100]
 nstates = 1
 tag = "Coarse-1_XV_100"
-trange = [ 1, 11,]
+trange = [ 3, 11,]
 
 [fit.Coarse-1.XV.mom.200]
 nstates = 1
 tag = "Coarse-1_XV_200"
-trange = [ 1, 11,]
+trange = [ 3, 11,]
 
 [fit.Coarse-1.XV.mom.300]
 nstates = 1
 tag = "Coarse-1_XV_300"
-trange = [ 1, 11,]
+trange = [ 3, 11,]
 
 [fit.Coarse-Phys.RA1.mom.100]
 nstates = 1
 tag = "Coarse-Phys_RA1_100"
-trange = [ 1, 11,]
+trange = [ 3, 11,]
 
 [fit.Coarse-Phys.RA1.mom.200]
 nstates = 1
 tag = "Coarse-Phys_RA1_200"
-trange = [ 1, 11,]
+trange = [ 3, 11,]
 
 [fit.Coarse-Phys.RA1.mom.300]
 nstates = 1
 tag = "Coarse-Phys_RA1_300"
-trange = [ 1, 11,]
+trange = [ 3, 11,]
 
 [fit.Coarse-Phys.RA1.mom.400]
 nstates = 1
 tag = "Coarse-Phys_RA1_400"
-trange = [ 1, 11,]
+trange = [ 3, 11,]
 
 [fit.Coarse-Phys.ZRA1.mom.000]
 nstates = 1
 tag = "Coarse-Phys_ZRA1_000"
-trange = [ 1, 11,]
+trange = [ 3, 11,]
 
 [fit.Coarse-Phys.XFSTPAR.mom.100]
 nstates = 1
 tag = "Coarse-Phys_XFSTPAR_100"
-trange = [ 1, 11,]
+trange = [ 3, 11,]
 
 [fit.Coarse-Phys.XFSTPAR.mom.200]
 nstates = 1
 tag = "Coarse-Phys_XFSTPAR_200"
-trange = [ 1, 11,]
+trange = [ 3, 11,]
 
 [fit.Coarse-Phys.XFSTPAR.mom.300]
 nstates = 1
 tag = "Coarse-Phys_XFSTPAR_300"
-trange = [ 1, 11,]
+trange = [ 3, 11,]
 
 [fit.Coarse-Phys.XFSTPAR.mom.400]
 nstates = 1
 tag = "Coarse-Phys_XFSTPAR_400"
-trange = [ 1, 11,]
+trange = [ 3, 11,]
 
 [fit.Coarse-Phys.R0.mom.100]
 nstates = 1
 tag = "Coarse-Phys_R0_100"
-trange = [ 1, 11,]
+trange = [ 3, 11,]
 
 [fit.Coarse-Phys.R0.mom.200]
 nstates = 1
 tag = "Coarse-Phys_R0_200"
-trange = [ 1, 11,]
+trange = [ 3, 11,]
 
 [fit.Coarse-Phys.R0.mom.300]
 nstates = 1
 tag = "Coarse-Phys_R0_300"
-trange = [ 1, 11,]
+trange = [ 3, 11,]
 
 [fit.Coarse-Phys.R0.mom.400]
 nstates = 1
 tag = "Coarse-Phys_R0_400"
-trange = [ 1, 11,]
+trange = [ 3, 11,]
 
 [fit.Coarse-Phys.R1.mom.100]
 nstates = 1
 tag = "Coarse-Phys_R1_100"
-trange = [ 1, 11,]
+trange = [ 3, 11,]
 
 [fit.Coarse-Phys.R1.mom.200]
 nstates = 1
 tag = "Coarse-Phys_R1_200"
-trange = [ 1, 11,]
+trange = [ 3, 11,]
 
 [fit.Coarse-Phys.R1.mom.300]
 nstates = 1
 tag = "Coarse-Phys_R1_300"
-trange = [ 1, 11,]
+trange = [ 3, 11,]
 
 [fit.Coarse-Phys.R1.mom.400]
 nstates = 1
 tag = "Coarse-Phys_R1_400"
-trange = [ 1, 11,]
+trange = [ 3, 11,]
 
 [fit.Coarse-Phys.XV.mom.100]
 nstates = 1
 tag = "Coarse-Phys_XV_100"
-trange = [ 1, 11,]
+trange = [ 3, 11,]
 
 [fit.Coarse-Phys.XV.mom.200]
 nstates = 1
 tag = "Coarse-Phys_XV_200"
-trange = [ 1, 11,]
+trange = [ 3, 11,]
 
 [fit.Coarse-Phys.XV.mom.300]
 nstates = 1
 tag = "Coarse-Phys_XV_300"
-trange = [ 1, 11,]
+trange = [ 3, 11,]
 
 [fit.Coarse-Phys.XV.mom.400]
 nstates = 1
 tag = "Coarse-Phys_XV_400"
-trange = [ 1, 11,]
+trange = [ 3, 11,]
 
 [fit.Fine-1.RA1.mom.100]
 nstates = 1
 tag = "Fine-1_RA1_100"
-trange = [ 1, 16,]
+trange = [ 3, 16,]
 
 [fit.Fine-1.RA1.mom.200]
 nstates = 1
 tag = "Fine-1_RA1_200"
-trange = [ 1, 16,]
+trange = [ 3, 16,]
 
 [fit.Fine-1.RA1.mom.300]
 nstates = 1
 tag = "Fine-1_RA1_300"
-trange = [ 1, 16,]
+trange = [ 3, 16,]
 
 [fit.Fine-1.RA1.mom.400]
 nstates = 1
 tag = "Fine-1_RA1_400"
-trange = [ 1, 16,]
+trange = [ 3, 16,]
 
 [fit.Fine-1.ZRA1.mom.000]
 nstates = 1
 tag = "Fine-1_ZRA1_000"
-trange = [ 1, 16,]
+trange = [ 3, 16,]
 
 [fit.Fine-1.XFSTPAR.mom.100]
 nstates = 1
 tag = "Fine-1_XFSTPAR_100"
-trange = [ 1, 16,]
+trange = [ 3, 16,]
 
 [fit.Fine-1.XFSTPAR.mom.200]
 nstates = 1
 tag = "Fine-1_XFSTPAR_200"
-trange = [ 1, 16,]
+trange = [ 3, 16,]
 
 [fit.Fine-1.XFSTPAR.mom.300]
 nstates = 1
 tag = "Fine-1_XFSTPAR_300"
-trange = [ 1, 16,]
+trange = [ 3, 16,]
 
 [fit.Fine-1.XFSTPAR.mom.400]
 nstates = 1
 tag = "Fine-1_XFSTPAR_400"
-trange = [ 1, 16,]
+trange = [ 3, 16,]
 
 [fit.Fine-1.R0.mom.100]
 nstates = 1
 tag = "Fine-1_R0_100"
-trange = [ 1, 16,]
+trange = [ 3, 16,]
 
 [fit.Fine-1.R0.mom.200]
 nstates = 1
 tag = "Fine-1_R0_200"
-trange = [ 1, 16,]
+trange = [ 3, 16,]
 
 [fit.Fine-1.R0.mom.300]
 nstates = 1
 tag = "Fine-1_R0_300"
-trange = [ 1, 16,]
+trange = [ 3, 16,]
 
 [fit.Fine-1.R0.mom.400]
 nstates = 1
 tag = "Fine-1_R0_400"
-trange = [ 1, 16,]
+trange = [ 3, 16,]
 
 [fit.Fine-1.R1.mom.100]
 nstates = 1
 tag = "Fine-1_R1_100"
-trange = [ 1, 16,]
+trange = [ 3, 16,]
 
 [fit.Fine-1.R1.mom.200]
 nstates = 1
 tag = "Fine-1_R1_200"
-trange = [ 1, 16,]
+trange = [ 3, 16,]
 
 [fit.Fine-1.R1.mom.300]
 nstates = 1
 tag = "Fine-1_R1_300"
-trange = [ 1, 16,]
+trange = [ 3, 16,]
 
 [fit.Fine-1.R1.mom.400]
 nstates = 1
 tag = "Fine-1_R1_400"
-trange = [ 1, 16,]
+trange = [ 3, 16,]
 
 [fit.Fine-1.XV.mom.100]
 nstates = 1
 tag = "Fine-1_XV_100"
-trange = [ 1, 16,]
+trange = [ 3, 16,]
 
 [fit.Fine-1.XV.mom.200]
 nstates = 1
 tag = "Fine-1_XV_200"
-trange = [ 1, 16,]
+trange = [ 3, 16,]
 
 [fit.Fine-1.XV.mom.300]
 nstates = 1
 tag = "Fine-1_XV_300"
-trange = [ 1, 16,]
+trange = [ 3, 16,]
 
 [fit.Fine-1.XV.mom.400]
 nstates = 1
 tag = "Fine-1_XV_400"
-trange = [ 1, 16,]
+trange = [ 3, 16,]
