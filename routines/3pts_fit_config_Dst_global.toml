@@ -1,0 +1,92 @@
+# Configs
+author = 'pietro.butti'
+title = '3pts fits'
+
+# Meson list
+[ensemble]
+    list = ['Coarse-2','Coarse-Phys','Coarse-1','Fine-1']
+
+[ratio]
+    list = ['XFSTPAR', 'XV', 'R0', 'R1', 'RA1', 'ZRA1']
+
+[momenta]
+    list = ['000','100','200','300','400']
+
+
+[data]
+    mdata = '/Users/pietro/code/software/B2heavy/b2heavy/FnalHISQMetadata.py'
+
+    [data.Coarse-2]
+        name     = 'Coarse-1'
+        data_dir = "/Users/pietro/code/data_analysis/BtoD/Alex"
+        binsize  = 16
+        mom_list = ['000','100','200','300']
+        Nt       = 64
+
+    [data.Coarse-1]
+        name     = 'Coarse-1'
+        data_dir = "/Users/pietro/code/data_analysis/BtoD/Alex"
+        binsize  = 11
+        mom_list = ['000','100','200','300']
+        Nt       = 64
+    
+    [data.Coarse-Phys]
+        name     = 'Coarse-Phys'
+        data_dir = "/Users/pietro/code/data_analysis/BtoD/Alex"
+        binsize  = 19
+        mom_list = ['000','100','200','300','400']
+        Nt       = 64
+    
+    [data.Fine-1]
+        name     = 'Fine-1'
+        data_dir = "/Users/pietro/code/data_analysis/BtoD/Alex"
+        binsize  = 16
+        mom_list = ['000','100','200','300','400']
+        Nt       = 96
+    
+    [data.Fine-Phys]
+        name     = 'Fine-Phys'
+        data_dir = "/Users/pietro/code/data_analysis/BtoD/Alex"
+        binsize  = 16
+        mom_list = ['000','100','200','300','400']
+        Nt       = 96
+    
+
+
+
+[fit]
+    [fit.Coarse-2]
+        tag     = 'Coarse-2_global' 
+        momlist = ['000','100','200','300']
+        ratlist = ['XFSTPAR','ZRA1','RA1','XV','R0','R1']
+        smslist = ['1S','RW']
+        tmin    = 2
+
+    [fit.Coarse-1]
+        tag     = 'Coarse-1_global' 
+        momlist = ['000','100','200','300']
+        ratlist = ['XFSTPAR','ZRA1','RA1','XV','R0','R1']
+        smslist = ['1S','RW']
+        tmin    = 2
+    
+    [fit.Coarse-Phys]
+        tag     = 'Coarse-Phys_global' 
+        momlist = ['000','100','200','300','400']
+        ratlist = ['XFSTPAR','ZRA1','RA1','XV','R0','R1']
+        smslist = ['1S','RW']
+        tmin    = 2
+    
+    [fit.Fine-1]
+        tag  = 'Fine-1_global' 
+        momlist = ['000','100','200','300','400']
+        ratlist = ['XFSTPAR','ZRA1','RA1','XV','R0','R1']
+        smslist = ['1S','RW']
+        tmin    = 2
+    
+    [fit.Fine-Phys]
+        tag  = 'Fine-Phys_global' 
+        momlist = ['000','100','200','300','400']
+        ratlist = ['XFSTPAR','ZRA1','RA1','XV','R0','R1']
+        smslist = ['1S','RW']
+        tmin    = 2
+        

@@ -49,6 +49,7 @@ def RatioSpecs(ratio, mData):
             nNames = [['P5_V1_P5_']]
             nFacs  = [[1.]]
             dNames = [['P5_V4_P5_']]
+            dFacs  = [[1.]]
             
             specs  = dict(
                 source = 'D',
@@ -62,6 +63,7 @@ def RatioSpecs(ratio, mData):
             nNames = [['P5_V4_P5_']]
             nFacs  = [[1.]]
             dNames = [['P5_V4_P5_']]
+            dFacs  = [[1.]]
 
             specs  = dict(
                 source = 'B',
@@ -75,6 +77,7 @@ def RatioSpecs(ratio, mData):
             nNames = [['P5_V1_P5_']]
             nFacs  = [[1.]]
             dNames = [['P5_V4_P5_']]
+            dFacs  = [[1.]]
 
             specs = dict(
                 source = 'B',
@@ -88,6 +91,7 @@ def RatioSpecs(ratio, mData):
             nNames = [['P5_V4_P5_'],['P5_V4_P5_']]
             nFacs  = [[1.],[1.]]
             dNames = [['P5_V4_P5_'],['P5_V4_P5_']]                
+            dFacs  = [[1.],[1.]]
 
             specs = dict(
                 num = ['B->D','D->B'],
@@ -104,13 +108,14 @@ def RatioSpecs(ratio, mData):
             # nNames = [['P5_A2_V2_'], ['P5_A2_V2_']] # 'R' # <--- Alex version
             # nFacs  = [[1., 1.], [ 1., 1.]]                # <--- Alex version    
 
-            # nNames = [['P5_A2_V2_']]
-            # nFacs  = [[1.]]   
+            nNames = [['P5_A2_V2_']]
+            nFacs  = [[1.]]   
 
-            nNames = [['P5_A2_V2_','P5_A3_V3_']] #<--- should be the correct one 
-            nFacs  = [[1., 1.], [ 1., 1.]]       #<--- should be the correct one 
+            # nNames = [['P5_A2_V2_','P5_A3_V3_']] #<--- should be the correct one 
+            # nFacs  = [[1., 1.], [ 1., 1.]]       #<--- should be the correct one 
 
             dNames = [['V1_V4_V1_'],['P5_V4_P5_']] # 'V1_V4_V2_', 'V1_V4_V3_']         
+            dFacs  = [[1.],[1.]]
             
             specs  = dict(
                 source = ['B','Dst'],
@@ -121,9 +126,12 @@ def RatioSpecs(ratio, mData):
             hStr   = bStr
             lStr   = cStr
             qStr   = mStr
-            nNames = [['P5_A1_V1_', 'P5_A2_V2_', 'P5_A3_V3_'], ['V1_A1_P5_', 'V1_A2_P5_', 'V1_A3_P5_']] # 'R'
-            nFacs  = [[1., 1., 1.], [1., 1., 1.]]
+            # nNames = [['P5_A1_V1_', 'P5_A2_V2_', 'P5_A3_V3_'], ['V1_A1_P5_', 'V1_A2_P5_', 'V1_A3_P5_']] # 'R'
+            # nFacs  = [[1., 1., 1.], [1., 1., 1.]]
+            nNames = [['P5_A1_V1_'], ['V1_A1_P5_']]
+            nFacs  = [[1.], [-1.]]
             dNames = [['V1_V4_V1_'],['P5_V4_P5_']] # 'V1_V4_V2_', 'V1_V4_V3_']
+            dFacs  = [[1.],[1.]]
             
             specs  = dict(
                 source = ['B','Dst'],
@@ -137,6 +145,7 @@ def RatioSpecs(ratio, mData):
             nNames = [['P5_A4_V1_']]
             nFacs  = [[1.]]
             dNames = [['P5_A2_V2_', 'P5_A3_V3_']]
+            dFacs  = [[-1.,-1.]]
             
             specs  = dict(
                 source = 'B',
@@ -150,6 +159,7 @@ def RatioSpecs(ratio, mData):
             nNames = [['P5_A1_V1_']]
             nFacs  = [[.5]]
             dNames = [['P5_A2_V2_', 'P5_A3_V3_']]
+            dFacs  = [[1.,1.]]
             
             specs  = dict(
                 source = 'B',
@@ -161,8 +171,9 @@ def RatioSpecs(ratio, mData):
             lStr   = cStr
             qStr   = mStr
             nNames = [['P5_V3_V2_', 'P5_V2_V3_']]
-            nFacs  = [[1., -1.]]
+            nFacs  = [[-1., 1.]]
             dNames = [['P5_A2_V2_', 'P5_A3_V3_']]
+            dFacs  = [[-1.,-1.]]
             
             specs  = dict(
                 source = 'B',
@@ -174,8 +185,9 @@ def RatioSpecs(ratio, mData):
             lStr   = cStr
             qStr   = mStr
             nNames = [['V1_V1_V1_']]
-            nFacs  = [[1.]]
+            nFacs  = [[-1.]]
             dNames = [['V1_V4_V1_']]
+            dFacs  = [[1.]]
             
             specs  = dict(
                 source = 'Dst',
@@ -189,6 +201,7 @@ def RatioSpecs(ratio, mData):
             nNames = [['V1_V2_V1_', 'V1_V3_V1_']]
             nFacs  = [[1., 1.]]
             dNames = [['V1_V4_V2_', 'V1_V4_V3_']]
+            dFacs  = [[1.,1.]]
             
             specs  = dict(
                 source = 'Dst',
@@ -204,6 +217,7 @@ def RatioSpecs(ratio, mData):
             nNames = [['P5_A2_V2_', 'P5_A3_V3_'], ['V1_A1_P5_', 'V1_A2_P5_', 'V1_A3_P5_']] # 'R'
             nFacs  = [[1., 1.], [1., 1., 1.]]
             dNames = [['V1_V4_V1_'],['P5_V4_P5']] # 'V1_V4_V2_', 'V1_V4_V3_']
+            dFacs  = [[1.],[1.]]
             
             specs  = dict(
                 source = ['Bs','Dsst'],
@@ -217,6 +231,7 @@ def RatioSpecs(ratio, mData):
             nNames = [['P5_A1_V1_', 'P5_A2_V2_', 'P5_A3_V3_']] # 'R'
             nFacs  = [[1., 1., 1.], [1., 1.]]
             dNames = [['V1_V4_V1_'],['P5_V4_P5_']] # 'V1_V4_V2_', 'V1_V4_V3_']
+            dFacs  = [[1.],[1.]]
             
             specs  = {'num': None, 'den': None}
 
@@ -227,6 +242,7 @@ def RatioSpecs(ratio, mData):
             nNames = [['P5_A4_V1_']]
             nFacs  = [[1.]]
             dNames = [['P5_A2_V2_', 'P5_A3_V3_']]
+            dFacs  = [[1.,1.]]
             
             specs  = dict(
                 source = 'Bs',
@@ -240,6 +256,7 @@ def RatioSpecs(ratio, mData):
             nNames = [['P5_A1_V1_']]
             nFacs  = [[0.5]]
             dNames = [['P5_A2_V2_', 'P5_A3_V3_']]
+            dFacs  = [[1.,1.]]
             
             specs  = dict(
                 source = 'Bs',
@@ -253,6 +270,7 @@ def RatioSpecs(ratio, mData):
             nNames = [['P5_V3_V2_', 'P5_V3_V2_']]
             nFacs  = [[1., -1.]]
             dNames = [['P5_A2_V2_', 'P5_A3_V3_']]
+            dFacs  = [[1.,1.]]
             
             specs  = dict(
                 source = 'Bs',
@@ -264,8 +282,9 @@ def RatioSpecs(ratio, mData):
             lStr   = cStr
             qStr   = sStr
             nNames = [['V1_V1_V1_']]
-            nFacs  = [[1.]]
+            nFacs  = [[-1.]]
             dNames = [['V1_V4_V1_']]
+            dFacs  = [[1.,1.]]
             
             specs  = dict(
                 source = 'Dsst',
@@ -279,6 +298,7 @@ def RatioSpecs(ratio, mData):
             nNames = [['V1_V2_V1_', 'V1_V3_V1_']]
             nFacs  = [[1., 1.]]
             dNames = ['V1_V4_V3_']#, 'V1_V4_V3_']
+            dFacs  = [[1.]]
             
             specs  = dict(
                 source = 'Dsst',
@@ -293,6 +313,7 @@ def RatioSpecs(ratio, mData):
         'qStr'   : qStr  ,
         'nNames' : nNames,
         'nFacs'  : nFacs ,
+        'dFacs'  : dFacs ,
         'dNames' : dNames,
         'specs'  : specs,
     }
@@ -314,28 +335,29 @@ def RatioFileList(rstr,mom,mdata,sms=['RW','1S']):
     tmp = []
     for smr in sms: 
         for t in sorted(mdata['hSinks']):
-            rname = lambda n,h,q,l: RatioFileString(n,t,h,smr,q,l,mom)
+            rname = lambda n,h,q,l,sm: RatioFileString(n,t,h,sm,q,l,mom)
             
-            nums = [[rname(n,h,q,l) for n in s] for s in specs['nNames']]
-            dens = [[rname(n,h,q,l) for n in s] for s in specs['dNames']]
+            nums = [[rname(n,h,q,l,smr) for n in s] for s in specs['nNames']]
+            dens = [[rname(n,h,q,l,smr) for n in s] for s in specs['dNames']]
             facs = specs['nFacs']
-
+            dfacs = specs['dFacs']
 
             # specific cases -----------------------------------
             h_or_l = lambda n: h if n.startswith('P5') else l
             if ratio in ['ZRA1','ZRA1S']: # switch heavy with light in names
                 nums[1] = (
-                    [rname(n,l,q,h) for n in specs['nNames'][1]]
+                    [rname(n,l,q,h,smr) for n in specs['nNames'][1]]
                 )
                 dens = [
-                    [rname(n, h_or_l(n), q, h_or_l(n))  for n in s] 
+                    [rname(n, h_or_l(n), q, h_or_l(n),'1S' if n.startswith('P5') else smr)  for n in s] 
                     for s in specs['dNames']
                 ]
 
             if ratio in ['RA1','RA1S','QPLUS']: # at denom. mom must be 0
-                rname0 = lambda n,h,q,l: RatioFileString(n,t,h,smr,q,l,'000')
+                rname0 = lambda n,h,q,l,sm: RatioFileString(n,t,h,sm,q,l,'000')
+
                 dens = [
-                    [rname0(n, h_or_l(n), q, h_or_l(n))  for n in s] 
+                    [rname0(n, h_or_l(n), q, h_or_l(n), '1S' if n.startswith('P5') else smr)  for n in s] 
                     for s in specs['dNames']
                 ]
             
@@ -370,7 +392,8 @@ def RatioFileList(rstr,mom,mdata,sms=['RW','1S']):
                 't_sink'  : t,
                 'num'     : nums, 
                 'den'     : dens,
-                'facs'    : facs 
+                'facs'    : facs ,
+                'dfacs'   : dfacs
             })
 
     return pd.DataFrame(tmp).set_index(['smearing','t_sink'])
@@ -576,7 +599,8 @@ class RatioIO:
                     files.loc[sm,ts]['facs']
                 ):
                     num = np.array([
-                        jkCorr(readhdf5(name)*f, bsize=jk)[:,:(self.Ta+1)]
+                        # jkCorr(readhdf5(name)*f, bsize=jk)[:,:(self.Ta+1)]
+                        jkCorr(readhdf5(name)*f, bsize=jk)[:,:(ts+1)]
                         for name,f in zip(namelst,flst)
                     ])
                     nums.append(num)
@@ -591,10 +615,13 @@ class RatioIO:
 
                 # Here we stack 3pf for denominator
                 dens = []
-                for namelst in files.loc[sm,ts]['den']:
+                for namelst,flst in zip(
+                    files.loc[sm,ts]['den'],
+                    files.loc[sm,ts]['dfacs']
+                ):
                     den = [
-                        jkCorr(readhdf5(name), bsize=jk)[:,:(self.Ta+1)]
-                        for name in namelst
+                        jkCorr(readhdf5(name)*f, bsize=jk)[:,:(ts+1)]
+                        for name,f in zip(namelst,flst)
                     ]
                     dens.append(den)
 
@@ -611,7 +638,8 @@ class RatioIO:
                 nums = fnum(nums,axis=0)
                 dens = fden(dens,axis=0)
 
-                tmp[sm][ts] = nums/dens
+                rt = nums/dens
+                tmp[sm][ts] = rt[:,:(self.Ta+1)]
 
         return tmp
 
@@ -674,9 +702,9 @@ class RatioIO:
             data[sm] = \
                 f1/2. *   corrected[sm][self.Ta] + \
                 f2/4. * ( 
-                    corrected[sm][self.Tb] + np.roll(corrected[sm][self.Tb], -1, axis=1)
+                            corrected[sm][self.Tb] + \
+                    np.roll(corrected[sm][self.Tb], -1, axis=1)
                 )       
-
                 # f1/2. *   corrected[sm][self.Ta][:,:self.Ta+1] + \
                 # f2/4. * ( corrected[sm][self.Tb][:,:self.Ta+1] + \
                 #     np.roll(corrected[sm][self.Tb], -1, axis=1)[:,:self.Ta+1]     
@@ -688,14 +716,13 @@ class RatioIO:
     def build(self, smearing=['RW','1S'], jkBin=None, verbose=False, **reqs):
         # import 3pf from default datafiles, compute raw ratios
         fcts = func(self.info.ratio)
+        
         raw = self.read(
             sms     = smearing,
             jkBin   = jkBin,
             verbose = verbose,
             **fcts
         )
-
-        breakpoint()
 
         # correct ratio with apposite (re)normalizatio/kinematic factors
         ff = ratio_correction_factor(
@@ -706,7 +733,6 @@ class RatioIO:
 
         # smoothen ratio 
         data = self.smooth(corrected, **reqs)
-
         return data
 
 
@@ -812,15 +838,19 @@ class Ratio:
 
 def main():
     ens = 'Coarse-1'
-    r   = 'RA1'
-    mom = '300'
+    r   = 'XV'
+    mom = '100'
     frm = '/Users/pietro/code/data_analysis/BtoD/Alex'
     readfrom = '/Users/pietro/Desktop/lattice24/0.25/corr2_3'
 
-    req = ratio_prerequisites(ens,r,mom,readfrom=readfrom,jk=False)
-    
-    io = RatioIO(ens,r,mom,PathToDataDir=frm)
-    robj = Ratio(io,jkBin=11,smearing=['1S','RW'],**req)
+    req = ratio_prerequisites(ens,r,mom,readfrom=readfrom)
 
+    io = RatioIO(ens,r,mom,PathToDataDir=frm)
+    robj = Ratio(
+        io,
+        jkBin     = 11,
+        smearing  = ['1S','RW'],
+        **req
+    )
 
     breakpoint()

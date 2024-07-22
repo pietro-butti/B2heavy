@@ -233,8 +233,6 @@ def standard_p(io, fit:lsqfit.nonlinear_fit):
 
     return p_value(chi2red,nconf,ndof)
 
-
-
 def expose(fitp):
     aux,idx = [],[]
     for k in fitp:
@@ -265,7 +263,6 @@ def expose(fitp):
         idx.append(k)
 
     return pd.DataFrame(aux,index=idx).transpose()
-
 
 
 def par_to_new(p,smearing,polarization):
