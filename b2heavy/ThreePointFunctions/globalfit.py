@@ -64,10 +64,10 @@ def show(cases,params):
             'mom'  : mom,
             'ratio': ratio,
             'f0'   : params[f'{ratio}_{mom}_f0'],
-            'A_1S' : params[f'{ratio}_{mom}_1S'],
-            'A_RW' : params[f'{ratio}_{mom}_RW'],
-            'B_1S' : params[f'{ratio}_{mom}_1S'],
-            'B_RW' : params[f'{ratio}_{mom}_RW'],
+            'A_1S' : params[f'{ratio}_{mom}_1S'] if f'{ratio}_{mom}_1S' in params else None,
+            'A_RW' : params[f'{ratio}_{mom}_RW'] if f'{ratio}_{mom}_RW' in params else None,
+            'B_1S' : params[f'{ratio}_{mom}_1S'] if f'{ratio}_{mom}_1S' in params else None,
+            'B_RW' : params[f'{ratio}_{mom}_RW'] if f'{ratio}_{mom}_RW' in params else None,
         })
     return pd.DataFrame(df).set_index(['mom','ratio'])
 
@@ -109,7 +109,8 @@ class RatioSet:
                 ratio    = ratio,
                 mom      = mom,
                 readfrom = datadir_2pt,
-                jk       = jk
+                jk       = jk,
+                w_from_corr3 = False
             )                    
 
             # Read ratio and save object
@@ -125,6 +126,16 @@ class RatioSet:
 
         return
 
+    def remove(self,*args):
+        for k in args:
+            try:
+                self.keys.remove(k)
+            except ValueError:
+                print(f'{k} already in list')
+                continue
+        return
+
+
     # format in time-range and return a tree
     def format(self,tmin,alljk=False,**cov_specs):
         rdata   = {mm:{} for mm in self.momlist}
@@ -133,8 +144,8 @@ class RatioSet:
 
         for mom,ratio in self.cases:
             tmp = self.objs[mom][ratio].format(
-                trange = (tmin, self.Ta-tmin),
-                alljk  = alljk,
+                trange   = (tmin, self.Ta-tmin),
+                alljk    = alljk,
                 **cov_specs
             )
             rdata  [mom][ratio] = tmp[1]
@@ -166,18 +177,19 @@ class RatioSet:
 
     def params(self,dE_D=None,dM_B=None, dM_D=None):
         tmp = {
-            'dE_D': '0.5(5)' if dE_D is None else dE_D,
-            'dM_B': '0.5(5)' if dM_B is None else dM_B,
-            'dM_D': '0.5(5)' if dM_D is None else dM_D,
+            'dE_D': '0.5(1.)' if dE_D is None else dE_D,
+            'dM_B': '0.5(1.)' if dM_B is None else dM_B,
+            'dM_D': '0.5(1.)' if dM_D is None else dM_D,
         }
 
         for mom,ratio in self.cases:
             x,ydata = self.objs[mom][ratio].format()
             f0 = np.mean([yy[len(yy)//2] for yy in ydata.values()])
-            tmp[f'{ratio}_{mom}_f0'] = gv.gvar(f0.mean,0.5)
+            tmp[f'{ratio}_{mom}_f0'] = gv.gvar(f0.mean,1.5)
 
             for smr in self.smslist:
-                tmp[f'{ratio}_{mom}_{smr}'] = ['0(1)']*2
+                if (mom,ratio,smr) in self.keys:
+                    tmp[f'{ratio}_{mom}_{smr}'] = ['0(1)']*2
 
         return gv.gvar(tmp)
 
@@ -240,7 +252,7 @@ class RatioSet:
             pkeys = sorted(fit.p.keys())
             fitjk = {k: np.asarray([jf[k] for jf in jpars]) for k in pkeys}
             fitjk['pstd'] = jpval  
-            fitjk['fit']  = fit          
+            # fitjk['fit']  = fit          
 
         return fitjk if jkfit else fit
     
@@ -390,6 +402,9 @@ class RatioSet:
             xdata,yd = self.objs[mom][rat].format()
 
             for smr in self.smslist:
+                if (mom,rat,smr) not in self.keys:
+                    continue
+                
                 yv = yd[smr] * (1 if factor is None else factor)
 
                 mask = np.array([x in fit.x[mom][rat][smr] for x in xdata])
@@ -424,7 +439,7 @@ class RatioSet:
 
                 # Plot result
                 f0 = fit.p[f'{ratio}_{mom}_f0']  * (1 if factor is None else factor)
-                ax.axhspan(f0.mean-f0.sdev,f0.mean-f0.sdev,color=f'C{I}',alpha=0.5)
+                ax.axhspan(f0.mean-f0.sdev,f0.mean+f0.sdev,color=f'C{I}',alpha=0.2)
 
             I += 1
 
@@ -503,7 +518,6 @@ def main():
 
 
     MOMLIST = ['000','100','200','300']
-    # RATLIST = ['XF','RMINUS','QPLUS','RPLUS']
     RATLIST = ['XFSTPAR','ZRA1','RA1','XV','R0','R1']
     SMSLIST = ['1S','RW']
 
@@ -515,12 +529,13 @@ def main():
     xx = RatioSet(ENSEMBLE,MOMLIST,RATLIST,SMSLIST)
     xx.collect(DATA_DIR,DATA_2PT)
 
+    xx.remove(('000','ZRA1','RW'))
 
     priors = xx.params()
     fit = xx.fit(
         tmin   = 2,
         priors = priors,
-        jkfit  = True,
+        # jkfit  = True,
         **cov_specs
     )   
 

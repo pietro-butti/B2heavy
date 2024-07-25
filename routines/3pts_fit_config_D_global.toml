@@ -1,0 +1,128 @@
+# Configs
+author = 'pietro.butti'
+title = '3pts fits'
+
+# Meson list
+[ensemble]
+    list = ['MediumCoarse','Coarse-2','Coarse-Phys','Coarse-1','Fine-1','Fine-Phys','SuperFine']
+
+[ratio]
+    list = ['QPLUS','RPLUS','RMINUS','XF']
+
+[momenta]
+    list = ['000','100','200','300','400']
+
+
+[data]
+    mdata = '/Users/pietro/code/software/B2heavy/b2heavy/FnalHISQMetadata.py'
+
+
+    [data.MediumCoarse]
+        name     = 'MediumCoarse'
+        data_dir = "/Users/pietro/code/data_analysis/BtoD/Alex"
+        binsize  = 13
+        mom_list = ['000','100','200','300','400','110','211','222']
+        Nt       = 48
+
+    [data.Coarse-2]
+        name     = 'Coarse-1'
+        data_dir = "/Users/pietro/code/data_analysis/BtoD/Alex"
+        binsize  = 16
+        mom_list = ['000','100','200','300']
+        Nt       = 64
+
+    [data.Coarse-1]
+        name     = 'Coarse-1'
+        data_dir = "/Users/pietro/code/data_analysis/BtoD/Alex"
+        binsize  = 11
+        mom_list = ['000','100','200','300']
+        Nt       = 64
+    
+    [data.Coarse-Phys]
+        name     = 'Coarse-Phys'
+        data_dir = "/Users/pietro/code/data_analysis/BtoD/Alex"
+        binsize  = 19
+        mom_list = ['000','100','200','300','400']
+        Nt       = 64
+    
+    [data.Fine-1]
+        name     = 'Fine-1'
+        data_dir = "/Users/pietro/code/data_analysis/BtoD/Alex"
+        binsize  = 16
+        mom_list = ['000','100','200','300','400']
+        Nt       = 96
+    
+    [data.Fine-Phys]
+        name     = 'Fine-Phys'
+        data_dir = "/Users/pietro/code/data_analysis/BtoD/Alex"
+        binsize  = 16
+        mom_list = ['000','100','200','300','400']
+        Nt       = 96
+    
+    
+    [data.SuperFine]
+        name = "SuperFine"
+        data_dir = "/Users/pietro/code/data_analysis/BtoD/Alex"
+        binsize = 22
+        mom_list = [ "000", "100", "200", "300", "400"]
+        Nt = 192
+
+
+
+[fit]
+
+    [fit.MediumCoarse]
+        tag     = 'MediumCoarse_D_global' 
+        momlist = ['000','100','200','300','400']
+        ratlist = ['QPLUS','RPLUS','RMINUS','XF']
+        smslist = ['1S','RW']
+        tmin    = 1
+        remove  = []
+
+    [fit.Coarse-2]
+        tag     = 'Coarse-2_D_global' 
+        momlist = ['000','100','200','300']
+        ratlist = ['QPLUS','RPLUS','RMINUS','XF']
+        smslist = ['1S','RW']
+        tmin    = 1
+        remove  = []
+
+    [fit.Coarse-1]
+        tag     = 'Coarse-1_D_global' 
+        momlist = ['000','100','200','300']
+        ratlist = ['QPLUS','RPLUS','RMINUS','XF']
+        smslist = ['1S','RW']
+        tmin    = 2
+        remove  = []
+
+    [fit.Coarse-Phys]
+        tag     = 'Coarse-Phys_D_global' 
+        momlist = ['000','100','200','300','400']
+        ratlist = ['QPLUS','RPLUS','RMINUS','XF']
+        smslist = ['1S','RW']
+        tmin    = 2
+        remove  = []
+    
+    [fit.Fine-1]
+        tag  = 'Fine-1_D_global' 
+        momlist = ['000','100','200','300','400']
+        ratlist = ['QPLUS','RPLUS','RMINUS','XF']
+        smslist = ['1S','RW']
+        tmin    = 3
+        remove  = []
+
+    [fit.Fine-Phys]
+        tag  = 'Fine-Phys_D_global' 
+        momlist = ['000','100','200','300','400']
+        ratlist = ['QPLUS','RPLUS','RMINUS','XF']
+        smslist = ['1S','RW']
+        tmin    = 3
+        remove  = []
+
+    [fit.SuperFine]
+        tag  = 'SuperFine_D_global' 
+        momlist = ['000','100','200','300','400']
+        ratlist = ['QPLUS','RPLUS','RMINUS','XF']
+        smslist = ['1S','RW']
+        tmin    = 4
+        remove  = []

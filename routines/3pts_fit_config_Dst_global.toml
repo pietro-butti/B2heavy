@@ -56,37 +56,33 @@ title = '3pts fits'
 
 [fit]
     [fit.Coarse-2]
-        tag     = 'Coarse-2_global' 
+        tag     = 'Coarse-2_Dst_global' 
         momlist = ['000','100','200','300']
         ratlist = ['XFSTPAR','ZRA1','RA1','XV','R0','R1']
         smslist = ['1S','RW']
-        tmin    = 2
+        tmin    = 1
+        remove  = [['000','ZRA1','RW']]
 
     [fit.Coarse-1]
-        tag     = 'Coarse-1_global' 
+        tag     = 'Coarse-1_Dst_global' 
         momlist = ['000','100','200','300']
         ratlist = ['XFSTPAR','ZRA1','RA1','XV','R0','R1']
         smslist = ['1S','RW']
-        tmin    = 2
-    
+        tmin    = 1
+        remove  = [['000','ZRA1','RW']]
+
     [fit.Coarse-Phys]
-        tag     = 'Coarse-Phys_global' 
+        tag     = 'Coarse-Phys_Dst_global' 
         momlist = ['000','100','200','300','400']
         ratlist = ['XFSTPAR','ZRA1','RA1','XV','R0','R1']
         smslist = ['1S','RW']
-        tmin    = 2
+        tmin    = 1
+        remove  = [['000','ZRA1','RW']]
     
     [fit.Fine-1]
-        tag  = 'Fine-1_global' 
+        tag  = 'Fine-1_Dst_global' 
         momlist = ['000','100','200','300','400']
         ratlist = ['XFSTPAR','ZRA1','RA1','XV','R0','R1']
         smslist = ['1S','RW']
         tmin    = 2
-    
-    [fit.Fine-Phys]
-        tag  = 'Fine-Phys_global' 
-        momlist = ['000','100','200','300','400']
-        ratlist = ['XFSTPAR','ZRA1','RA1','XV','R0','R1']
-        smslist = ['1S','RW']
-        tmin    = 2
-        
+        remove  = [['000','ZRA1','RW']]

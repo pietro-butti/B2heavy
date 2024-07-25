@@ -108,10 +108,11 @@ def RatioSpecs(ratio, mData):
             # nNames = [['P5_A2_V2_'], ['P5_A2_V2_']] # 'R' # <--- Alex version
             # nFacs  = [[1., 1.], [ 1., 1.]]                # <--- Alex version    
 
-            nNames = [['P5_A2_V2_']]
-            nFacs  = [[1.]]   
+            # nNames = [['P5_A2_V2_']]
+            # nFacs  = [[1.]]   
 
-            # nNames = [['P5_A2_V2_','P5_A3_V3_']] #<--- should be the correct one 
+            nNames = [['P5_A2_V2_','P5_A3_V3_']] #<--- should be the correct one 
+            nFacs  = [[1., 1.]]       #<--- should be the correct one 
             # nFacs  = [[1., 1.], [ 1., 1.]]       #<--- should be the correct one 
 
             dNames = [['V1_V4_V1_'],['P5_V4_P5_']] # 'V1_V4_V2_', 'V1_V4_V3_']         
@@ -145,7 +146,7 @@ def RatioSpecs(ratio, mData):
             nNames = [['P5_A4_V1_']]
             nFacs  = [[1.]]
             dNames = [['P5_A2_V2_', 'P5_A3_V3_']]
-            dFacs  = [[-1.,-1.]]
+            dFacs  = [[1.,1.]]
             
             specs  = dict(
                 source = 'B',
@@ -171,9 +172,10 @@ def RatioSpecs(ratio, mData):
             lStr   = cStr
             qStr   = mStr
             nNames = [['P5_V3_V2_', 'P5_V2_V3_']]
-            nFacs  = [[-1., 1.]]
+            nFacs  = [[1., -1.]]
             dNames = [['P5_A2_V2_', 'P5_A3_V3_']]
-            dFacs  = [[-1.,-1.]]
+            # dFacs  = [[-1.,-1.]]
+            dFacs  = [[1.,1.]]
             
             specs  = dict(
                 source = 'B',
@@ -484,7 +486,8 @@ def ratio_correction_factor(rstr,smearing=['RW','1S'],**req):
                 )
 
             case ratio if ratio in ['RA1','RA1S']:
-                ff = 1./ req['wrecoil']**2 * \
+                # ff = 1./ req['wrecoil']**2 * \
+                ff = (req['m0']/req['E0'])**2 * \
                     req['Zbot'][smi]/np.sqrt( req['Z0'][smi] * req['Z0']['1S'] )
 
             case ratio if ratio in ['ZRA1','ZRA1S']:

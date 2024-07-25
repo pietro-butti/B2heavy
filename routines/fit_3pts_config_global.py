@@ -64,6 +64,7 @@ def main():
     momlist = config['fit'][ens]['momlist']
     ratlist = config['fit'][ens]['ratlist']
     smslist = config['fit'][ens]['smslist']
+    toremove = [tuple(rm) for rm in config['fit'][ens]['remove']]
 
     tmin    = config['fit'][ens]['tmin']
 
@@ -87,7 +88,7 @@ def main():
                 else:
                     print(f'Analysis for {tag} already up to date')
                     skip_fit = True
-                    fit = read_config_fit(f'fit3pt_config_{ens}_global')
+                    fit = read_config_fit(f'fit3pt_config_{ens}_global',path=readfrom)
                     
 
     if not skip_fit:
@@ -103,12 +104,15 @@ def main():
         rset = RatioSet(ens,momlist,ratlist,smslist)
         rset.collect(data_dir,read2pts)
 
+        rset.remove(*toremove)
+
         # Perform the global fit
         priors = rset.params()
         fit = rset.fit(
             tmin  = tmin,
             prior = priors,
-            jkfit = False
+            jkfit = False,
+            **cov_specs
         )
         fitres = rset.fit_result(
             tmin = tmin,
@@ -132,7 +136,7 @@ def main():
                 with open(name, 'wb') as handle:
                     pickle.dump(fitjk, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-        show(rset.cases,fit.p)
+        print(show(rset.cases,fit.p))
 
     else:
         cases = []
@@ -140,7 +144,7 @@ def main():
             if k.endswith('f0'):
                 ratio,mom,_ = k.split('_')
                 cases.append((mom,ratio))
-
+        print(show(cases,fit[-1]))
 
 if __name__=='__main__':
     main()
