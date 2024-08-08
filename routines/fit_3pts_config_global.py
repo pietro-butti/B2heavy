@@ -20,6 +20,7 @@ from DEFAULT_ANALYSIS_ROOT import DEFAULT_ANALYSIS_ROOT
 prs = argparse.ArgumentParser()
 prs.add_argument('-c','--config'  , type=str,  default='./3pts_fit_config_global.toml')
 prs.add_argument('-e','--ensemble', type=str,  default=None)
+prs.add_argument('--meson'        , type=str,  default=None)
 prs.add_argument('-r','--ratio'   , type=str,  nargs='+',  default=None)
 prs.add_argument('-m','--mom'     , type=str,  nargs='+',  default=None)
 
@@ -28,6 +29,9 @@ prs.add_argument('--readfrom'     , type=str,  default=None)
 prs.add_argument('--read2pts'     , type=str,  default=None)
 prs.add_argument('--jkfit'        , action='store_true', default=False)
 prs.add_argument('--override'     , action='store_true')
+
+
+prs.add_argument('--priors_2pts'  , action='store_true')
 
 prs.add_argument('--diag'         , action='store_true')
 prs.add_argument('--block'        , action='store_true')
@@ -41,6 +45,15 @@ prs.add_argument('--show'         , action='store_true')
 
 
 
+def check_ratio_list(meson,ratlist):
+    for ratio in ratlist:
+        if meson=='Dst':
+            if ratio.upper() not in ['RA1','ZRA1','XFSTPAR','XFSTBOT','R0','R1','XV']:
+                raise KeyError(f'{ratio} is not one of {ratlist} for {meson}')
+        elif meson=='D':
+            if ratio.upper() not in ['XF','QPLUS','RPLUS','RMINUS']:
+                raise KeyError(f'{ratio} is not one of {ratlist} for {meson}')
+    return
 
 
 def main():
@@ -67,6 +80,8 @@ def main():
     toremove = [tuple(rm) for rm in config['fit'][ens]['remove']]
 
     tmin    = config['fit'][ens]['tmin']
+
+    check_ratio_list(args.meson,ratlist)
 
     # ====================================================================================
     SAVETO = DEFAULT_ANALYSIS_ROOT if args.saveto=='default' else args.saveto
@@ -106,12 +121,29 @@ def main():
 
         rset.remove(*toremove)
 
+        # Set prior from 2pts fits
+        if args.priors_2pts:
+            tag = f'fit2pt_config_{ens}_{args.meson}_000'
+            fit,pars = read_config_fit(tag,path=read2pts)
+            dE_D = np.exp(pars['dE'][1])
+
+            tag = f'fit2pt_config_{ens}_B_000'
+            fit,pars = read_config_fit(tag,path=read2pts)
+            dM_B = np.exp(pars['dE'][1])
+
+            priors = rset.params(
+                dE_D = gv.gvar(dE_D.mean,0.5),
+                dM_D = gv.gvar(dE_D.mean,0.5),
+                dM_B = gv.gvar(dM_B.mean,0.5),
+            )
+
+        else:
+            priors = rset.params()
+
         # Perform the global fit
-        priors = rset.params()
         fit = rset.fit(
-            tmin  = tmin,
-            prior = priors,
-            jkfit = False,
+            tmin   = tmin,
+            priors = priors,
             **cov_specs
         )
         fitres = rset.fit_result(
@@ -126,9 +158,10 @@ def main():
 
         if JKFIT:
             fitjk = rset.fit(
-                tmin  = tmin,
-                prior = priors,
-                jkfit = True
+                tmin   = tmin,
+                priors = priors,
+                jkfit  = True,
+                **cov_specs
             )
 
             if saveto is not None:

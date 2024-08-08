@@ -128,87 +128,63 @@ $ python 2pts_fit_config.py --config   [file location of the toml config file. D
 > The flag `saveto` is not mandatory, but if specified must be followed by the path of the folder where the user wants to direct the output of the fit.
 
 
+## Output format
+As an example, let's say that we performed the 2pt function fit for the following specifics:
+- ensemble: `Fine-1`
+- meson: `Dst`
+- momentum: `100`
+using the routine `/routines/fit_2pts_config.py`.
 
-
-
-
-<!-- ## Pre-analysis
-Before performing the complete jackknife analysis on the different ensembles/meson/momenta, it is advisable to explore the fit in terms of performance, p-values and $\chi^2$. This is dealt with the routine `fit_2pts_preanalysis.py`
-
-It performs the following tasks:
-- Perform `tmax` analysis: looks for the timeslice in which the relative error starts to be >30% (percentage tunable through the parameter `maxerr`) 
-- Perform the fits for given parameters with different modes (with and without shrinking and rescaling of covariance matrix) and collect the $\chi^2$ and the $p$-values of the fit and prints on screen a table that sums up this information -->
-
-<!-- ### Usage
-The possible parameters are
+In this case, inside the output folder we will find the following data files
 ```
-$ python fit_2pts_preanalysis.py --help
-
-usage: 
-python fit_2pts_preanalysis.py --config   [file location of the toml config file]         
-                               --ensemble [list of ensembles analyzed]                    
-                               --meson    [list of meson analyzed]                        
-                               --mom      [list of momenta considered]
-                               --saveto   [where do you want to save? Defaults='./' while 'default' goes to DEFAULT_ANALYSIS_ROOT]                     
-                               --maxerr   [Error percentage for Tmax]                     
-                               --Nstates  [list of N for (N+N) fit (listed without comas)]
-                               --tmins    [list of tmins (listed without commas)]
-                               --tmaxs    [list of tmaxs (listed without commas), if not specified, the 30 criterion will be applied]
-                               --verbose
+fit2pt_config_Fine-1_Dst_100_fit.pickle   
+fit2pt_config_Fine-1_Dst_100_fit_p.pickle
 ```
-
-
-An example is 
+In order to have access to the result stored, one can use the function `b2heavy.ThreePointFunctions.utils.read_config_fit` in the following way
 ```
-$ python fit_2pts_preanalysis.py --ensemble Coarse-1 --meson Dsst --mom 100 --maxerr 25 --Nstates 1 2 3 --tmins 14 --tmaxs 23 --verbose
+from b2heavy.ThreePointFunctions.utils import read_config_fit
 
-                                                  Ndof      time  chi2 [red]  chi2 [aug]       p value           E0
-tag               tmax tmin Nstates scale shrink                                                                   
-Coarse-1_Dsst_100 23   14   1       False False     48  0.030131  169.096940  173.781778  5.255437e-12  1.15189(33)
-                                          True      48  0.022429   73.449739   79.323610  4.598948e-02  1.15218(37)
-                                    True  False     48  0.029249  100.849462  107.749229  2.519042e-04  1.15237(38)
-                                          True      48  0.026455   93.425828  100.269303  1.222464e-03  1.15237(38)
-                            2       False False     40  0.464358   69.722886   82.972547  2.210708e-03  1.15192(38)
-                                          True      40  0.205435   27.291548   35.422582  9.023864e-01  1.15203(40)
-                                    True  False     40  0.114803   36.838366   43.638096  5.409826e-01  1.15210(40)
-                                          True      40  0.116863   33.828012   40.554026  6.746804e-01  1.15210(40)
-                            3       False False     32  6.493438   54.787533   69.206647  3.905211e-04  1.15185(38)
-                                          True      32  0.586021   25.052437   33.885287  3.801422e-01  1.15202(40)
-                                    True  False     32  0.735699   34.940914   42.549889  6.453774e-02  1.15210(40)
-                                          True      32  0.597975   32.138438   39.600610  1.171063e-01  1.15210(40)
+tag       = 'fit2pt_config_Fine-1_Dst_100'
+readfrom  = '/path/to/output/folder/'
+fit,pars  = read_config_fit(tag,path=readfrom)
 ```
+The variable `fit` is a dictionary which contains the following data about the fit:
+- `fit['x']` - x-data used by `lsqfit`
+- `fit['y']` - y-data used by `lsqfit`
+- `fit['cov']` - covariance used by `lsqfit` after the manipulation
+- `fit['chi2red']` - $\chi^2$ (not reduced)
+- `fit['chi2aug']` - $\chi^2$ augmented ($\chi^2 + \chi^2_\text{prior}$)
+- `fit['chiexp']` - expected $\chi^2$
+- `fit['pexp']` - expected $p$-value
+- `fit['pstd']` - finite size corrected $p$-value
 
+The variable `pars` is a dictionary containing all the parameters computed by the fit.
 
-## Stability of fit
-The routine `fit_2pts_stability_test.py` performs the following tasks:
-- Performs different fits for a range of `tmins` and `tmaxs` and excited states
-- Plot them together
-- Perform the model average, if required to
-
-Some technical observations:
-- The fits are performed using *always the same priors* found from effective mass and coefficients of a given time range
-  
-### Usage
-
+>As an example, one can extrac the energy of the fundamental state as
+> ```
+> E0 = par['dE'][0]
+> ```
+> or the matrix elements $Z_{1S}(\mathbf{p}_\perp)$ as
+> ```
+> z = par['Z.1S.Bot'][0]
+>```
+> To obtain the real value of $Z_{1S}(\mathbf{p}_\perp)$, one has to elaborate the fit parameter `z` as $\texttt{z} = \frac{\sqrt{Z_{1S}(\mathbf{p}_\perp)}}{2E_0}$ and therefore 
+>```
+> Z = np.exp(z)**2 * 2*E0
+>```
+> .
+### Jackknife fits
+If the routine `/routines/fit_2pts_config.py` has been called with the flag `--jkfit` in the output folder one will also find
 ```
-$ python 2pts_fit_stability_test.py --help
+fit2pt_config_Fine-1_Dst_100_jk_fit.pickle   
+fit2pt_config_Fine-1_Dst_100_jk_fit_p.pickle
+```
+In this case, one can read the results in the same way, but setting the extra keyword `jk=True`
+```
+from b2heavy.ThreePointFunctions.utils import read_config_fit
 
-python 2pts_fit_stability_test.py --config        [file location of the toml config file]
-                                  --ensemble     [which ensemble?]                       
-                                  --meson        [which meson?]                          
-                                  --mom          [which momentum?]                       
-                                  --prior_trange  [trange for effective mass priors]
-                                  --Nstates      [list of N for (N+N) fit (listed without comas)]
-                                  --tmins        [list of tmins (listed without commas)]
-                                  --tmaxs        [list of tmaxs (listed without commas)]
-                                  --read_from    [name of the .pickle file of previous analysis]
-                                  --saveto       [where do you want to save the analysis?]
-                                  --not_average  [list of tmins that do not have to be taken in model average]
-                                  --showfig      [do you want to display the plot with plt.show()?]
-                                  --plot         [do you want to plot data?]
-                                  --plot_ymax    [set maximum y in the plot]
-                                  --plot_ymin    [set minimum y in the plot]
-                                  --plot_AIC     [do you want to plot also the AIC weight?]
-Examples
-python fit_2pts_stability_test.py --ensemble Coarse-1 --meson Dsst --mom 100 --prior_trange 14 23 --Nstates 1 2 3 --tmins 7 8 9 10 11 12 13 14 15 16 --tmaxs 23 --saveto default --plot --showfig --plot_AIC
-``` -->
+tag       = 'fit2pt_config_Fine-1_Dst_100'
+readfrom  = '/path/to/output/folder/'
+fitjk     = read_config_fit(tag,path=readfrom,jk=True)
+```
+The output will be different. `fitjk` is a dictionary containing the values of the parameter obtained for each jackknife fit. 
